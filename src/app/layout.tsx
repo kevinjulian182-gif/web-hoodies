@@ -4,7 +4,7 @@ import { CartProvider } from '@/lib/cart';
 import Navbar from '@/components/Navbar';
 
 export const metadata: Metadata = {
-  title: 'Hoodies Premium — Streetwear de lujo',
+  title: 'AFRA — Streetwear de lujo',
   description: 'Hoodies, sudaderas y chaquetas de las marcas más exclusivas.',
 };
 

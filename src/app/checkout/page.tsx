@@ -71,7 +71,7 @@ export default function CheckoutPage() {
     <div className="min-h-screen bg-cream-50 flex items-center justify-center px-6 py-16">
       <div className="w-full max-w-md">
         <Link href="/" className="block text-center text-lg font-semibold tracking-tightest text-coffee-900 mb-10">
-          HOODIES°
+          AFRA°
         </Link>
 
         <div className="mb-8 space-y-2">

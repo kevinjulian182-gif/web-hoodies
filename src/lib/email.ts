@@ -22,7 +22,7 @@ export async function sendOrderConfirmationEmail(order: OrderWithItems) {
   const total = (order.totalCents / 100).toLocaleString('es-CO', { style: 'currency', currency: 'COP' });
 
   await resend.emails.send({
-    from: 'Hoodies Premium <pedidos@hoodiespremium.com>',
+    from: 'AFRA <pedidos@afra.co>',
     to: order.customerEmail,
     subject: 'Tu compra ha sido exitosa',
     html: `

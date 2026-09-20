@@ -1,4 +1,4 @@
-# Hoodies Premium
+# AFRA
 
 E-commerce de streetwear premium (Next.js 16 App Router + TypeScript + Tailwind + Prisma/PostgreSQL).
 
@@ -44,8 +44,8 @@ npm run dev
 
 Usuarios de prueba (creados por el seed):
 
-- Super Admin: `superadmin@hoodiespremium.com` / `SuperAdmin123!`
-- Admin: `admin@hoodiespremium.com` / `Admin123!`
+- Super Admin: `superadmin@afra.co` / `SuperAdmin123!`
+- Admin: `admin@afra.co` / `Admin123!`
 
 Las llaves de Wompi/Inter Rapidísimo/Resend pueden definirse en `.env` o cargarse desde `/admin/settings` (se guardan cifradas en `SystemConfig` y tienen prioridad sobre las variables de entorno).
 

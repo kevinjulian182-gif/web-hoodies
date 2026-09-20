@@ -16,7 +16,7 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 bg-cream-50/80 backdrop-blur-md border-b border-cream-200">
       <nav className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
         <Link href="/" className="text-lg font-semibold tracking-tightest text-coffee-900">
-          HOODIES°
+          AFRA°
         </Link>
         <div className="flex items-center gap-8 text-sm font-medium text-coffee-700">
           <Link href="/productos" className="hover:text-coffee-900 transition-colors">
