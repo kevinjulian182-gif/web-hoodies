@@ -25,6 +25,12 @@
       "skillPath": ".claude/skills/babylonjs-engine/SKILL.md",
       "computedHash": "8a3ca92ec7e885e3323473031c7d6f08338d5df7c0e0b9b199635f49094e96a3"
     },
+    "banner-design": {
+      "source": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/banner-design/SKILL.md",
+      "computedHash": "1bb85d0bfec06e23578739a476c181b17c4db694c341da4e603e43183a4b42d3"
+    },
     "barba-js": {
       "source": "freshtechbro/claudedesignskills",
       "sourceType": "github",
@@ -36,6 +42,24 @@
       "sourceType": "github",
       "skillPath": ".claude/skills/blender-web-pipeline/SKILL.md",
       "computedHash": "342295a1d79b24a1e8ff4c048da51b9a1dc22d9c01dea183af389c0e4a1297e6"
+    },
+    "brand": {
+      "source": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/brand/SKILL.md",
+      "computedHash": "c5629242f72a17425456f684467a6fb7fb4a03f1fcfe1474e87aabad78ddae65"
+    },
+    "design": {
+      "source": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/design/SKILL.md",
+      "computedHash": "5323cb84852303e2cbd76c909e3165a3b63f4e4f81a85ab0a549481fc3d5f86f"
+    },
+    "design-system": {
+      "source": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/design-system/SKILL.md",
+      "computedHash": "c50a1a77394e988b2593ed97f95ae28b5167eb8a826385b5996d67e398d15b6a"
     },
     "gsap-scrolltrigger": {
       "source": "freshtechbro/claudedesignskills",
@@ -115,6 +139,12 @@
       "skillPath": ".claude/skills/skill-creator/SKILL.md",
       "computedHash": "0aa401c7d5eb0e8475de2e62519ca01dbaab6f0abce9e34b9e87ff07ffb19312"
     },
+    "slides": {
+      "source": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/slides/SKILL.md",
+      "computedHash": "9c012d14e94b734b324f859d64da3b47762b8cdee47515ce83bce4366222f885"
+    },
     "spline-interactive": {
       "source": "freshtechbro/claudedesignskills",
       "sourceType": "github",
@@ -144,6 +174,18 @@
       "sourceType": "github",
       "skillPath": ".claude/skills/threejs-webgl/SKILL.md",
       "computedHash": "9b2cfc1e6512ad6c41e4e9ba56c301d619c2cfd63722793258f4424013ec4b22"
+    },
+    "ui-styling": {
+      "source": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/ui-styling/SKILL.md",
+      "computedHash": "39ad392c96adab936d8d057b66d1d632dd9c3d2b2397ec11bfe0e2a7c1fc975a"
+    },
+    "ui-ux-pro-max": {
+      "source": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/ui-ux-pro-max/SKILL.md",
+      "computedHash": "4080ff883b26b670a5a224fb332e89ecc15319535f4d14279947ad7812fec558"
     },
     "web3d-integration-patterns": {
       "source": "freshtechbro/claudedesignskills",
