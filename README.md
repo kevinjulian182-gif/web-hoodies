@@ -58,7 +58,9 @@ unos valores — el resto corre en la nube.
 **1. Base de datos gratuita (Supabase)**
 1. Crea una cuenta en [supabase.com](https://supabase.com) → *New Project*.
 2. Ve a *Project Settings → Database → Connection string* y copia el modo
-   **Transaction pooler**. Esa URL es tu `DATABASE_URL`.
+   **Transaction pooler**. Esa URL es tu `DATABASE_URL` — agrégale al final
+   `?pgbouncer=true` (Prisma lo necesita para funcionar con ese pooler).
+   Ejemplo: `postgresql://...:6543/postgres?pgbouncer=true`.
 
 **2. Configurar los secretos en GitHub**
 1. En este repositorio: *Settings → Secrets and variables → Actions → New repository secret*.
@@ -72,7 +74,7 @@ unos valores — el resto corre en la nube.
 1. Crea una cuenta en [vercel.com](https://vercel.com) con tu GitHub → *Add New Project* → importa `web-hoodies`.
 2. En *Environment Variables* pega:
    ```
-   DATABASE_URL=<la misma URL de Supabase>
+   DATABASE_URL=<la misma URL de Supabase, con ?pgbouncer=true al final>
    AUTH_SECRET=<genera uno nuevo o pide uno>
    CONFIG_ENCRYPTION_KEY=<genera uno nuevo o pide uno>
    ```

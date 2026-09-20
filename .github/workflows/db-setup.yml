@@ -34,4 +34,11 @@ jobs:
 
       - name: Crear Super Admin, Admin y producto de ejemplo
         if: ${{ inputs.seed }}
-        run: npm run db:seed
+        # pgbouncer=true desactiva los prepared statements de Prisma: el
+        # pooler en modo "Transaction" no los soporta de forma confiable.
+        run: |
+          case "$DATABASE_URL" in
+            *\?*) export DATABASE_URL="${DATABASE_URL}&pgbouncer=true" ;;
+            *) export DATABASE_URL="${DATABASE_URL}?pgbouncer=true" ;;
+          esac
+          npm run db:seed
