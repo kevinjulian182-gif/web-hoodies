@@ -2,29 +2,26 @@
 
 import { motion } from 'framer-motion';
 
-const FEATURES = [
-  {
-    title: 'Pago contra entrega',
-    description: 'Recibe tu pedido y paga en la puerta de tu casa. Sin adelantos, sin riesgos.',
-    icon: <TruckIcon />,
-  },
-  {
-    title: 'Calidad garantizada',
-    description: 'Cada pieza pasa por control de calidad antes de salir de bodega. 100% original.',
-    icon: <BadgeIcon />,
-  },
-  {
-    title: 'Materiales premium',
-    description: 'Algodón pesado, felpa francesa y acabados que resisten el uso diario por años.',
-    icon: <FabricIcon />,
-  },
-];
+type TrustContent = {
+  item1Title: string;
+  item1Body: string;
+  item2Title: string;
+  item2Body: string;
+  item3Title: string;
+  item3Body: string;
+};
 
-export default function TrustSection() {
+export default function TrustSection({ content }: { content: TrustContent }) {
+  const features = [
+    { title: content.item1Title, description: content.item1Body, icon: <TruckIcon /> },
+    { title: content.item2Title, description: content.item2Body, icon: <BadgeIcon /> },
+    { title: content.item3Title, description: content.item3Body, icon: <FabricIcon /> },
+  ];
+
   return (
     <section className="border-t border-cream-200 bg-cream-50">
       <div className="mx-auto max-w-7xl px-6 py-20 grid gap-12 md:grid-cols-3">
-        {FEATURES.map((feature, i) => (
+        {features.map((feature, i) => (
           <motion.div
             key={feature.title}
             initial={{ opacity: 0, y: 24 }}

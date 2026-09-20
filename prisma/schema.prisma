@@ -44,7 +44,9 @@ model Product {
   description String
   priceCents  Int
   images      String[]
+  videos      String[]    @default([])
   sizes       String[]
+  colors      String[]    @default([])
   stock       Int         @default(0)
   active      Boolean     @default(true)
   orderItems  OrderItem[]
@@ -83,6 +85,7 @@ model OrderItem {
   product    Product @relation(fields: [productId], references: [id])
   productId  String
   size       String
+  color      String?
   quantity   Int
   priceCents Int
 }
@@ -104,6 +107,12 @@ model NewsletterSubscriber {
 }
 
 model SystemConfig {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model SiteContent {
   key       String   @id
   value     String
   updatedAt DateTime @updatedAt

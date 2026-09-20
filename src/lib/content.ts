@@ -1,0 +1,69 @@
+import { prisma } from '@/lib/prisma';
+
+export const CONTENT_DEFAULTS = {
+  'hero.eyebrow': 'Colección permanente',
+  'hero.title_line1': 'Streetwear',
+  'hero.title_line2': 'de élite.',
+  'hero.subtitle': 'Piezas originales de las marcas más exclusivas. Curado para quienes exigen lo mejor.',
+  'hero.cta': 'Explorar colección',
+  'trust.item1_title': 'Pago contra entrega',
+  'trust.item1_body': 'Recibe tu pedido y paga en la puerta de tu casa. Sin adelantos, sin riesgos.',
+  'trust.item2_title': 'Calidad garantizada',
+  'trust.item2_body': 'Cada pieza pasa por control de calidad antes de salir de bodega. 100% original.',
+  'trust.item3_title': 'Materiales premium',
+  'trust.item3_body': 'Algodón pesado, felpa francesa y acabados que resisten el uso diario por años.',
+  'home.newsletter_title': 'Sé el primero en enterarte',
+  'home.newsletter_body': 'Lanzamientos exclusivos y promociones, directo a tu correo.',
+  'nosotros.eyebrow': 'Sobre nosotros',
+  'nosotros.title_line1': 'Streetwear que se gana',
+  'nosotros.title_line2': 'su lugar en tu clóset.',
+  'nosotros.intro':
+    'AFRA nació de una obsesión simple: reunir en un solo lugar las piezas de streetwear que de verdad valen la pena, sin relleno y sin réplicas. Curamos, no acumulamos.',
+  'nosotros.value1_title': 'Curaduría exigente',
+  'nosotros.value1_body':
+    'No vendemos de todo. Cada marca y cada pieza pasa un filtro estricto de diseño, calidad y relevancia cultural antes de entrar al catálogo.',
+  'nosotros.value2_title': 'Autenticidad sin excepciones',
+  'nosotros.value2_body':
+    'Trabajamos directamente con distribuidores autorizados. Cada prenda es 100% original, verificable y respaldada.',
+  'nosotros.value3_title': 'Servicio de cerca',
+  'nosotros.value3_body':
+    'Pago contra entrega, seguimiento real de tu pedido y un equipo que responde — no un bot genérico.',
+  'footer.tagline':
+    'Streetwear de élite. Piezas originales de las marcas más exclusivas, curadas para quienes exigen lo mejor.',
+} as const;
+
+export type ContentKey = keyof typeof CONTENT_DEFAULTS;
+export type SiteContent = Record<ContentKey, string>;
+
+export const CONTENT_FIELDS: Array<{ key: ContentKey; label: string; section: string; multiline?: boolean }> = [
+  { key: 'hero.eyebrow', label: 'Texto superior', section: 'Portada (Hero)' },
+  { key: 'hero.title_line1', label: 'Título — línea 1', section: 'Portada (Hero)' },
+  { key: 'hero.title_line2', label: 'Título — línea 2', section: 'Portada (Hero)' },
+  { key: 'hero.subtitle', label: 'Subtítulo', section: 'Portada (Hero)', multiline: true },
+  { key: 'hero.cta', label: 'Texto del botón', section: 'Portada (Hero)' },
+  { key: 'trust.item1_title', label: 'Título 1', section: 'Sección de confianza' },
+  { key: 'trust.item1_body', label: 'Texto 1', section: 'Sección de confianza', multiline: true },
+  { key: 'trust.item2_title', label: 'Título 2', section: 'Sección de confianza' },
+  { key: 'trust.item2_body', label: 'Texto 2', section: 'Sección de confianza', multiline: true },
+  { key: 'trust.item3_title', label: 'Título 3', section: 'Sección de confianza' },
+  { key: 'trust.item3_body', label: 'Texto 3', section: 'Sección de confianza', multiline: true },
+  { key: 'home.newsletter_title', label: 'Título', section: 'Newsletter (inicio)' },
+  { key: 'home.newsletter_body', label: 'Texto', section: 'Newsletter (inicio)' },
+  { key: 'nosotros.eyebrow', label: 'Texto superior', section: 'Sobre nosotros' },
+  { key: 'nosotros.title_line1', label: 'Título — línea 1', section: 'Sobre nosotros' },
+  { key: 'nosotros.title_line2', label: 'Título — línea 2', section: 'Sobre nosotros' },
+  { key: 'nosotros.intro', label: 'Párrafo introductorio', section: 'Sobre nosotros', multiline: true },
+  { key: 'nosotros.value1_title', label: 'Valor 1 — título', section: 'Sobre nosotros' },
+  { key: 'nosotros.value1_body', label: 'Valor 1 — texto', section: 'Sobre nosotros', multiline: true },
+  { key: 'nosotros.value2_title', label: 'Valor 2 — título', section: 'Sobre nosotros' },
+  { key: 'nosotros.value2_body', label: 'Valor 2 — texto', section: 'Sobre nosotros', multiline: true },
+  { key: 'nosotros.value3_title', label: 'Valor 3 — título', section: 'Sobre nosotros' },
+  { key: 'nosotros.value3_body', label: 'Valor 3 — texto', section: 'Sobre nosotros', multiline: true },
+  { key: 'footer.tagline', label: 'Descripción de la marca', section: 'Pie de página', multiline: true },
+];
+
+export async function getSiteContent(): Promise<SiteContent> {
+  const rows = await prisma.siteContent.findMany();
+  const overrides = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+  return { ...CONTENT_DEFAULTS, ...overrides } as SiteContent;
+}

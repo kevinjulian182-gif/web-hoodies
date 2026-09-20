@@ -15,6 +15,7 @@ const schema = z.object({
       z.object({
         productId: z.string(),
         size: z.string(),
+        color: z.string().optional(),
         quantity: z.number().int().positive(),
       })
     )
@@ -71,6 +72,7 @@ export async function POST(req: NextRequest) {
         create: items.map((i) => ({
           productId: i.productId,
           size: i.size,
+          color: i.color,
           quantity: i.quantity,
           priceCents: productMap.get(i.productId)!.priceCents,
         })),

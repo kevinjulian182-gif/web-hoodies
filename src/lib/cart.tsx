@@ -8,6 +8,7 @@ export type CartItem = {
   slug: string;
   image: string;
   size: string;
+  color?: string;
   priceCents: number;
   quantity: number;
 };
@@ -15,8 +16,8 @@ export type CartItem = {
 type CartContextValue = {
   items: CartItem[];
   addItem: (item: CartItem, options?: { openDrawer?: boolean }) => void;
-  removeItem: (productId: string, size: string) => void;
-  updateQuantity: (productId: string, size: string, quantity: number) => void;
+  removeItem: (productId: string, size: string, color?: string) => void;
+  updateQuantity: (productId: string, size: string, quantity: number, color?: string) => void;
   clear: () => void;
   subtotalCents: number;
   isOpen: boolean;
@@ -26,6 +27,10 @@ type CartContextValue = {
 
 const CartContext = createContext<CartContextValue | null>(null);
 const STORAGE_KEY = 'hoodies-cart';
+
+function sameLine(a: CartItem, productId: string, size: string, color?: string) {
+  return a.productId === productId && a.size === size && (a.color ?? '') === (color ?? '');
+}
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
@@ -54,7 +59,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const addItem = (item: CartItem, options?: { openDrawer?: boolean }) => {
-    const existing = items.find((i) => i.productId === item.productId && i.size === item.size);
+    const existing = items.find((i) => sameLine(i, item.productId, item.size, item.color));
     const next = existing
       ? items.map((i) => (i === existing ? { ...i, quantity: i.quantity + item.quantity } : i))
       : [...items, item];
@@ -62,16 +67,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (options?.openDrawer !== false) setIsOpen(true);
   };
 
-  const removeItem = (productId: string, size: string) => {
-    persist(items.filter((i) => !(i.productId === productId && i.size === size)));
+  const removeItem = (productId: string, size: string, color?: string) => {
+    persist(items.filter((i) => !sameLine(i, productId, size, color)));
   };
 
-  const updateQuantity = (productId: string, size: string, quantity: number) => {
+  const updateQuantity = (productId: string, size: string, quantity: number, color?: string) => {
     if (quantity < 1) {
-      removeItem(productId, size);
+      removeItem(productId, size, color);
       return;
     }
-    persist(items.map((i) => (i.productId === productId && i.size === size ? { ...i, quantity } : i)));
+    persist(items.map((i) => (sameLine(i, productId, size, color) ? { ...i, quantity } : i)));
   };
 
   const clear = () => persist([]);

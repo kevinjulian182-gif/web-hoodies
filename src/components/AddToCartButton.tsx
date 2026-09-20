@@ -3,11 +3,13 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '@/lib/cart';
+import { colorToHex } from '@/lib/colors';
 import type { Product } from '@prisma/client';
 
 export default function AddToCartButton({ product }: { product: Product }) {
   const { addItem } = useCart();
   const [size, setSize] = useState(product.sizes[0] ?? '');
+  const [color, setColor] = useState(product.colors[0] ?? '');
   const [added, setAdded] = useState(false);
 
   const handleAdd = () => {
@@ -17,6 +19,7 @@ export default function AddToCartButton({ product }: { product: Product }) {
       slug: product.slug,
       image: product.images[0] ?? '',
       size,
+      color: color || undefined,
       priceCents: product.priceCents,
       quantity: 1,
     });
@@ -26,6 +29,34 @@ export default function AddToCartButton({ product }: { product: Product }) {
 
   return (
     <div>
+      {product.colors.length > 0 && (
+        <div className="mb-5">
+          <p className="mb-2 text-xs uppercase tracking-wide text-coffee-500">
+            Color{color && `: ${color}`}
+          </p>
+          <div className="flex gap-2">
+            {product.colors.map((c) => (
+              <button
+                key={c}
+                aria-label={c}
+                title={c}
+                onClick={() => setColor(c)}
+                className={`h-9 w-9 rounded-full border-2 transition-all ${
+                  color === c ? 'border-coffee-900 scale-110' : 'border-transparent hover:scale-105'
+                }`}
+                style={{ boxShadow: `0 0 0 1px ${color === c ? 'transparent' : '#e7ddd0'} inset` }}
+              >
+                <span
+                  className="block h-full w-full rounded-full"
+                  style={{ backgroundColor: colorToHex(c) }}
+                />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="mb-2 text-xs uppercase tracking-wide text-coffee-500">Talla</div>
       <div className="flex gap-2 mb-6">
         {product.sizes.map((s) => (
           <button

@@ -6,7 +6,15 @@ import Link from 'next/link';
 
 const BRANDS = ['Nike', 'Adidas', 'Supreme', 'Drew House', 'Essentials', 'Tommy Hilfiger', 'Bape'];
 
-export default function Hero() {
+type HeroContent = {
+  eyebrow: string;
+  titleLine1: string;
+  titleLine2: string;
+  subtitle: string;
+  cta: string;
+};
+
+export default function Hero({ content }: { content: HeroContent }) {
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] });
   const y = useTransform(scrollYProgress, [0, 1], [0, 120]);
@@ -35,7 +43,7 @@ export default function Hero() {
           transition={{ duration: 0.6 }}
           className="text-xs font-medium uppercase tracking-[0.3em] text-coffee-600 mb-6"
         >
-          Colección permanente
+          {content.eyebrow}
         </motion.p>
         <motion.h1
           initial={{ opacity: 0, y: 32 }}
@@ -43,9 +51,9 @@ export default function Hero() {
           transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
           className="text-6xl md:text-8xl font-semibold tracking-tightest text-coffee-900 leading-[0.95]"
         >
-          Streetwear
+          {content.titleLine1}
           <br />
-          de élite.
+          {content.titleLine2}
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: 24 }}
@@ -53,7 +61,7 @@ export default function Hero() {
           transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
           className="mt-8 text-lg md:text-xl text-coffee-600 max-w-xl mx-auto"
         >
-          Piezas originales de las marcas más exclusivas. Curado para quienes exigen lo mejor.
+          {content.subtitle}
         </motion.p>
         <motion.div
           initial={{ opacity: 0, y: 24 }}
@@ -65,7 +73,7 @@ export default function Hero() {
             href="/productos"
             className="group inline-flex items-center gap-2 bg-coffee-900 text-cream-50 px-8 py-4 rounded-full text-sm font-medium tracking-wide hover:bg-coffee-800 transition-colors"
           >
-            Explorar colección
+            {content.cta}
             <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
           </Link>
         </motion.div>

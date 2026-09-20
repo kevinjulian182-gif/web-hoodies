@@ -4,8 +4,10 @@ import { prisma } from '@/lib/prisma';
 import { getSession, requireRole } from '@/lib/auth';
 
 export async function GET() {
+  const session = await getSession();
+  const isStaff = requireRole(session, ['ADMIN', 'SUPER_ADMIN']);
   const products = await prisma.product.findMany({
-    where: { active: true },
+    where: isStaff ? {} : { active: true },
     orderBy: { createdAt: 'desc' },
   });
   return NextResponse.json(products);
@@ -18,7 +20,9 @@ const productSchema = z.object({
   description: z.string().min(1),
   priceCents: z.number().int().positive(),
   images: z.array(z.string().url()).min(1),
+  videos: z.array(z.string().url()).optional(),
   sizes: z.array(z.string()).min(1),
+  colors: z.array(z.string()).optional(),
   stock: z.number().int().min(0),
 });
 

@@ -9,7 +9,9 @@ const updateSchema = z.object({
   description: z.string().min(1).optional(),
   priceCents: z.number().int().positive().optional(),
   images: z.array(z.string().url()).optional(),
+  videos: z.array(z.string().url()).optional(),
   sizes: z.array(z.string()).optional(),
+  colors: z.array(z.string()).optional(),
   stock: z.number().int().min(0).optional(),
   active: z.boolean().optional(),
 });

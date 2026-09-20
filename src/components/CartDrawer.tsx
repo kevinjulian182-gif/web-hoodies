@@ -93,10 +93,10 @@ export default function CartDrawer() {
                   <AnimatePresence initial={false}>
                     {items.map((item) => (
                       <CartRow
-                        key={`${item.productId}-${item.size}`}
+                        key={`${item.productId}-${item.size}-${item.color ?? ''}`}
                         item={item}
-                        onUpdateQuantity={(qty) => updateQuantity(item.productId, item.size, qty)}
-                        onRemove={() => removeItem(item.productId, item.size)}
+                        onUpdateQuantity={(qty) => updateQuantity(item.productId, item.size, qty, item.color)}
+                        onRemove={() => removeItem(item.productId, item.size, item.color)}
                       />
                     ))}
                   </AnimatePresence>
@@ -150,7 +150,10 @@ function CartRow({
         <div className="flex items-start justify-between gap-2">
           <div>
             <p className="text-sm font-medium text-coffee-900">{item.name}</p>
-            <p className="text-xs text-coffee-500">Talla {item.size}</p>
+            <p className="text-xs text-coffee-500">
+              Talla {item.size}
+              {item.color && ` · ${item.color}`}
+            </p>
           </div>
           <button
             aria-label={`Quitar ${item.name} del carrito`}

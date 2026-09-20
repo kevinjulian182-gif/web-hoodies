@@ -41,7 +41,7 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           ...form,
           couponCode: form.couponCode || undefined,
-          items: items.map((i) => ({ productId: i.productId, size: i.size, quantity: i.quantity })),
+          items: items.map((i) => ({ productId: i.productId, size: i.size, color: i.color, quantity: i.quantity })),
         }),
       });
       const data = await res.json();

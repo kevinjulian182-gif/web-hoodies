@@ -24,7 +24,7 @@ const COLUMNS = [
   },
 ];
 
-export default function Footer() {
+export default function Footer({ tagline }: { tagline: string }) {
   const pathname = usePathname();
   if (pathname.startsWith('/checkout') || pathname.startsWith('/admin')) return null;
 
@@ -33,10 +33,7 @@ export default function Footer() {
       <div className="mx-auto max-w-7xl px-6 py-16 grid md:grid-cols-[1.5fr_1fr_1fr] gap-12">
         <div>
           <p className="text-2xl font-semibold tracking-tightest text-cream-50">AFRA°</p>
-          <p className="mt-4 text-sm text-cream-100/60 max-w-xs">
-            Streetwear de élite. Piezas originales de las marcas más exclusivas, curadas para quienes
-            exigen lo mejor.
-          </p>
+          <p className="mt-4 text-sm text-cream-100/60 max-w-xs">{tagline}</p>
         </div>
 
         {COLUMNS.map((col) => (

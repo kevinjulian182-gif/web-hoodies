@@ -20,7 +20,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   return (
     <div>
       <div className="mx-auto max-w-6xl px-6 py-16 grid md:grid-cols-2 gap-16">
-        <ProductGallery images={product.images} name={product.name} />
+        <ProductGallery images={product.images} videos={product.videos} name={product.name} />
 
         <div className="md:sticky md:top-24 md:self-start max-w-md">
           <p className="text-xs uppercase tracking-[0.2em] text-coffee-600">{product.brand}</p>

@@ -18,6 +18,7 @@ const PRODUCTS: Array<{
   description: string;
   priceCOP: number;
   stock: number;
+  colors: string[];
 }> = [
   {
     name: 'Tech Fleece Hoodie',
@@ -26,6 +27,7 @@ const PRODUCTS: Array<{
     description: 'Sudadera premium en tejido tech fleece, corte relajado y acabado minimalista.',
     priceCOP: 450000,
     stock: 25,
+    colors: ['Negro', 'Gris'],
   },
   {
     name: 'Windrunner Jacket',
@@ -34,6 +36,7 @@ const PRODUCTS: Array<{
     description: 'Chaqueta cortavientos icónica, silueta oversized y paneles de color en nylon ripstop.',
     priceCOP: 520000,
     stock: 18,
+    colors: ['Azul', 'Blanco'],
   },
   {
     name: 'Trefoil Hoodie',
@@ -42,6 +45,7 @@ const PRODUCTS: Array<{
     description: 'Hoodie en algodón French Terry con el trébol bordado al pecho, corte clásico.',
     priceCOP: 380000,
     stock: 30,
+    colors: ['Negro', 'Crema'],
   },
   {
     name: 'Firebird Track Jacket',
@@ -50,6 +54,7 @@ const PRODUCTS: Array<{
     description: 'Chaqueta deportiva con las tres franjas, cierre completo y forro satinado.',
     priceCOP: 410000,
     stock: 22,
+    colors: ['Azul marino', 'Negro'],
   },
   {
     name: 'Box Logo Hoodie',
@@ -58,6 +63,7 @@ const PRODUCTS: Array<{
     description: 'La pieza más buscada de la temporada: hoodie pesado con el box logo serigrafiado.',
     priceCOP: 890000,
     stock: 8,
+    colors: ['Rojo', 'Negro'],
   },
   {
     name: 'Bandana Camo Jacket',
@@ -66,6 +72,7 @@ const PRODUCTS: Array<{
     description: 'Chaqueta acolchada con estampado bandana camo exclusivo de la colección.',
     priceCOP: 950000,
     stock: 6,
+    colors: ['Camuflado'],
   },
   {
     name: 'Mascot Hoodie',
@@ -74,6 +81,7 @@ const PRODUCTS: Array<{
     description: 'Hoodie oversized con la mascota bordada, algodón ultra pesado y tacto suave.',
     priceCOP: 620000,
     stock: 14,
+    colors: ['Beige', 'Rosado'],
   },
   {
     name: 'Boxy Sweatshirt',
@@ -82,6 +90,7 @@ const PRODUCTS: Array<{
     description: 'Sudadera de corte boxy en tonos pastel, manga caída y felpa premium.',
     priceCOP: 580000,
     stock: 16,
+    colors: ['Rosado', 'Crema'],
   },
   {
     name: 'Essentials Hoodie',
@@ -90,6 +99,7 @@ const PRODUCTS: Array<{
     description: 'Hoodie minimalista de Fear of God Essentials, capucha 3D y logo reflectivo.',
     priceCOP: 490000,
     stock: 20,
+    colors: ['Beige', 'Negro', 'Gris'],
   },
   {
     name: 'Essentials Track Jacket',
@@ -98,6 +108,7 @@ const PRODUCTS: Array<{
     description: 'Chaqueta ligera de entretiempo con cierre y detalles reflectivos discretos.',
     priceCOP: 540000,
     stock: 12,
+    colors: ['Gris oscuro'],
   },
   {
     name: 'Varsity Jacket',
@@ -106,6 +117,7 @@ const PRODUCTS: Array<{
     description: 'Chaqueta varsity en lana y cuero sintético con parches bordados clásicos.',
     priceCOP: 610000,
     stock: 15,
+    colors: ['Azul marino', 'Vino'],
   },
   {
     name: 'Logo Hoodie',
@@ -114,6 +126,7 @@ const PRODUCTS: Array<{
     description: 'Hoodie de algodón orgánico con el logo bandera bordado al pecho.',
     priceCOP: 350000,
     stock: 28,
+    colors: ['Blanco', 'Azul marino'],
   },
   {
     name: 'Shark Full Zip Hoodie',
@@ -122,6 +135,7 @@ const PRODUCTS: Array<{
     description: 'El icónico hoodie shark con capucha de cremallera completa y camuflaje firmado.',
     priceCOP: 980000,
     stock: 7,
+    colors: ['Camuflado', 'Negro'],
   },
   {
     name: 'Camo Jacket',
@@ -130,6 +144,7 @@ const PRODUCTS: Array<{
     description: 'Chaqueta acolchada en camuflaje clásico de la marca, forro interno térmico.',
     priceCOP: 1050000,
     stock: 5,
+    colors: ['Camuflado', 'Verde militar'],
   },
 ];
 
@@ -220,9 +235,19 @@ async function main() {
         priceCents: product.priceCOP * 100,
         images: [placeholder(`${product.brand}\n${product.name}`)],
         sizes: SIZES,
+        colors: product.colors,
         stock: product.stock,
       },
-      update: {},
+      // Keep the catalog's text/attributes in sync on re-seed, but never
+      // clobber images/stock an admin may have already customized live.
+      update: {
+        name: product.name,
+        brand: product.brand,
+        description: product.description,
+        priceCents: product.priceCOP * 100,
+        sizes: SIZES,
+        colors: product.colors,
+      },
     });
   }
 
@@ -236,7 +261,11 @@ async function main() {
         content: post.content,
         coverImage: placeholder(post.title),
       },
-      update: {},
+      update: {
+        title: post.title,
+        excerpt: post.excerpt,
+        content: post.content,
+      },
     });
   }
 
