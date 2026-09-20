@@ -26,32 +26,41 @@ const STORAGE_KEY = 'hoodies-cart';
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
 
+  // A single mount-time read, with no companion "write on every items change"
+  // effect: that pairing races on mount (the write effect fires with the
+  // still-empty initial state before the read's setItems is applied),
+  // wiping out whatever was just persisted on the previous page.
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) setItems(JSON.parse(stored));
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) setItems(JSON.parse(stored));
+    } catch {
+      // ignore malformed/inaccessible storage
+    }
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  }, [items]);
+  const persist = (next: CartItem[]) => {
+    setItems(next);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    } catch {
+      // ignore storage write failures (e.g. private browsing)
+    }
+  };
 
   const addItem = (item: CartItem) => {
-    setItems((prev) => {
-      const existing = prev.find((i) => i.productId === item.productId && i.size === item.size);
-      if (existing) {
-        return prev.map((i) =>
-          i === existing ? { ...i, quantity: i.quantity + item.quantity } : i
-        );
-      }
-      return [...prev, item];
-    });
+    const existing = items.find((i) => i.productId === item.productId && i.size === item.size);
+    const next = existing
+      ? items.map((i) => (i === existing ? { ...i, quantity: i.quantity + item.quantity } : i))
+      : [...items, item];
+    persist(next);
   };
 
   const removeItem = (productId: string, size: string) => {
-    setItems((prev) => prev.filter((i) => !(i.productId === productId && i.size === size)));
+    persist(items.filter((i) => !(i.productId === productId && i.size === size)));
   };
 
-  const clear = () => setItems([]);
+  const clear = () => persist([]);
 
   const subtotalCents = useMemo(
     () => items.reduce((sum, i) => sum + i.priceCents * i.quantity, 0),

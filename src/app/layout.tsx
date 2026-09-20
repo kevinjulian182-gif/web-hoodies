@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { CartProvider } from '@/lib/cart';
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
+import PageTransition from '@/components/PageTransition';
 
 export const metadata: Metadata = {
   title: 'AFRA — Streetwear de lujo',
@@ -14,7 +16,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <CartProvider>
           <Navbar />
-          <main>{children}</main>
+          <main>
+            <PageTransition>{children}</PageTransition>
+          </main>
+          <Footer />
         </CartProvider>
       </body>
     </html>
