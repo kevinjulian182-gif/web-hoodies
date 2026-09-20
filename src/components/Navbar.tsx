@@ -12,7 +12,7 @@ const LINKS = [
 
 export default function Navbar() {
   const pathname = usePathname();
-  const { items } = useCart();
+  const { items, openCart } = useCart();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -54,7 +54,11 @@ export default function Navbar() {
           </div>
 
           <div className="flex items-center gap-4">
-            <Link href="/checkout" className="relative flex items-center gap-2 text-coffee-800">
+            <button
+              aria-label={`Ver carrito${itemCount > 0 ? ` (${itemCount} productos)` : ''}`}
+              onClick={openCart}
+              className="relative flex items-center gap-2 text-coffee-800"
+            >
               <BagIcon />
               <AnimatePresence>
                 {itemCount > 0 && (
@@ -70,7 +74,7 @@ export default function Navbar() {
                   </motion.span>
                 )}
               </AnimatePresence>
-            </Link>
+            </button>
 
             <button
               aria-label="Abrir menú"
@@ -108,7 +112,7 @@ export default function Navbar() {
               transition={{ delay: 0.1, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
               className="flex flex-col gap-6 px-6 pt-12"
             >
-              {[...LINKS, { href: '/checkout', label: 'Carrito' }].map((link) => (
+              {LINKS.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
@@ -117,6 +121,15 @@ export default function Navbar() {
                   {link.label}
                 </Link>
               ))}
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  openCart();
+                }}
+                className="text-left text-4xl font-semibold tracking-tightest text-coffee-900"
+              >
+                Carrito{itemCount > 0 && ` (${itemCount})`}
+              </button>
             </motion.div>
           </motion.div>
         )}

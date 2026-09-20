@@ -14,10 +14,14 @@ export type CartItem = {
 
 type CartContextValue = {
   items: CartItem[];
-  addItem: (item: CartItem) => void;
+  addItem: (item: CartItem, options?: { openDrawer?: boolean }) => void;
   removeItem: (productId: string, size: string) => void;
+  updateQuantity: (productId: string, size: string, quantity: number) => void;
   clear: () => void;
   subtotalCents: number;
+  isOpen: boolean;
+  openCart: () => void;
+  closeCart: () => void;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -25,6 +29,7 @@ const STORAGE_KEY = 'hoodies-cart';
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
 
   // A single mount-time read, with no companion "write on every items change"
   // effect: that pairing races on mount (the write effect fires with the
@@ -48,16 +53,25 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const addItem = (item: CartItem) => {
+  const addItem = (item: CartItem, options?: { openDrawer?: boolean }) => {
     const existing = items.find((i) => i.productId === item.productId && i.size === item.size);
     const next = existing
       ? items.map((i) => (i === existing ? { ...i, quantity: i.quantity + item.quantity } : i))
       : [...items, item];
     persist(next);
+    if (options?.openDrawer !== false) setIsOpen(true);
   };
 
   const removeItem = (productId: string, size: string) => {
     persist(items.filter((i) => !(i.productId === productId && i.size === size)));
+  };
+
+  const updateQuantity = (productId: string, size: string, quantity: number) => {
+    if (quantity < 1) {
+      removeItem(productId, size);
+      return;
+    }
+    persist(items.map((i) => (i.productId === productId && i.size === size ? { ...i, quantity } : i)));
   };
 
   const clear = () => persist([]);
@@ -68,7 +82,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <CartContext.Provider value={{ items, addItem, removeItem, clear, subtotalCents }}>
+    <CartContext.Provider
+      value={{
+        items,
+        addItem,
+        removeItem,
+        updateQuantity,
+        clear,
+        subtotalCents,
+        isOpen,
+        openCart: () => setIsOpen(true),
+        closeCart: () => setIsOpen(false),
+      }}
+    >
       {children}
     </CartContext.Provider>
   );
