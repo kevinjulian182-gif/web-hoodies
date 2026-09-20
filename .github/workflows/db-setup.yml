@@ -27,7 +27,10 @@ jobs:
       - run: npm ci
 
       - name: Aplicar el esquema a la base de datos
-        run: npx prisma db push
+        # DIRECT_URL usa el modo "Session" (puerto 5432) del mismo pooler de
+        # Supabase: el modo "Transaction" (6543) de DATABASE_URL no soporta
+        # los advisory locks que Prisma necesita para aplicar el esquema.
+        run: DIRECT_URL="${DATABASE_URL/:6543/:5432}" npx prisma db push
 
       - name: Crear Super Admin, Admin y producto de ejemplo
         if: ${{ inputs.seed }}
