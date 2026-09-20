@@ -1,0 +1,34 @@
+name: Configurar base de datos
+
+# Se ejecuta manualmente desde la pestaña "Actions" de GitHub.
+# No requiere nada instalado en tu computador: solo el secreto
+# DATABASE_URL configurado en Settings > Secrets and variables > Actions.
+on:
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: "Crear usuarios y producto de ejemplo (seed)"
+        type: boolean
+        default: true
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Aplicar el esquema a la base de datos
+        run: npx prisma db push
+
+      - name: Crear Super Admin, Admin y producto de ejemplo
+        if: ${{ inputs.seed }}
+        run: npm run db:seed
