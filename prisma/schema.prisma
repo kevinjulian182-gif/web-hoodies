@@ -108,3 +108,14 @@ model SystemConfig {
   value     String
   updatedAt DateTime @updatedAt
 }
+
+model BlogPost {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  excerpt     String
+  content     String
+  coverImage  String
+  publishedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+}

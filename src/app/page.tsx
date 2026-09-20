@@ -1,5 +1,6 @@
 import Hero from '@/components/Hero';
 import ProductGrid from '@/components/ProductGrid';
+import TrustSection from '@/components/TrustSection';
 import NewsletterForm from '@/components/NewsletterForm';
 import { prisma } from '@/lib/prisma';
 
@@ -16,6 +17,7 @@ export default async function HomePage() {
     <>
       <Hero />
       <ProductGrid products={products} />
+      <TrustSection />
       <section className="bg-cream-100 py-20 px-6 text-center">
         <h2 className="text-2xl font-semibold tracking-tightest text-coffee-900 mb-3">
           Sé el primero en enterarte

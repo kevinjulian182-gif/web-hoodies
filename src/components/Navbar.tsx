@@ -8,6 +8,8 @@ import { useCart } from '@/lib/cart';
 
 const LINKS = [
   { href: '/productos', label: 'Catálogo' },
+  { href: '/blog', label: 'Blog' },
+  { href: '/nosotros', label: 'Nosotros' },
 ];
 
 export default function Navbar() {

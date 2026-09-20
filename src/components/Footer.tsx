@@ -9,6 +9,8 @@ const COLUMNS = [
     links: [
       { href: '/productos', label: 'Catálogo' },
       { href: '/checkout', label: 'Carrito' },
+      { href: '/blog', label: 'Blog' },
+      { href: '/nosotros', label: 'Nosotros' },
     ],
   },
   {
