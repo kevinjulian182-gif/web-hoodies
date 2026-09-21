@@ -94,6 +94,7 @@ model Order {
   couponCode        String?
   status            OrderStatus @default(PENDING)
   paymentMethod     PaymentMethod @default(WOMPI)
+  whatsappConfirmedAt DateTime?
   wompiReference    String      @unique
   wompiTransactionId String?
   carrier           String      @default("Inter Rapidísimo")

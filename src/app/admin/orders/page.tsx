@@ -18,11 +18,13 @@ type Order = {
   deliveryNotes: string | null;
   status: 'PENDING' | 'PAID' | 'SHIPPED' | 'CANCELLED';
   paymentMethod: 'WOMPI' | 'COD';
+  whatsappConfirmedAt: string | null;
   totalCents: number;
   trackingNumber: string | null;
   carrier: string;
   wompiReference: string;
   createdAt: string;
+  items: { id: string; quantity: number; product: { name: string } }[];
 };
 
 const STATUS_LABEL: Record<Order['status'], string> = {
@@ -61,6 +63,15 @@ export default function OrdersPage() {
       body: JSON.stringify({ trackingNumber, carrier: 'Inter Rapidísimo' }),
     });
     if (res.ok) load();
+  };
+
+  const handleWhatsAppSent = (order: Order) => {
+    // Fire-and-forget: opening the wa.me link (native <a target="_blank">)
+    // already handles the actual navigation, this just records it happened.
+    setOrders((prev) =>
+      prev.map((o) => (o.id === order.id ? { ...o, whatsappConfirmedAt: new Date().toISOString() } : o))
+    );
+    fetch(`/api/orders/${order.id}/whatsapp-sent`, { method: 'PATCH' }).catch(() => {});
   };
 
   const handleDelete = async (order: Order) => {
@@ -138,15 +149,19 @@ export default function OrdersPage() {
               )}
             </div>
 
-            <div className="mt-3 flex flex-wrap items-center gap-4 border-t border-cream-200 pt-3">
+            <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-cream-200 pt-3">
               <a
                 href={buildWhatsAppLink(order.shippingPhone, buildOrderConfirmationMessage(order))}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => handleWhatsAppSent(order)}
                 className="text-sm text-[#128C7E] transition-colors hover:text-[#0e6b60]"
               >
-                Enviar confirmación por WhatsApp
+                {order.whatsappConfirmedAt ? 'Reenviar confirmación por WhatsApp' : 'Enviar confirmación por WhatsApp'}
               </a>
+              {order.whatsappConfirmedAt && (
+                <span className="text-xs text-green-700">✓ Enviado {formatSentAt(order.whatsappConfirmedAt)}</span>
+              )}
               <Link
                 href={`/voucher/${order.id}`}
                 target="_blank"
@@ -166,4 +181,13 @@ export default function OrdersPage() {
       </div>
     </div>
   );
+}
+
+function formatSentAt(iso: string) {
+  return new Date(iso).toLocaleString('es-CO', {
+    day: 'numeric',
+    month: 'short',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 }
