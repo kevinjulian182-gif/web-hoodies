@@ -3,8 +3,16 @@ import { put, BlobError } from '@vercel/blob';
 import sharp from 'sharp';
 import { getSession, requireRole } from '@/lib/auth';
 
-const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
-const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
+// Vercel's serverless functions cap the whole request body around 4.5MB and
+// reject anything larger with a platform-level 413 before this handler ever
+// runs — these limits stay under that so our own, friendlier message is the
+// one that actually fires. Images are compressed client-side before upload
+// (see MediaUploader) so this is rarely the binding constraint for photos;
+// video has no such client-side shrink yet, so a phone video over ~4MB will
+// still fail — a real fix needs a direct-to-Blob client upload with a
+// signed token instead of routing the file through this function.
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 4 * 1024 * 1024;
 
 export async function POST(req: NextRequest) {
   const session = await getSession();

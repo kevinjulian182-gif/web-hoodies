@@ -2,6 +2,37 @@
 
 import { useRef, useState } from 'react';
 
+const MAX_IMAGE_DIMENSION = 2000;
+
+// Vercel's serverless functions reject request bodies over ~4.5MB before our
+// own route handler (and its sharp compression) ever runs — a pasted
+// screenshot or camera photo routinely exceeds that as raw PNG/HEIC. Shrink
+// it in the browser first so the upload almost always fits regardless of
+// the original size; the server still re-compresses to WebP on top of this.
+async function compressImageFile(file: File): Promise<File> {
+  if (!file.type.startsWith('image/') || file.type === 'image/gif' || file.type === 'image/svg+xml') {
+    return file;
+  }
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(bitmap.width, bitmap.height));
+    const width = Math.round(bitmap.width * scale);
+    const height = Math.round(bitmap.height * scale);
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return file;
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+    if (!blob) return file;
+    const baseName = file.name.replace(/\.[^./]+$/, '') || 'imagen';
+    return new File([blob], `${baseName}.jpg`, { type: 'image/jpeg' });
+  } catch {
+    return file;
+  }
+}
+
 export default function MediaUploader({
   label,
   kind,
@@ -22,14 +53,26 @@ export default function MediaUploader({
     setError('');
     setUploading(true);
     const uploaded: string[] = [];
-    for (const file of Array.from(files)) {
+    for (const rawFile of Array.from(files)) {
+      const file = kind === 'image' ? await compressImageFile(rawFile) : rawFile;
       const form = new FormData();
       form.append('file', file);
       try {
         const res = await fetch('/api/admin/upload', { method: 'POST', body: form });
-        const data = await res.json();
+        let data: { url?: string; error?: string };
+        try {
+          data = await res.json();
+        } catch {
+          // The platform (not our route) rejected the request outright —
+          // e.g. a 413 with a plain-text body — before it ever became JSON.
+          throw new Error(
+            res.status === 413
+              ? 'El archivo es demasiado grande para subirlo directamente. Intenta con uno más liviano.'
+              : 'No se pudo subir el archivo. Intenta de nuevo.'
+          );
+        }
         if (!res.ok) throw new Error(data.error ?? 'Error al subir');
-        uploaded.push(data.url);
+        if (data.url) uploaded.push(data.url);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error al subir el archivo');
       }
