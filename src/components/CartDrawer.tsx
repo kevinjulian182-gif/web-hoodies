@@ -89,7 +89,7 @@ export default function CartDrawer() {
               </div>
             ) : (
               <>
-                <ul className="flex-1 overflow-y-auto px-6 py-4">
+                <ul className="flex-1 overflow-y-auto overscroll-contain px-6 py-4">
                   <AnimatePresence initial={false}>
                     {items.map((item) => (
                       <CartRow

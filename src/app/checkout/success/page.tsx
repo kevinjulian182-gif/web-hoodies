@@ -24,7 +24,7 @@ function CheckoutSuccessContent() {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center">
+    <div className="min-h-dvh flex flex-col items-center justify-center px-6 text-center">
       <h1 className="text-3xl font-semibold tracking-tightest text-coffee-900 mb-4">
         Tu compra ha sido exitosa
       </h1>

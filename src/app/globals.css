@@ -4,10 +4,46 @@
 
 html {
   scroll-behavior: smooth;
+  /* No font inflation when the phone rotates to landscape. */
+  -webkit-text-size-adjust: 100%;
+  /* The gray/blue flash Safari/Chrome paint on every tap — the single
+     loudest "this is a website" tell on mobile. Replaced by each
+     element's own :active state instead. */
+  -webkit-tap-highlight-color: transparent;
+  /* No page-level pull-to-refresh/rubber-band; the cart drawer and search
+     overlay opt back into their own contained bounce below. */
+  overscroll-behavior: none;
 }
 
 body {
   @apply bg-cream-50 text-coffee-900 antialiased;
+}
+
+/* iOS Safari zooms the page on focus for any input under 16px and never
+   zooms back out on blur. 16px is the minimum, not a design choice.
+   !important because every input in the app carries a Tailwind text-sm
+   utility, which otherwise outranks a plain element selector; scoped to
+   coarse pointers so desktop keeps the smaller type scale. */
+@media (pointer: coarse) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+button,
+a,
+[role='button'] {
+  /* Skip the ~300ms double-tap-zoom wait before the click fires. */
+  touch-action: manipulation;
+}
+
+button,
+[role='button'] {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 ::selection {

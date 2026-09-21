@@ -20,7 +20,9 @@ export default function WhatsAppButton() {
       rel="noopener noreferrer"
       aria-label="Escríbenos por WhatsApp"
       className={`fixed right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg transition-transform hover:scale-105 active:scale-95 ${
-        isProductDetail ? 'bottom-24 md:bottom-6' : 'bottom-6'
+        isProductDetail
+          ? 'bottom-[calc(6rem+env(safe-area-inset-bottom))] md:bottom-6'
+          : 'bottom-[calc(1.5rem+env(safe-area-inset-bottom))] md:bottom-6'
       }`}
     >
       <WhatsAppIcon />

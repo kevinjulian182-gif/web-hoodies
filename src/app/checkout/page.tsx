@@ -74,7 +74,7 @@ export default function CheckoutPage() {
 
   if (items.length === 0 && !checkoutData) {
     return (
-      <div className="min-h-screen flex items-center justify-center flex-col gap-4">
+      <div className="min-h-dvh flex items-center justify-center flex-col gap-4">
         <p className="text-coffee-700">Tu carrito está vacío.</p>
         <Link
           href="/productos"
@@ -87,7 +87,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-cream-50 px-6 py-12 md:py-16">
+    <div className="min-h-dvh bg-cream-50 px-6 py-12 md:py-16">
       <div className="mx-auto max-w-5xl">
         <Link href="/" className="block text-center text-lg font-semibold tracking-tightest text-coffee-900 mb-8">
           AFRA°

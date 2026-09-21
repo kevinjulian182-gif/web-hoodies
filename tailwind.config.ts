@@ -47,6 +47,12 @@ const config: Config = {
       },
     },
   },
+  // Without this, every `hover:` utility compiles to plain `:hover`, which
+  // touch browsers fake on tap and never clear until the user taps
+  // elsewhere — buttons and cards stay visually "stuck" after a tap.
+  future: {
+    hoverOnlyWhenSupported: true,
+  },
   plugins: [],
 };
 

@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { CartProvider } from '@/lib/cart';
 import { WishlistProvider } from '@/lib/wishlist';
@@ -14,6 +14,16 @@ import { getSiteContent, getHomeSectionOrder, getHeroImages } from '@/lib/conten
 // request; without this, Next would bake it into the static HTML at build
 // time and admin edits to it would never show up without a redeploy.
 export const dynamic = 'force-dynamic';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#FDFCFA' },
+    { media: '(prefers-color-scheme: dark)', color: '#1C1611' },
+  ],
+};
 
 export async function generateMetadata(): Promise<Metadata> {
   const content = await getSiteContent();
