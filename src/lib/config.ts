@@ -34,6 +34,7 @@ export const CONFIG_KEYS = [
   'WOMPI_EVENTS_SECRET',
   'INTER_RAPIDISIMO_API_KEY',
   'RESEND_API_KEY',
+  'REMOVE_BG_API_KEY',
 ] as const;
 
 export type ConfigKey = (typeof CONFIG_KEYS)[number];

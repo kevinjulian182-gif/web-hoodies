@@ -47,7 +47,36 @@ export default function MediaUploader({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [dragOver, setDragOver] = useState(false);
+  const [removingBg, setRemovingBg] = useState<Set<string>>(new Set());
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const removeBackground = async (url: string) => {
+    setError('');
+    setRemovingBg((prev) => new Set(prev).add(url));
+    try {
+      const res = await fetch('/api/admin/remove-background', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrl: url }),
+      });
+      let data: { url?: string; error?: string };
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error('No se pudo quitar el fondo. Intenta de nuevo.');
+      }
+      if (!res.ok || !data.url) throw new Error(data.error ?? 'No se pudo quitar el fondo');
+      onChange(items.map((i) => (i === url ? data.url! : i)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo quitar el fondo');
+    } finally {
+      setRemovingBg((prev) => {
+        const next = new Set(prev);
+        next.delete(url);
+        return next;
+      });
+    }
+  };
 
   const uploadFiles = async (files: FileList | File[]) => {
     setError('');
@@ -150,6 +179,17 @@ export default function MediaUploader({
               >
                 ×
               </button>
+              {kind === 'image' && (
+                <button
+                  type="button"
+                  onClick={() => removeBackground(url)}
+                  disabled={removingBg.has(url)}
+                  title="Quitar fondo"
+                  className="absolute inset-x-0 bottom-0 rounded-b-lg bg-coffee-900/80 py-0.5 text-center text-[9px] font-medium leading-tight text-cream-50 disabled:opacity-60"
+                >
+                  {removingBg.has(url) ? '…' : 'Quitar fondo'}
+                </button>
+              )}
             </div>
           ))}
         </div>
