@@ -23,6 +23,12 @@ async function compressImageFile(file: File): Promise<File> {
     canvas.height = height;
     const ctx = canvas.getContext('2d');
     if (!ctx) return file;
+    // JPEG has no alpha channel: a transparent PNG (a pasted screenshot,
+    // a logo) would otherwise composite onto the canvas's default
+    // transparent-black, turning every see-through pixel solid black.
+    // Fill white first so transparency becomes white instead.
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, width, height);
     ctx.drawImage(bitmap, 0, 0, width, height);
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.85));
     if (!blob) return file;
