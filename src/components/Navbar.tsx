@@ -23,7 +23,13 @@ function Wordmark({ logoUrl, className }: { logoUrl?: string; className: string 
   return <span className={className}>AFRA°</span>;
 }
 
-export default function Navbar({ logoUrl }: { logoUrl?: string }) {
+export default function Navbar({
+  logoUrl,
+  transparentOverHero,
+}: {
+  logoUrl?: string;
+  transparentOverHero?: boolean;
+}) {
   const pathname = usePathname();
   const { items, openCart } = useCart();
   const { ids: wishlistIds } = useWishlist();
@@ -46,19 +52,27 @@ export default function Navbar({ logoUrl }: { logoUrl?: string }) {
   if (pathname.startsWith('/checkout')) return null;
 
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
+  // Float transparently over the hero's own dark media instead of drawing a
+  // visible bar on top of it; once scrolled past it, behave like a normal bar.
+  const overHero = Boolean(transparentOverHero) && pathname === '/' && !scrolled;
 
   return (
     <>
       <header
         className={`sticky top-0 z-50 transition-all duration-300 ${
-          scrolled
-            ? 'bg-cream-50/85 backdrop-blur-md border-b border-cream-200 shadow-[0_1px_0_0_rgba(42,33,25,0.04)]'
-            : 'bg-cream-50/60 backdrop-blur-sm border-b border-transparent'
+          overHero
+            ? 'bg-transparent border-b border-transparent'
+            : scrolled
+              ? 'bg-cream-50/85 backdrop-blur-md border-b border-cream-200 shadow-[0_1px_0_0_rgba(42,33,25,0.04)]'
+              : 'bg-cream-50/60 backdrop-blur-sm border-b border-transparent'
         }`}
       >
         <nav className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
           <Link href="/">
-            <Wordmark logoUrl={logoUrl} className="text-lg font-semibold tracking-tightest text-coffee-900" />
+            <Wordmark
+              logoUrl={logoUrl}
+              className={`text-lg font-semibold tracking-tightest ${overHero ? 'text-cream-50' : 'text-coffee-900'}`}
+            />
           </Link>
 
           <div className="hidden md:flex items-center gap-10 text-sm font-medium text-coffee-700">
@@ -68,24 +82,28 @@ export default function Navbar({ logoUrl }: { logoUrl?: string }) {
                   key={link.href}
                   href={link.href}
                   className={`py-1 font-semibold ${
-                    pathname.startsWith(link.href) ? 'text-red-700' : 'text-red-700/90 hover:text-red-700'
+                    overHero
+                      ? 'text-red-400 hover:text-red-300'
+                      : pathname.startsWith(link.href)
+                        ? 'text-red-700'
+                        : 'text-red-700/90 hover:text-red-700'
                   }`}
                 >
                   {link.label}
                 </Link>
               ) : (
-                <NavLink key={link.href} href={link.href} active={pathname.startsWith(link.href)}>
+                <NavLink key={link.href} href={link.href} active={pathname.startsWith(link.href)} light={overHero}>
                   {link.label}
                 </NavLink>
               )
             )}
           </div>
 
-          <div className="flex items-center gap-5">
+          <div className={`flex items-center gap-5 ${overHero ? 'text-cream-50' : 'text-coffee-800'}`}>
             <button
               aria-label="Buscar"
               onClick={() => setSearchOpen(true)}
-              className="hidden sm:block text-coffee-800 transition-all hover:text-coffee-600 active:scale-90"
+              className={`hidden sm:block transition-all active:scale-90 ${overHero ? 'hover:text-cream-200' : 'hover:text-coffee-600'}`}
             >
               <SearchIcon />
             </button>
@@ -93,7 +111,7 @@ export default function Navbar({ logoUrl }: { logoUrl?: string }) {
             <Link
               href="/favoritos"
               aria-label={`Favoritos${wishlistIds.length > 0 ? ` (${wishlistIds.length})` : ''}`}
-              className="relative hidden sm:block text-coffee-800 hover:text-coffee-600 transition-colors"
+              className={`relative hidden sm:block transition-colors ${overHero ? 'hover:text-cream-200' : 'hover:text-coffee-600'}`}
             >
               <HeartIcon />
               {wishlistIds.length > 0 && (
@@ -106,7 +124,7 @@ export default function Navbar({ logoUrl }: { logoUrl?: string }) {
             <button
               aria-label={`Ver carrito${itemCount > 0 ? ` (${itemCount} productos)` : ''}`}
               onClick={openCart}
-              className="relative flex items-center gap-2 text-coffee-800 transition-transform active:scale-90"
+              className="relative flex items-center gap-2 transition-transform active:scale-90"
             >
               <BagIcon />
               <AnimatePresence>
@@ -128,7 +146,7 @@ export default function Navbar({ logoUrl }: { logoUrl?: string }) {
             <button
               aria-label="Abrir menú"
               onClick={() => setMenuOpen(true)}
-              className="md:hidden text-coffee-900 transition-transform active:scale-90"
+              className="md:hidden transition-transform active:scale-90"
             >
               <MenuIcon />
             </button>
@@ -206,14 +224,34 @@ export default function Navbar({ logoUrl }: { logoUrl?: string }) {
   );
 }
 
-function NavLink({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
+function NavLink({
+  href,
+  active,
+  light,
+  children,
+}: {
+  href: string;
+  active: boolean;
+  light?: boolean;
+  children: React.ReactNode;
+}) {
   return (
     <Link href={href} className="group relative py-1">
-      <span className={active ? 'text-coffee-900' : 'text-coffee-700 group-hover:text-coffee-900'}>
+      <span
+        className={
+          light
+            ? active
+              ? 'text-cream-50'
+              : 'text-cream-100/80 group-hover:text-cream-50'
+            : active
+              ? 'text-coffee-900'
+              : 'text-coffee-700 group-hover:text-coffee-900'
+        }
+      >
         {children}
       </span>
       <span
-        className={`absolute -bottom-0.5 left-0 h-px bg-coffee-900 transition-all duration-300 ${
+        className={`absolute -bottom-0.5 left-0 h-px transition-all duration-300 ${light ? 'bg-cream-50' : 'bg-coffee-900'} ${
           active ? 'w-full' : 'w-0 group-hover:w-full'
         }`}
       />

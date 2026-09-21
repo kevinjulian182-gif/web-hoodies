@@ -8,7 +8,7 @@ import PageTransition from '@/components/PageTransition';
 import CartDrawer from '@/components/CartDrawer';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import CustomCursor from '@/components/CustomCursor';
-import { getSiteContent } from '@/lib/content';
+import { getSiteContent, getHomeSectionOrder, getHeroImages } from '@/lib/content';
 
 // The footer pulls its tagline from the editable SiteContent table on every
 // request; without this, Next would bake it into the static HTML at build
@@ -26,13 +26,16 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const content = await getSiteContent();
+  const heroIsFirstAndDark =
+    getHomeSectionOrder(content)[0] === 'hero' &&
+    (Boolean(content['hero.video_url']) || getHeroImages(content).length > 0);
 
   return (
     <html lang="es">
       <body>
         <CartProvider>
           <WishlistProvider>
-            <Navbar logoUrl={content['site.logo_url'] || undefined} />
+            <Navbar logoUrl={content['site.logo_url'] || undefined} transparentOverHero={heroIsFirstAndDark} />
             <main>
               <PageTransition>{children}</PageTransition>
             </main>

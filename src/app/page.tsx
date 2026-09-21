@@ -10,12 +10,13 @@ import type { SiteContent } from '@/lib/content';
 
 export const dynamic = 'force-dynamic';
 
-function renderSection(id: HomeSectionId, content: SiteContent, products: Product[]) {
+function renderSection(id: HomeSectionId, content: SiteContent, products: Product[], isFirst: boolean) {
   switch (id) {
     case 'hero':
       return (
         <Hero
           key={id}
+          overlapNav={isFirst}
           content={{
             eyebrow: content['hero.eyebrow'],
             titleLine1: content['hero.title_line1'],
@@ -83,5 +84,5 @@ export default async function HomePage() {
 
   const order = getHomeSectionOrder(content);
 
-  return <>{order.map((id) => renderSection(id, content, products))}</>;
+  return <>{order.map((id, index) => renderSection(id, content, products, index === 0))}</>;
 }

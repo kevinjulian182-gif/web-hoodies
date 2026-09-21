@@ -17,7 +17,7 @@ type HeroContent = {
   images?: string[];
 };
 
-export default function Hero({ content }: { content: HeroContent }) {
+export default function Hero({ content, overlapNav }: { content: HeroContent; overlapNav?: boolean }) {
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] });
   const y = useTransform(scrollYProgress, [0, 1], [0, 120]);
@@ -26,6 +26,12 @@ export default function Hero({ content }: { content: HeroContent }) {
   const images = content.images ?? [];
   const hasImages = !hasVideo && images.length > 0;
   const hasMedia = hasVideo || hasImages;
+  // The sticky navbar occupies its own h-16 in normal flow (it only becomes
+  // "fixed-like" once you scroll past it), so at the top of the page the
+  // hero's media would start below it, leaving a visible seam where the
+  // navbar floats transparently. Pulling the section up by the same amount
+  // tucks its top edge behind the navbar instead.
+  const pullUnderNav = overlapNav && hasMedia;
 
   const [slide, setSlide] = useState(0);
   useEffect(() => {
@@ -35,7 +41,10 @@ export default function Hero({ content }: { content: HeroContent }) {
   }, [hasImages, images.length]);
 
   return (
-    <section ref={ref} className={`relative overflow-hidden ${hasMedia ? 'bg-coffee-900' : 'bg-cream-50'}`}>
+    <section
+      ref={ref}
+      className={`relative overflow-hidden ${hasMedia ? 'bg-coffee-900' : 'bg-cream-50'} ${pullUnderNav ? '-mt-16' : ''}`}
+    >
       {hasVideo ? (
         <div className="absolute inset-0">
           <video
