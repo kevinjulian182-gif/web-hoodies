@@ -36,7 +36,7 @@ function slugify(text: string) {
     .replace(/(^-|-$)/g, '');
 }
 
-export default function AdminBlogPage() {
+export default function BlogManager() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [editingId, setEditingId] = useState<string | 'new' | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
@@ -107,23 +107,22 @@ export default function AdminBlogPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tightest text-coffee-900">Blog</h1>
-        {editingId === null && (
+      {editingId === null && (
+        <div className="mb-5 flex justify-end">
           <button
             onClick={startCreate}
-            className="rounded-full bg-coffee-900 px-4 py-2 text-sm font-medium text-cream-50"
+            className="rounded-full bg-coffee-900 px-4 py-2 text-sm font-medium text-cream-50 transition-colors hover:bg-coffee-800"
           >
             + Nuevo artículo
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {editingId !== null && (
-        <form onSubmit={handleSubmit} className="mb-10 max-w-2xl space-y-4 rounded-2xl border border-cream-200 p-6">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-coffee-700">
+        <form onSubmit={handleSubmit} className="mb-8 space-y-4 rounded-2xl border border-cream-200 p-6">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-coffee-700">
             {editingId === 'new' ? 'Nuevo artículo' : 'Editar artículo'}
-          </h2>
+          </h3>
 
           <input
             placeholder="Título"
@@ -133,14 +132,14 @@ export default function AdminBlogPage() {
               setForm((f) => ({ ...f, title, slug: editingId === 'new' ? slugify(title) : f.slug }));
             }}
             required
-            className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-cream-200 px-3 py-2 text-sm focus:outline-none focus:border-coffee-600"
           />
           <input
             placeholder="Slug (url)"
             value={form.slug}
             onChange={(e) => setForm({ ...form, slug: e.target.value })}
             required
-            className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-cream-200 px-3 py-2 text-sm focus:outline-none focus:border-coffee-600"
           />
           <textarea
             placeholder="Resumen (aparece en la lista del blog)"
@@ -148,7 +147,7 @@ export default function AdminBlogPage() {
             onChange={(e) => setForm({ ...form, excerpt: e.target.value })}
             required
             rows={2}
-            className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-cream-200 px-3 py-2 text-sm focus:outline-none focus:border-coffee-600"
           />
           <textarea
             placeholder="Contenido (separa párrafos con una línea en blanco)"
@@ -156,7 +155,7 @@ export default function AdminBlogPage() {
             onChange={(e) => setForm({ ...form, content: e.target.value })}
             required
             rows={10}
-            className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-cream-200 px-3 py-2 text-sm focus:outline-none focus:border-coffee-600"
           />
 
           <MediaUploader
@@ -172,37 +171,56 @@ export default function AdminBlogPage() {
             <button
               type="submit"
               disabled={saving}
-              className="bg-coffee-900 text-cream-50 py-2 px-6 rounded-lg text-sm font-medium disabled:opacity-50"
+              className="rounded-lg bg-coffee-900 px-6 py-2 text-sm font-medium text-cream-50 transition-colors hover:bg-coffee-800 disabled:opacity-50"
             >
               {saving ? 'Guardando…' : 'Guardar'}
             </button>
-            <button type="button" onClick={cancelEdit} className="py-2 px-6 rounded-lg text-sm text-coffee-600">
+            <button
+              type="button"
+              onClick={cancelEdit}
+              className="rounded-lg px-6 py-2 text-sm text-coffee-600 transition-colors hover:text-coffee-900"
+            >
               Cancelar
             </button>
           </div>
         </form>
       )}
 
-      <div className="space-y-2">
-        {posts.map((p) => (
-          <div key={p.id} className="border border-cream-200 rounded-xl p-4 flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <p className="font-medium text-coffee-900">{p.title}</p>
-              <p className="text-sm text-coffee-600">
-                /blog/{p.slug} · {new Date(p.publishedAt).toLocaleDateString('es-CO')}
-              </p>
+      {posts.length === 0 && editingId === null ? (
+        <p className="rounded-xl border border-dashed border-cream-300 py-10 text-center text-sm text-coffee-500">
+          Todavía no hay artículos publicados.
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {posts.map((p) => (
+            <div
+              key={p.id}
+              className="flex items-center justify-between gap-4 rounded-xl border border-cream-200 p-4"
+            >
+              <div className="min-w-0">
+                <p className="truncate font-medium text-coffee-900">{p.title}</p>
+                <p className="text-sm text-coffee-600">
+                  /blog/{p.slug} · {new Date(p.publishedAt).toLocaleDateString('es-CO')}
+                </p>
+              </div>
+              <div className="flex shrink-0 gap-3">
+                <button
+                  onClick={() => startEdit(p)}
+                  className="text-sm text-coffee-700 transition-colors hover:text-coffee-900"
+                >
+                  Editar
+                </button>
+                <button
+                  onClick={() => handleDelete(p.id)}
+                  className="text-sm text-red-600 transition-colors hover:text-red-800"
+                >
+                  Eliminar
+                </button>
+              </div>
             </div>
-            <div className="flex shrink-0 gap-3">
-              <button onClick={() => startEdit(p)} className="text-sm text-coffee-700 hover:text-coffee-900">
-                Editar
-              </button>
-              <button onClick={() => handleDelete(p.id)} className="text-sm text-red-600">
-                Eliminar
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

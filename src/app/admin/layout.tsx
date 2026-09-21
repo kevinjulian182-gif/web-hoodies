@@ -24,9 +24,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <Link href="/admin/coupons" className="block py-2 hover:text-coffee-900">
             Cupones
           </Link>
-          <Link href="/admin/blog" className="block py-2 hover:text-coffee-900">
-            Blog
-          </Link>
           <Link href="/admin/contenido" className="block py-2 hover:text-coffee-900">
             Contenido
           </Link>

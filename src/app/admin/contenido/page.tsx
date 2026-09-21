@@ -6,6 +6,7 @@ import { CONTENT_FIELDS, CONTENT_DEFAULTS, type ContentKey, type SiteContent } f
 import MediaUploader from '@/components/admin/MediaUploader';
 import SectionManager from '@/components/admin/SectionManager';
 import RepeatableListEditor from '@/components/admin/RepeatableListEditor';
+import BlogManager from '@/components/admin/BlogManager';
 
 const SECTION_PREVIEW_PATH: Record<string, string> = {
   'Colores': '/',
@@ -43,6 +44,33 @@ const SECTION_HINTS: Record<string, string> = {
 
 const STRUCTURE_TAB = 'Estructura del inicio';
 const BRANDS_TAB = 'Compra por marca';
+const BLOG_TAB = 'Blog';
+
+// Groups the flat list of tabs into scannable categories for the sidebar.
+// Every tab referenced here must exist as a CONTENT_FIELDS section, or be
+// one of the special tabs (STRUCTURE_TAB / BRANDS_TAB / BLOG_TAB).
+const NAV_GROUPS: { label: string; tabs: string[] }[] = [
+  { label: 'General', tabs: ['General del sitio', 'Colores', 'Pie de página'] },
+  {
+    label: 'Página de inicio',
+    tabs: [
+      STRUCTURE_TAB,
+      'Portada (Hero)',
+      'Sección editorial',
+      'Sección de confianza',
+      'Cómo trabajamos',
+      'Envíos seguros',
+      'Materiales y calidad',
+      BRANDS_TAB,
+      'Preguntas frecuentes',
+      'CTA final',
+      'Newsletter (inicio)',
+    ],
+  },
+  { label: 'Catálogo', tabs: ['Catálogo'] },
+  { label: 'Páginas', tabs: ['Sobre nosotros'] },
+  { label: 'Blog', tabs: [BLOG_TAB] },
+];
 
 function parseImageList(value: string): string[] {
   try {
@@ -144,27 +172,28 @@ export default function AdminContentPage() {
       </div>
 
       <div className="flex flex-col gap-8 md:flex-row md:items-start">
-        <nav className="flex shrink-0 gap-1.5 overflow-x-auto pb-2 md:w-56 md:flex-col md:overflow-visible md:pb-0">
-          <TabButton
-            label={STRUCTURE_TAB}
-            active={activeTab === STRUCTURE_TAB}
-            dirty={false}
-            onClick={() => setActiveTab(STRUCTURE_TAB)}
-          />
-          <TabButton
-            label={BRANDS_TAB}
-            active={activeTab === BRANDS_TAB}
-            dirty={Boolean(dirty['brands.items'])}
-            onClick={() => setActiveTab(BRANDS_TAB)}
-          />
-          {sections.map(([section]) => (
-            <TabButton
-              key={section}
-              label={section}
-              active={activeTab === section}
-              dirty={dirtySections.has(section)}
-              onClick={() => setActiveTab(section)}
-            />
+        <nav className="flex shrink-0 gap-1.5 overflow-x-auto pb-2 md:w-60 md:flex-col md:gap-4 md:overflow-visible md:pb-0">
+          {NAV_GROUPS.map((group) => (
+            <div key={group.label} className="flex shrink-0 gap-1.5 md:flex-col md:gap-1">
+              <p className="hidden shrink-0 px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-coffee-400 md:block">
+                {group.label}
+              </p>
+              {group.tabs.map((tab) => (
+                <TabButton
+                  key={tab}
+                  label={tab}
+                  active={activeTab === tab}
+                  dirty={
+                    tab === BRANDS_TAB
+                      ? Boolean(dirty['brands.items'])
+                      : tab === STRUCTURE_TAB || tab === BLOG_TAB
+                        ? false
+                        : dirtySections.has(tab)
+                  }
+                  onClick={() => setActiveTab(tab)}
+                />
+              ))}
+            </div>
           ))}
         </nav>
 
@@ -176,6 +205,11 @@ export default function AdminContentPage() {
                 value={values['home.sections']}
                 onChange={(json) => handleChange('home.sections', json)}
               />
+            </div>
+          ) : activeTab === BLOG_TAB ? (
+            <div>
+              <SectionHeader title={BLOG_TAB} hint="Crea, edita y elimina los artículos que aparecen en /blog." previewPath="/blog" />
+              <BlogManager />
             </div>
           ) : activeTab === BRANDS_TAB ? (
             <div>
