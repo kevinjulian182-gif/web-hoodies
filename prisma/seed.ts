@@ -154,6 +154,24 @@ const PRODUCTS: Array<{
     stock: 5,
     colors: ['Camuflado', 'Verde militar'],
   },
+  {
+    name: 'Tiger Camo Hoodie',
+    slug: 'bape-tiger-camo-hoodie',
+    brand: 'Bape',
+    description: 'Hoodie en algodón pesado con estampado de camuflaje tigre y capucha forrada.',
+    priceCOP: 920000,
+    stock: 9,
+    colors: ['Camuflado', 'Naranja'],
+  },
+  {
+    name: 'College Zip Hoodie',
+    slug: 'bape-college-zip-hoodie',
+    brand: 'Bape',
+    description: 'Hoodie con cierre completo, letras estilo universitario bordadas y puños acanalados.',
+    priceCOP: 890000,
+    stock: 11,
+    colors: ['Negro', 'Amarillo'],
+  },
 ];
 
 const BLOG_POSTS: Array<{ title: string; slug: string; excerpt: string; content: string }> = [
