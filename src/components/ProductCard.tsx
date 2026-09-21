@@ -79,7 +79,9 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
         <div className="mt-4 flex items-baseline justify-between">
           <div>
             <p className="text-xs uppercase tracking-wide text-coffee-600">{product.brand}</p>
-            <h3 className="text-base font-medium text-coffee-900">{product.name}</h3>
+            <h3 className="min-h-[2.5rem] text-base font-medium leading-5 text-coffee-900 line-clamp-2">
+              {product.name}
+            </h3>
           </div>
           <div className="text-right">
             {onSale && (
@@ -92,27 +94,29 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
         </div>
 
         <div className="mt-3 space-y-2">
-          {product.colors.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {product.colors.map((c) => (
-                <button
-                  key={c}
-                  title={c}
-                  aria-label={c}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setColor(c);
-                  }}
-                  className={`h-5 w-5 rounded-full border-2 transition-transform ${
-                    color === c ? 'border-coffee-900 scale-110' : 'border-transparent'
-                  }`}
-                >
-                  <span className="block h-full w-full rounded-full" style={{ backgroundColor: colorToHex(c) }} />
-                </button>
-              ))}
-            </div>
-          )}
+          {/* Fixed height regardless of whether this product has colors, so
+              the sizes/button below always start at the same y across every
+              card in the row — a variable-height block here is what causes
+              neighboring cards to look misaligned on mobile's 2-col grid. */}
+          <div className="flex h-5 flex-wrap gap-1.5">
+            {product.colors.map((c) => (
+              <button
+                key={c}
+                title={c}
+                aria-label={c}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setColor(c);
+                }}
+                className={`h-5 w-5 rounded-full border-2 transition-transform ${
+                  color === c ? 'border-coffee-900 scale-110' : 'border-transparent'
+                }`}
+              >
+                <span className="block h-full w-full rounded-full" style={{ backgroundColor: colorToHex(c) }} />
+              </button>
+            ))}
+          </div>
           {product.sizes.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {product.sizes.map((s) => (
