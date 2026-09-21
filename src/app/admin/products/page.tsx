@@ -32,8 +32,8 @@ type FormState = {
   slug: string;
   brand: string;
   description: string;
-  priceCents: string;
-  compareAtPriceCents: string;
+  price: string;
+  compareAtPrice: string;
   stock: string;
   images: string[];
   videos: string[];
@@ -46,8 +46,8 @@ const emptyForm: FormState = {
   slug: '',
   brand: '',
   description: '',
-  priceCents: '',
-  compareAtPriceCents: '',
+  price: '',
+  compareAtPrice: '',
   stock: '',
   images: [],
   videos: [],
@@ -55,14 +55,17 @@ const emptyForm: FormState = {
   colors: [],
 };
 
+// The form works in whole pesos (what an admin actually types and reads);
+// priceCents in the API/DB stays in cents for consistency with the rest of
+// the codebase (discounts, totals, Wompi amounts) — convert at this boundary.
 function toForm(p: Product): FormState {
   return {
     name: p.name,
     slug: p.slug,
     brand: p.brand,
     description: p.description,
-    priceCents: String(p.priceCents),
-    compareAtPriceCents: p.compareAtPriceCents ? String(p.compareAtPriceCents) : '',
+    price: String(p.priceCents / 100),
+    compareAtPrice: p.compareAtPriceCents ? String(p.compareAtPriceCents / 100) : '',
     stock: String(p.stock),
     images: p.images,
     videos: p.videos,
@@ -135,8 +138,8 @@ export default function AdminProductsPage() {
       slug: form.slug,
       brand: form.brand,
       description: form.description,
-      priceCents: Number(form.priceCents),
-      compareAtPriceCents: form.compareAtPriceCents ? Number(form.compareAtPriceCents) : null,
+      priceCents: Math.round(Number(form.price) * 100),
+      compareAtPriceCents: form.compareAtPrice ? Math.round(Number(form.compareAtPrice) * 100) : null,
       stock: Number(form.stock),
       images: form.images,
       videos: form.videos,
@@ -219,22 +222,22 @@ export default function AdminProductsPage() {
             <FormField label="Marca">
               <input value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} required className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm" />
             </FormField>
-            <FormField label="Precio en centavos (COP)">
-              <input type="number" value={form.priceCents} onChange={(e) => setForm({ ...form, priceCents: e.target.value })} required className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm" />
+            <FormField label="Precio (COP)">
+              <input type="number" min="0" step="1" placeholder="450000" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm" />
             </FormField>
             <FormField label="Precio antes del descuento (opcional)">
-              <input type="number" value={form.compareAtPriceCents} onChange={(e) => setForm({ ...form, compareAtPriceCents: e.target.value })} className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm" />
+              <input type="number" min="0" step="1" placeholder="560000" value={form.compareAtPrice} onChange={(e) => setForm({ ...form, compareAtPrice: e.target.value })} className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm" />
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                 <span className="text-[11px] text-coffee-500">Descuento rápido:</span>
                 {[10, 20, 30, 40, 50].map((pct) => (
                   <button
                     key={pct}
                     type="button"
-                    disabled={!form.priceCents}
+                    disabled={!form.price}
                     onClick={() =>
                       setForm({
                         ...form,
-                        compareAtPriceCents: String(Math.round(Number(form.priceCents) / (1 - pct / 100))),
+                        compareAtPrice: String(Math.round(Number(form.price) / (1 - pct / 100))),
                       })
                     }
                     className="rounded-full border border-cream-300 px-2 py-0.5 text-[11px] text-coffee-600 hover:border-coffee-600 disabled:cursor-not-allowed disabled:opacity-40"
@@ -242,10 +245,10 @@ export default function AdminProductsPage() {
                     -{pct}%
                   </button>
                 ))}
-                {form.compareAtPriceCents && (
+                {form.compareAtPrice && (
                   <button
                     type="button"
-                    onClick={() => setForm({ ...form, compareAtPriceCents: '' })}
+                    onClick={() => setForm({ ...form, compareAtPrice: '' })}
                     className="text-[11px] text-coffee-400 hover:text-coffee-700"
                   >
                     Quitar
