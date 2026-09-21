@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { formatCOP } from '@/lib/format';
 import { colorToHex } from '@/lib/colors';
 import { useCart } from '@/lib/cart';
+import HeartButton from '@/components/HeartButton';
 import type { Product } from '@prisma/client';
 
 export default function ProductCard({ product, index = 0 }: { product: Product; index?: number }) {
@@ -45,8 +46,7 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
   return (
     <motion.div
       initial={{ opacity: 0, y: 32 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-80px' }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, delay: (index % 4) * 0.08, ease: [0.16, 1, 0.3, 1] }}
     >
       <Link href={`/productos/${product.slug}`} className="group block">
@@ -63,6 +63,12 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
               sizes="(max-width: 768px) 50vw, 25vw"
             />
           )}
+
+          <HeartButton
+            productId={product.id}
+            size={16}
+            className="absolute right-2.5 top-2.5 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-cream-50/90 text-coffee-900 backdrop-blur-sm transition-transform hover:scale-110"
+          />
 
           <AnimatePresence mode="wait">
             {quickAdd ? (
@@ -130,7 +136,7 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
                 key="cta"
                 exit={{ opacity: 0 }}
                 onClick={openQuickAdd}
-                className="absolute inset-x-0 bottom-0 translate-y-full bg-cream-50/95 backdrop-blur-sm py-3 text-center text-xs font-medium uppercase tracking-[0.15em] text-coffee-900 transition-transform duration-300 ease-out group-hover:translate-y-0"
+                className="absolute inset-x-0 bottom-0 bg-cream-50/95 backdrop-blur-sm py-3 text-center text-xs font-medium uppercase tracking-[0.15em] text-coffee-900 transition-transform duration-300 ease-out md:translate-y-full md:group-hover:translate-y-0"
               >
                 Agregar rápido
               </motion.button>

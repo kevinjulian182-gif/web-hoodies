@@ -18,7 +18,8 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ['-apple-system', 'BlinkMacSystemFont', 'Inter', 'Helvetica Neue', 'sans-serif'],
+        sans: ['var(--font-sans)', '-apple-system', 'BlinkMacSystemFont', 'Helvetica Neue', 'sans-serif'],
+        display: ['var(--font-display)', 'Georgia', 'serif'],
       },
       letterSpacing: {
         tightest: '-0.03em',

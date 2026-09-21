@@ -6,6 +6,13 @@ export const CONTENT_DEFAULTS = {
   'hero.title_line2': 'de élite.',
   'hero.subtitle': 'Piezas originales de las marcas más exclusivas. Curado para quienes exigen lo mejor.',
   'hero.cta': 'Explorar colección',
+  'hero.video_url': '',
+  'spotlight.eyebrow': 'La filosofía AFRA',
+  'spotlight.title': 'No seguimos tendencias.',
+  'spotlight.title_line2': 'Las curamos.',
+  'spotlight.body':
+    'Cada temporada revisamos cientos de piezas para quedarnos con las que de verdad importan. Menos ruido, más carácter — streetwear que se viste como una declaración, no como una copia.',
+  'spotlight.cta': 'Conoce nuestra historia',
   'trust.item1_title': 'Pago contra entrega',
   'trust.item1_body': 'Recibe tu pedido y paga en la puerta de tu casa. Sin adelantos, sin riesgos.',
   'trust.item2_title': 'Calidad garantizada',
@@ -35,12 +42,24 @@ export const CONTENT_DEFAULTS = {
 export type ContentKey = keyof typeof CONTENT_DEFAULTS;
 export type SiteContent = Record<ContentKey, string>;
 
-export const CONTENT_FIELDS: Array<{ key: ContentKey; label: string; section: string; multiline?: boolean }> = [
+export const CONTENT_FIELDS: Array<{
+  key: ContentKey;
+  label: string;
+  section: string;
+  multiline?: boolean;
+  type?: 'text' | 'video';
+}> = [
   { key: 'hero.eyebrow', label: 'Texto superior', section: 'Portada (Hero)' },
   { key: 'hero.title_line1', label: 'Título — línea 1', section: 'Portada (Hero)' },
   { key: 'hero.title_line2', label: 'Título — línea 2', section: 'Portada (Hero)' },
   { key: 'hero.subtitle', label: 'Subtítulo', section: 'Portada (Hero)', multiline: true },
   { key: 'hero.cta', label: 'Texto del botón', section: 'Portada (Hero)' },
+  { key: 'hero.video_url', label: 'Video de fondo', section: 'Portada (Hero)', type: 'video' },
+  { key: 'spotlight.eyebrow', label: 'Texto superior', section: 'Sección editorial' },
+  { key: 'spotlight.title', label: 'Título — línea 1', section: 'Sección editorial' },
+  { key: 'spotlight.title_line2', label: 'Título — línea 2', section: 'Sección editorial' },
+  { key: 'spotlight.body', label: 'Texto', section: 'Sección editorial', multiline: true },
+  { key: 'spotlight.cta', label: 'Texto del botón', section: 'Sección editorial' },
   { key: 'trust.item1_title', label: 'Título 1', section: 'Sección de confianza' },
   { key: 'trust.item1_body', label: 'Texto 1', section: 'Sección de confianza', multiline: true },
   { key: 'trust.item2_title', label: 'Título 2', section: 'Sección de confianza' },

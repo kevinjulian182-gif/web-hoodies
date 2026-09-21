@@ -152,6 +152,14 @@ export default function AdminProductsPage() {
     load();
   };
 
+  const duplicate = async (p: Product) => {
+    const res = await fetch(`/api/products/${p.id}/duplicate`, { method: 'POST' });
+    if (!res.ok) return;
+    const copy: Product = await res.json();
+    await load();
+    startEdit(copy);
+  };
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
@@ -224,6 +232,9 @@ export default function AdminProductsPage() {
             <div className="flex shrink-0 gap-3">
               <button onClick={() => startEdit(p)} className="text-sm text-coffee-700 hover:text-coffee-900">
                 Editar
+              </button>
+              <button onClick={() => duplicate(p)} className="text-sm text-coffee-700 hover:text-coffee-900">
+                Duplicar
               </button>
               <button onClick={() => toggleActive(p)} className={`text-sm ${p.active ? 'text-red-600' : 'text-green-700'}`}>
                 {p.active ? 'Desactivar' : 'Reactivar'}

@@ -15,7 +15,7 @@ export default async function BlogPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-20">
-      <h1 className="text-4xl font-semibold tracking-tightest text-coffee-900">Blog</h1>
+      <h1 className="font-display text-5xl md:text-6xl font-semibold italic text-coffee-900">Blog</h1>
       <p className="mt-3 text-coffee-600 max-w-xl">
         Guías de cuidado, autenticidad e historia detrás de las marcas que vendemos.
       </p>

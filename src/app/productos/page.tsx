@@ -3,7 +3,12 @@ import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
-export default async function CatalogPage() {
+export default async function CatalogPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ marca?: string }>;
+}) {
+  const { marca } = await searchParams;
   const products = await prisma.product.findMany({
     where: { active: true },
     orderBy: { createdAt: 'desc' },
@@ -11,10 +16,10 @@ export default async function CatalogPage() {
 
   return (
     <div className="pt-8">
-      <h1 className="mx-auto max-w-7xl px-6 text-3xl font-semibold tracking-tightest text-coffee-900">
+      <h1 className="font-display mx-auto max-w-7xl px-6 text-4xl italic font-semibold text-coffee-900">
         Catálogo
       </h1>
-      <ProductGrid products={products} />
+      <ProductGrid products={products} initialBrand={marca} />
     </div>
   );
 }

@@ -11,6 +11,11 @@ function placeholder(label: string) {
   return `https://placehold.co/900x1125/2A2119/FDFCFA?text=${encoded}`;
 }
 
+/** Sample stock photography standing in for real product shoots — replace per product from the admin panel. */
+function stockPhotos(seed: string, count: number) {
+  return Array.from({ length: count }, (_, i) => `https://picsum.photos/seed/afra-${seed}-${i}/900/1125`);
+}
+
 const PRODUCTS: Array<{
   name: string;
   slug: string;
@@ -233,18 +238,22 @@ async function main() {
         brand: product.brand,
         description: product.description,
         priceCents: product.priceCOP * 100,
-        images: [placeholder(`${product.brand}\n${product.name}`)],
+        images: stockPhotos(product.slug, 3),
         sizes: SIZES,
         colors: product.colors,
         stock: product.stock,
       },
       // Keep the catalog's text/attributes in sync on re-seed, but never
-      // clobber images/stock an admin may have already customized live.
+      // clobber stock an admin may have already adjusted live. Images ARE
+      // included here for this one-time swap from text-card placeholders to
+      // sample photography — drop this field from `update` again afterward
+      // so future re-seeds stop overwriting real product photos.
       update: {
         name: product.name,
         brand: product.brand,
         description: product.description,
         priceCents: product.priceCOP * 100,
+        images: stockPhotos(product.slug, 3),
         sizes: SIZES,
         colors: product.colors,
       },

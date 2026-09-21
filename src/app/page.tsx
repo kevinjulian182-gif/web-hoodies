@@ -1,4 +1,5 @@
 import Hero from '@/components/Hero';
+import BrandSpotlight from '@/components/BrandSpotlight';
 import ProductGrid from '@/components/ProductGrid';
 import TrustSection from '@/components/TrustSection';
 import NewsletterForm from '@/components/NewsletterForm';
@@ -26,6 +27,16 @@ export default async function HomePage() {
           titleLine2: content['hero.title_line2'],
           subtitle: content['hero.subtitle'],
           cta: content['hero.cta'],
+          videoUrl: content['hero.video_url'] || undefined,
+        }}
+      />
+      <BrandSpotlight
+        content={{
+          eyebrow: content['spotlight.eyebrow'],
+          titleLine1: content['spotlight.title'],
+          titleLine2: content['spotlight.title_line2'],
+          body: content['spotlight.body'],
+          cta: content['spotlight.cta'],
         }}
       />
       <ProductGrid products={products} />

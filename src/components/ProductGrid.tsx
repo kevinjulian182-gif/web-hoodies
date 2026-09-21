@@ -5,9 +5,17 @@ import { motion } from 'framer-motion';
 import ProductCard from '@/components/ProductCard';
 import type { Product } from '@prisma/client';
 
-export default function ProductGrid({ products }: { products: Product[] }) {
+export default function ProductGrid({
+  products,
+  initialBrand,
+}: {
+  products: Product[];
+  initialBrand?: string;
+}) {
   const brands = useMemo(() => Array.from(new Set(products.map((p) => p.brand))).sort(), [products]);
-  const [activeBrand, setActiveBrand] = useState<string | null>(null);
+  const [activeBrand, setActiveBrand] = useState<string | null>(
+    initialBrand && brands.includes(initialBrand) ? initialBrand : null
+  );
 
   const filtered = activeBrand ? products.filter((p) => p.brand === activeBrand) : products;
 

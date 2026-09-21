@@ -9,13 +9,19 @@ export default function WhatsAppButton() {
   const pathname = usePathname();
   if (!NUMBER || pathname.startsWith('/admin') || pathname.startsWith('/checkout')) return null;
 
+  // Product detail pages show a sticky mobile buy bar across the full
+  // bottom edge — lift the button above it there so they never overlap.
+  const isProductDetail = /^\/productos\/[^/]+$/.test(pathname);
+
   return (
     <a
       href={`https://wa.me/${NUMBER}?text=${MESSAGE}`}
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Escríbenos por WhatsApp"
-      className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg transition-transform hover:scale-105"
+      className={`fixed right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg transition-transform hover:scale-105 ${
+        isProductDetail ? 'bottom-24 md:bottom-6' : 'bottom-6'
+      }`}
     >
       <WhatsAppIcon />
     </a>
