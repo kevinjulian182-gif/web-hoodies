@@ -4,17 +4,11 @@ import { prisma } from '@/lib/prisma';
 import { getSession, requireRole } from '@/lib/auth';
 
 const updateSchema = z.object({
-  name: z.string().min(1).optional(),
-  brand: z.string().min(1).optional(),
-  description: z.string().min(1).optional(),
-  priceCents: z.number().int().positive().optional(),
-  compareAtPriceCents: z.number().int().positive().nullable().optional(),
-  images: z.array(z.string().url()).optional(),
-  videos: z.array(z.string().url()).optional(),
-  sizes: z.array(z.string()).optional(),
-  colors: z.array(z.string()).optional(),
-  stock: z.number().int().min(0).optional(),
-  active: z.boolean().optional(),
+  title: z.string().min(1).optional(),
+  slug: z.string().min(1).optional(),
+  excerpt: z.string().min(1).optional(),
+  content: z.string().min(1).optional(),
+  coverImage: z.string().url().optional(),
 });
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -29,8 +23,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   const { id } = await params;
-  const product = await prisma.product.update({ where: { id }, data: parsed.data });
-  return NextResponse.json(product);
+  const post = await prisma.blogPost.update({ where: { id }, data: parsed.data });
+  return NextResponse.json(post);
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -40,6 +34,6 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   }
 
   const { id } = await params;
-  await prisma.product.update({ where: { id }, data: { active: false } });
+  await prisma.blogPost.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }

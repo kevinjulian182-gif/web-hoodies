@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { formatCOP } from '@/lib/format';
 import { colorToHex, COMMON_COLORS } from '@/lib/colors';
+import { isOnSale, discountPercent } from '@/lib/discount';
 import ChipListEditor from '@/components/admin/ChipListEditor';
 import MediaUploader from '@/components/admin/MediaUploader';
 
@@ -13,6 +14,7 @@ type Product = {
   brand: string;
   description: string;
   priceCents: number;
+  compareAtPriceCents: number | null;
   images: string[];
   videos: string[];
   sizes: string[];
@@ -29,6 +31,7 @@ type FormState = {
   brand: string;
   description: string;
   priceCents: string;
+  compareAtPriceCents: string;
   stock: string;
   images: string[];
   videos: string[];
@@ -42,6 +45,7 @@ const emptyForm: FormState = {
   brand: '',
   description: '',
   priceCents: '',
+  compareAtPriceCents: '',
   stock: '',
   images: [],
   videos: [],
@@ -56,6 +60,7 @@ function toForm(p: Product): FormState {
     brand: p.brand,
     description: p.description,
     priceCents: String(p.priceCents),
+    compareAtPriceCents: p.compareAtPriceCents ? String(p.compareAtPriceCents) : '',
     stock: String(p.stock),
     images: p.images,
     videos: p.videos,
@@ -116,6 +121,7 @@ export default function AdminProductsPage() {
       brand: form.brand,
       description: form.description,
       priceCents: Number(form.priceCents),
+      compareAtPriceCents: form.compareAtPriceCents ? Number(form.compareAtPriceCents) : null,
       stock: Number(form.stock),
       images: form.images,
       videos: form.videos,
@@ -193,6 +199,7 @@ export default function AdminProductsPage() {
             <input placeholder="Slug (url)" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} required className="border border-cream-200 rounded-lg px-3 py-2 text-sm" />
             <input placeholder="Marca" value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} required className="border border-cream-200 rounded-lg px-3 py-2 text-sm" />
             <input placeholder="Precio en centavos (COP)" type="number" value={form.priceCents} onChange={(e) => setForm({ ...form, priceCents: e.target.value })} required className="border border-cream-200 rounded-lg px-3 py-2 text-sm" />
+            <input placeholder="Precio antes del descuento (opcional)" type="number" value={form.compareAtPriceCents} onChange={(e) => setForm({ ...form, compareAtPriceCents: e.target.value })} className="border border-cream-200 rounded-lg px-3 py-2 text-sm" />
             <input placeholder="Stock" type="number" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} required className="col-span-2 border border-cream-200 rounded-lg px-3 py-2 text-sm" />
           </div>
 
@@ -223,6 +230,11 @@ export default function AdminProductsPage() {
             <div className="min-w-0">
               <p className="font-medium text-coffee-900">
                 {p.name} {!p.active && <span className="text-xs text-red-600">(inactivo)</span>}
+                {isOnSale(p.priceCents, p.compareAtPriceCents) && (
+                  <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
+                    -{discountPercent(p.priceCents, p.compareAtPriceCents as number)}%
+                  </span>
+                )}
               </p>
               <p className="text-sm text-coffee-600">
                 {p.brand} · {formatCOP(p.priceCents)} · Stock: {p.stock}

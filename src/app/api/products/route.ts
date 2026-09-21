@@ -19,6 +19,7 @@ const productSchema = z.object({
   brand: z.string().min(1),
   description: z.string().min(1),
   priceCents: z.number().int().positive(),
+  compareAtPriceCents: z.number().int().positive().nullable().optional(),
   images: z.array(z.string().url()).min(1),
   videos: z.array(z.string().url()).optional(),
   sizes: z.array(z.string()).min(1),

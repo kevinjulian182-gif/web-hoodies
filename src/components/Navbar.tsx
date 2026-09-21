@@ -10,6 +10,7 @@ import SearchOverlay from '@/components/SearchOverlay';
 
 const LINKS = [
   { href: '/productos', label: 'Catálogo' },
+  { href: '/promos', label: 'Promos' },
   { href: '/blog', label: 'Blog' },
   { href: '/nosotros', label: 'Nosotros' },
 ];

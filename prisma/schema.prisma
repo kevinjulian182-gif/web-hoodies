@@ -43,6 +43,7 @@ model Product {
   brand       String
   description String
   priceCents  Int
+  compareAtPriceCents Int?
   images      String[]
   videos      String[]    @default([])
   sizes       String[]

@@ -22,6 +22,7 @@ const PRODUCTS: Array<{
   brand: string;
   description: string;
   priceCOP: number;
+  compareAtPriceCOP?: number;
   stock: number;
   colors: string[];
 }> = [
@@ -31,6 +32,7 @@ const PRODUCTS: Array<{
     brand: 'Nike',
     description: 'Sudadera premium en tejido tech fleece, corte relajado y acabado minimalista.',
     priceCOP: 450000,
+    compareAtPriceCOP: 560000,
     stock: 25,
     colors: ['Negro', 'Gris'],
   },
@@ -49,6 +51,7 @@ const PRODUCTS: Array<{
     brand: 'Adidas',
     description: 'Hoodie en algodón French Terry con el trébol bordado al pecho, corte clásico.',
     priceCOP: 380000,
+    compareAtPriceCOP: 450000,
     stock: 30,
     colors: ['Negro', 'Crema'],
   },
@@ -238,6 +241,7 @@ async function main() {
         brand: product.brand,
         description: product.description,
         priceCents: product.priceCOP * 100,
+        compareAtPriceCents: product.compareAtPriceCOP ? product.compareAtPriceCOP * 100 : null,
         images: stockPhotos(product.slug, 3),
         sizes: SIZES,
         colors: product.colors,
@@ -253,6 +257,7 @@ async function main() {
         brand: product.brand,
         description: product.description,
         priceCents: product.priceCOP * 100,
+        compareAtPriceCents: product.compareAtPriceCOP ? product.compareAtPriceCOP * 100 : null,
         images: stockPhotos(product.slug, 3),
         sizes: SIZES,
         colors: product.colors,

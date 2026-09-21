@@ -8,6 +8,7 @@ const COLUMNS = [
     title: 'Tienda',
     links: [
       { href: '/productos', label: 'Catálogo' },
+      { href: '/promos', label: 'Promos' },
       { href: '/checkout', label: 'Carrito' },
       { href: '/favoritos', label: 'Favoritos' },
       { href: '/blog', label: 'Blog' },

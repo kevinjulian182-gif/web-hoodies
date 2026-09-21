@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { formatCOP } from '@/lib/format';
+import { isOnSale, discountPercent } from '@/lib/discount';
 import AddToCartButton from '@/components/AddToCartButton';
 import ProductGallery from '@/components/ProductGallery';
 import ProductGrid from '@/components/ProductGrid';
@@ -19,6 +20,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     where: { brand: product.brand, active: true, id: { not: product.id } },
     take: 4,
   });
+
+  const onSale = isOnSale(product.priceCents, product.compareAtPriceCents);
 
   return (
     <div>
@@ -65,7 +68,19 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               className="mt-1 shrink-0 text-coffee-700 hover:text-coffee-900 transition-colors"
             />
           </div>
-          <p className="mt-4 text-xl font-medium text-coffee-800">{formatCOP(product.priceCents)}</p>
+          <div className="mt-4 flex items-center gap-3">
+            <p className={`text-xl font-medium ${onSale ? 'text-red-700' : 'text-coffee-800'}`}>
+              {formatCOP(product.priceCents)}
+            </p>
+            {onSale && (
+              <>
+                <p className="text-base text-coffee-400 line-through">{formatCOP(product.compareAtPriceCents as number)}</p>
+                <span className="rounded-full bg-coffee-900 px-2.5 py-1 text-xs font-semibold text-cream-50">
+                  -{discountPercent(product.priceCents, product.compareAtPriceCents as number)}%
+                </span>
+              </>
+            )}
+          </div>
           <p className="mt-6 text-coffee-700 leading-relaxed">{product.description}</p>
           <div className="mt-10">
             <AddToCartButton product={product} />

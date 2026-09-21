@@ -6,12 +6,14 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { formatCOP } from '@/lib/format';
 import { colorToHex } from '@/lib/colors';
+import { isOnSale, discountPercent } from '@/lib/discount';
 import { useCart } from '@/lib/cart';
 import HeartButton from '@/components/HeartButton';
 import type { Product } from '@prisma/client';
 
 export default function ProductCard({ product, index = 0 }: { product: Product; index?: number }) {
   const { addItem } = useCart();
+  const onSale = isOnSale(product.priceCents, product.compareAtPriceCents);
   const [size, setSize] = useState(product.sizes[0] ?? '');
   const [color, setColor] = useState(product.colors[0] ?? '');
   const [added, setAdded] = useState(false);
@@ -56,6 +58,11 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
             size={16}
             className="absolute right-2.5 top-2.5 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-cream-50/90 text-coffee-900 backdrop-blur-sm transition-transform hover:scale-110"
           />
+          {onSale && (
+            <span className="absolute left-2.5 top-2.5 z-10 rounded-full bg-coffee-900 px-2.5 py-1 text-[11px] font-semibold text-cream-50">
+              -{discountPercent(product.priceCents, product.compareAtPriceCents as number)}%
+            </span>
+          )}
         </div>
 
         <div className="mt-4 flex items-baseline justify-between">
@@ -63,7 +70,14 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
             <p className="text-xs uppercase tracking-wide text-coffee-600">{product.brand}</p>
             <h3 className="text-base font-medium text-coffee-900">{product.name}</h3>
           </div>
-          <p className="text-sm font-semibold text-coffee-800">{formatCOP(product.priceCents)}</p>
+          <div className="text-right">
+            {onSale && (
+              <p className="text-xs text-coffee-400 line-through">{formatCOP(product.compareAtPriceCents as number)}</p>
+            )}
+            <p className={`text-sm font-semibold ${onSale ? 'text-red-700' : 'text-coffee-800'}`}>
+              {formatCOP(product.priceCents)}
+            </p>
+          </div>
         </div>
 
         <div className="mt-3 space-y-2">
