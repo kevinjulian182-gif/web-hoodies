@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { motion } from 'framer-motion';
 import { useCart } from '@/lib/cart';
 import { formatCOP } from '@/lib/format';
+import { COLOMBIA_DEPARTMENTS } from '@/lib/colombia';
 import WompiCheckoutButton from '@/components/WompiCheckoutButton';
 
 type CheckoutData = {
@@ -36,8 +38,11 @@ export default function CheckoutPage() {
     customerEmail: '',
     customerName: '',
     shippingAddress: '',
+    shippingAddressComplement: '',
+    shippingDepartment: '',
     shippingCity: '',
     shippingPhone: '',
+    deliveryNotes: '',
     couponCode: '',
   });
   const [checkoutData, setCheckoutData] = useState<CheckoutData | null>(null);
@@ -102,46 +107,82 @@ export default function CheckoutPage() {
         <div className="grid gap-8 md:grid-cols-[1fr_360px] md:items-start">
           <div className="order-2 md:order-1">
             {step === 1 && (
-              <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-cream-200 p-6 md:p-8">
-                <Field label="Nombre completo">
-                  <input
-                    required
-                    placeholder="Como aparece en tu documento"
-                    value={form.customerName}
-                    onChange={(e) => setForm({ ...form, customerName: e.target.value })}
-                    className="w-full border border-cream-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-coffee-600"
-                  />
-                </Field>
-                <Field label="Correo electrónico">
-                  <input
-                    required
-                    type="email"
-                    placeholder="tucorreo@ejemplo.com"
-                    value={form.customerEmail}
-                    onChange={(e) => setForm({ ...form, customerEmail: e.target.value })}
-                    className="w-full border border-cream-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-coffee-600"
-                  />
-                </Field>
-                <Field label="Dirección de envío">
-                  <input
-                    required
-                    placeholder="Calle, número, apartamento"
-                    value={form.shippingAddress}
-                    onChange={(e) => setForm({ ...form, shippingAddress: e.target.value })}
-                    className="w-full border border-cream-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-coffee-600"
-                  />
-                </Field>
-                <div className="flex gap-3">
-                  <Field label="Ciudad" className="w-1/2">
+              <motion.form
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                onSubmit={handleSubmit}
+                className="space-y-8 rounded-2xl border border-cream-200 p-6 md:p-8"
+              >
+                <FormSection icon={<UserIcon />} title="Contacto">
+                  <Field label="Nombre completo">
                     <input
                       required
-                      placeholder="Bogotá"
-                      value={form.shippingCity}
-                      onChange={(e) => setForm({ ...form, shippingCity: e.target.value })}
+                      placeholder="Como aparece en tu documento"
+                      value={form.customerName}
+                      onChange={(e) => setForm({ ...form, customerName: e.target.value })}
                       className="w-full border border-cream-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-coffee-600"
                     />
                   </Field>
-                  <Field label="Teléfono" className="w-1/2">
+                  <Field label="Correo electrónico">
+                    <input
+                      required
+                      type="email"
+                      placeholder="tucorreo@ejemplo.com"
+                      value={form.customerEmail}
+                      onChange={(e) => setForm({ ...form, customerEmail: e.target.value })}
+                      className="w-full border border-cream-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-coffee-600"
+                    />
+                  </Field>
+                </FormSection>
+
+                <FormSection icon={<PinIcon />} title="Dirección de envío">
+                  <Field label="Dirección">
+                    <input
+                      required
+                      placeholder="Calle, número"
+                      value={form.shippingAddress}
+                      onChange={(e) => setForm({ ...form, shippingAddress: e.target.value })}
+                      className="w-full border border-cream-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-coffee-600"
+                    />
+                  </Field>
+                  <Field label="Apartamento, torre, complemento (opcional)">
+                    <input
+                      placeholder="Apto 501, torre 2, portería…"
+                      value={form.shippingAddressComplement}
+                      onChange={(e) => setForm({ ...form, shippingAddressComplement: e.target.value })}
+                      className="w-full border border-cream-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-coffee-600"
+                    />
+                  </Field>
+                  <div className="flex gap-3">
+                    <Field label="Departamento" className="w-1/2">
+                      <select
+                        required
+                        value={form.shippingDepartment}
+                        onChange={(e) => setForm({ ...form, shippingDepartment: e.target.value })}
+                        className="w-full border border-cream-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-coffee-600 bg-white"
+                      >
+                        <option value="" disabled>
+                          Selecciona
+                        </option>
+                        {COLOMBIA_DEPARTMENTS.map((dep) => (
+                          <option key={dep} value={dep}>
+                            {dep}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Ciudad" className="w-1/2">
+                      <input
+                        required
+                        placeholder="Bogotá"
+                        value={form.shippingCity}
+                        onChange={(e) => setForm({ ...form, shippingCity: e.target.value })}
+                        className="w-full border border-cream-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-coffee-600"
+                      />
+                    </Field>
+                  </div>
+                  <Field label="Teléfono">
                     <input
                       required
                       type="tel"
@@ -152,15 +193,28 @@ export default function CheckoutPage() {
                       className="w-full border border-cream-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-coffee-600"
                     />
                   </Field>
-                </div>
-                <Field label="Cupón de descuento (opcional)">
-                  <input
-                    placeholder="Código"
-                    value={form.couponCode}
-                    onChange={(e) => setForm({ ...form, couponCode: e.target.value })}
-                    className="w-full border border-cream-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-coffee-600"
-                  />
-                </Field>
+                </FormSection>
+
+                <FormSection icon={<NoteIcon />} title="Detalles de entrega">
+                  <Field label="Comentarios para la entrega (opcional)">
+                    <textarea
+                      rows={3}
+                      placeholder="Ej: dejar con el celador, no hay timbre, llamar al llegar…"
+                      value={form.deliveryNotes}
+                      onChange={(e) => setForm({ ...form, deliveryNotes: e.target.value })}
+                      className="w-full resize-none border border-cream-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-coffee-600"
+                    />
+                  </Field>
+                  <Field label="Cupón de descuento (opcional)">
+                    <input
+                      placeholder="Código"
+                      value={form.couponCode}
+                      onChange={(e) => setForm({ ...form, couponCode: e.target.value })}
+                      className="w-full border border-cream-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-coffee-600"
+                    />
+                  </Field>
+                </FormSection>
+
                 {error && (
                   <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
                 )}
@@ -171,11 +225,16 @@ export default function CheckoutPage() {
                 >
                   {loading ? 'Procesando…' : 'Continuar al pago'}
                 </button>
-              </form>
+              </motion.form>
             )}
 
             {step === 2 && checkoutData && (
-              <div className="space-y-6 rounded-2xl border border-cream-200 p-6 md:p-8">
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                className="space-y-6 rounded-2xl border border-cream-200 p-6 md:p-8"
+              >
                 <button
                   type="button"
                   onClick={() => setStep(1)}
@@ -183,9 +242,27 @@ export default function CheckoutPage() {
                 >
                   ← Editar datos de envío
                 </button>
+
+                <div className="rounded-xl bg-cream-100 p-5 text-sm text-coffee-700">
+                  <p className="mb-2 text-xs font-medium uppercase tracking-[0.15em] text-coffee-500">
+                    Enviaremos estos datos a Wompi
+                  </p>
+                  <p className="font-medium text-coffee-900">{form.customerName}</p>
+                  <p>{form.customerEmail}</p>
+                  <p>
+                    {form.shippingAddress}
+                    {form.shippingAddressComplement && `, ${form.shippingAddressComplement}`}
+                  </p>
+                  <p>
+                    {form.shippingCity}
+                    {form.shippingDepartment && `, ${form.shippingDepartment}`} · {form.shippingPhone}
+                  </p>
+                </div>
+
                 <div className="text-center">
                   <p className="text-sm text-coffee-600">
-                    Serás dirigido a Wompi para completar tu pago de forma segura.
+                    Serás dirigido a Wompi para completar tu pago de forma segura. No tendrás que
+                    volver a escribir tus datos.
                   </p>
                   <div className="mt-6">
                     <WompiCheckoutButton
@@ -195,10 +272,23 @@ export default function CheckoutPage() {
                       reference={checkoutData.reference}
                       signature={checkoutData.signature}
                       redirectUrl={`${window.location.origin}/checkout/success?ref=${checkoutData.reference}`}
+                      customer={{
+                        fullName: form.customerName,
+                        email: form.customerEmail,
+                        phoneNumber: form.shippingPhone,
+                      }}
+                      shippingAddress={{
+                        addressLine1: form.shippingAddress,
+                        addressLine2: form.shippingAddressComplement || undefined,
+                        city: form.shippingCity,
+                        region: form.shippingDepartment,
+                        phoneNumber: form.shippingPhone,
+                        name: form.customerName,
+                      }}
                     />
                   </div>
                 </div>
-              </div>
+              </motion.div>
             )}
           </div>
 
@@ -268,6 +358,53 @@ function Field({ label, className = '', children }: { label: string; className?:
       <span className="mb-1.5 block text-xs font-medium text-coffee-600">{label}</span>
       {children}
     </label>
+  );
+}
+
+function FormSection({
+  icon,
+  title,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <fieldset className="space-y-4">
+      <legend className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.15em] text-coffee-500">
+        <span className="text-coffee-400">{icon}</span>
+        {title}
+      </legend>
+      {children}
+    </fieldset>
+  );
+}
+
+function UserIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M5 20c1.5-4 5-5.5 7-5.5s5.5 1.5 7 5.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function PinIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M12 21s-7-6.3-7-11.5A7 7 0 0 1 19 9.5C19 14.7 12 21 12 21Z" strokeLinejoin="round" />
+      <circle cx="12" cy="9.5" r="2.5" />
+    </svg>
+  );
+}
+
+function NoteIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <rect x="4" y="3" width="16" height="18" rx="2" />
+      <path d="M8 8h8M8 12h8M8 16h5" strokeLinecap="round" />
+    </svg>
   );
 }
 

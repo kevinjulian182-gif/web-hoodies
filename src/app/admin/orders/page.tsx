@@ -7,6 +7,12 @@ type Order = {
   id: string;
   customerName: string;
   customerEmail: string;
+  shippingAddress: string;
+  shippingAddressComplement: string | null;
+  shippingDepartment: string | null;
+  shippingCity: string;
+  shippingPhone: string;
+  deliveryNotes: string | null;
   status: 'PENDING' | 'PAID' | 'SHIPPED' | 'CANCELLED';
   totalCents: number;
   trackingNumber: string | null;
@@ -56,10 +62,19 @@ export default function OrdersPage() {
       <div className="space-y-4">
         {orders.map((order) => (
           <div key={order.id} className="border border-cream-200 rounded-xl p-4 flex items-center justify-between gap-4">
-            <div>
+            <div className="min-w-0">
               <p className="font-medium text-coffee-900">{order.customerName}</p>
               <p className="text-sm text-coffee-600">{order.customerEmail}</p>
               <p className="text-xs text-coffee-500">{order.wompiReference}</p>
+              <p className="mt-1.5 text-xs text-coffee-600">
+                {order.shippingAddress}
+                {order.shippingAddressComplement && `, ${order.shippingAddressComplement}`} —{' '}
+                {order.shippingCity}
+                {order.shippingDepartment && `, ${order.shippingDepartment}`} · {order.shippingPhone}
+              </p>
+              {order.deliveryNotes && (
+                <p className="mt-1 text-xs italic text-amber-700">Nota: {order.deliveryNotes}</p>
+              )}
             </div>
             <div className="text-sm font-medium text-coffee-800">{formatCOP(order.totalCents)}</div>
             <span

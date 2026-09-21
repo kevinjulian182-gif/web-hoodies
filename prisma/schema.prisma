@@ -76,8 +76,11 @@ model Order {
   customerEmail     String
   customerName      String
   shippingAddress   String
+  shippingAddressComplement String?
+  shippingDepartment String?
   shippingCity      String
   shippingPhone     String
+  deliveryNotes     String?
   items             OrderItem[]
   subtotalCents     Int
   discountCents     Int         @default(0)

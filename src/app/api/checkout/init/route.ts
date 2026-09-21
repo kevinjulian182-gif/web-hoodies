@@ -7,8 +7,11 @@ const schema = z.object({
   customerEmail: z.string().email(),
   customerName: z.string().min(1),
   shippingAddress: z.string().min(1),
+  shippingAddressComplement: z.string().optional(),
+  shippingDepartment: z.string().min(1),
   shippingCity: z.string().min(1),
   shippingPhone: z.string().min(7),
+  deliveryNotes: z.string().optional(),
   couponCode: z.string().optional(),
   items: z
     .array(
