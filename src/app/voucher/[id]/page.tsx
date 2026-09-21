@@ -25,6 +25,7 @@ type Order = {
   deliveryNotes: string | null;
   wompiReference: string;
   totalCents: number;
+  paymentMethod: 'WOMPI' | 'COD';
   items: OrderItem[];
 };
 
@@ -97,7 +98,11 @@ export default function VoucherPage() {
         <div className="mt-6 border-t-2 border-coffee-900 pt-4 text-sm text-coffee-600">
           <p>Pedido: {order.wompiReference}</p>
           <p>
-            {order.items.reduce((sum, i) => sum + i.quantity, 0)} pieza(s) · {formatCOP(order.totalCents)}
+            {order.items.reduce((sum, i) => sum + i.quantity, 0)} pieza(s) ·{' '}
+            {order.paymentMethod === 'COD' ? `Cobrar ${formatCOP(order.totalCents)} contra entrega` : formatCOP(order.totalCents)}
+          </p>
+          <p className="mt-1 font-medium text-coffee-800">
+            {order.paymentMethod === 'COD' ? 'Pago contra entrega' : 'Pagado en línea (Wompi)'}
           </p>
         </div>
       </div>

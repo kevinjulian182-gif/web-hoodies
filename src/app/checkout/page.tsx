@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useCart } from '@/lib/cart';
 import { formatCOP } from '@/lib/format';
@@ -17,6 +18,8 @@ type CheckoutData = {
   signature: string;
   publicKey: string;
 };
+
+type PaymentMethod = 'WOMPI' | 'COD';
 
 type FieldErrors = Record<string, string[] | undefined>;
 
@@ -41,6 +44,7 @@ const STEP_LABELS: Record<Step, string> = {
 };
 
 export default function CheckoutPage() {
+  const router = useRouter();
   const { items, subtotalCents } = useCart();
   const [step, setStep] = useState<Step>(1);
   const [form, setForm] = useState({
@@ -55,6 +59,7 @@ export default function CheckoutPage() {
     deliveryNotes: '',
     couponCode: '',
   });
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('WOMPI');
   const [checkoutData, setCheckoutData] = useState<CheckoutData | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -65,8 +70,7 @@ export default function CheckoutPage() {
     setStep(next);
   };
 
-  const handleInitCheckout = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleConfirmPayment = async (method: PaymentMethod) => {
     setError('');
     setLoading(true);
     try {
@@ -76,6 +80,7 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           ...form,
           couponCode: form.couponCode || undefined,
+          paymentMethod: method,
           items: items.map((i) => ({ productId: i.productId, size: i.size, color: i.color, quantity: i.quantity })),
         }),
       });
@@ -84,8 +89,11 @@ export default function CheckoutPage() {
         setError(extractError(data.error));
         return;
       }
+      if (method === 'COD') {
+        router.push(`/checkout/success?ref=${data.reference}&method=cod`);
+        return;
+      }
       setCheckoutData(data);
-      setStep(4);
     } catch {
       setError('No se pudo conectar. Revisa tu conexión e intenta de nuevo.');
     } finally {
@@ -274,7 +282,7 @@ export default function CheckoutPage() {
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                onSubmit={handleInitCheckout}
+                onSubmit={(e) => goToNextStep(e, 4)}
                 className="space-y-8 rounded-2xl border border-cream-200 p-6 md:p-8"
               >
                 <FormSection icon={<NoteIcon />} title="Detalles de entrega">
@@ -310,18 +318,17 @@ export default function CheckoutPage() {
                   </button>
                   <button
                     type="submit"
-                    disabled={loading}
-                    className="flex-1 bg-coffee-900 text-cream-50 py-4 rounded-full text-sm font-medium tracking-wide transition-all hover:bg-coffee-800 active:scale-[0.99] disabled:opacity-50"
+                    className="flex-1 bg-coffee-900 text-cream-50 py-4 rounded-full text-sm font-medium tracking-wide transition-all hover:bg-coffee-800 active:scale-[0.99]"
                   >
-                    {loading ? 'Procesando…' : 'Continuar al pago'}
+                    Continuar al pago
                   </button>
                 </div>
               </motion.form>
             )}
 
-            {step === 4 && checkoutData && (
+            {step === 4 && !checkoutData && (
               <motion.div
-                key="step4"
+                key="step4-choice"
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
@@ -337,7 +344,7 @@ export default function CheckoutPage() {
 
                 <div className="rounded-xl bg-cream-100 p-5 text-sm text-coffee-700">
                   <p className="mb-2 text-xs font-medium uppercase tracking-[0.15em] text-coffee-500">
-                    Enviaremos estos datos a Wompi
+                    Datos de entrega
                   </p>
                   <p className="font-medium text-coffee-900">{form.customerName}</p>
                   <p>
@@ -352,6 +359,61 @@ export default function CheckoutPage() {
                     {form.shippingDepartment && `, ${form.shippingDepartment}`} · {form.shippingPhone}
                   </p>
                 </div>
+
+                <div>
+                  <p className="mb-3 text-xs font-medium uppercase tracking-[0.15em] text-coffee-500">
+                    Elige cómo pagar
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <PaymentOption
+                      selected={paymentMethod === 'WOMPI'}
+                      onClick={() => setPaymentMethod('WOMPI')}
+                      icon={<CardIcon />}
+                      title="Pago en línea"
+                      description="Tarjeta, PSE, Nequi y más, con Wompi."
+                    />
+                    <PaymentOption
+                      selected={paymentMethod === 'COD'}
+                      onClick={() => setPaymentMethod('COD')}
+                      icon={<CashIcon />}
+                      title="Pago contra entrega"
+                      description="Pagas en efectivo o datáfono cuando recibas tu pedido."
+                    />
+                  </div>
+                </div>
+
+                {error && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+
+                <button
+                  type="button"
+                  onClick={() => handleConfirmPayment(paymentMethod)}
+                  disabled={loading}
+                  className="w-full bg-coffee-900 text-cream-50 py-4 rounded-full text-sm font-medium tracking-wide transition-all hover:bg-coffee-800 active:scale-[0.99] disabled:opacity-50"
+                >
+                  {loading
+                    ? 'Procesando…'
+                    : paymentMethod === 'COD'
+                      ? 'Confirmar pedido contra entrega'
+                      : 'Continuar con Wompi'}
+                </button>
+              </motion.div>
+            )}
+
+            {step === 4 && checkoutData && (
+              <motion.div
+                key="step4-wompi"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                className="space-y-6 rounded-2xl border border-cream-200 p-6 md:p-8"
+              >
+                <button
+                  type="button"
+                  onClick={() => setCheckoutData(null)}
+                  className="text-sm text-coffee-600 transition-colors hover:text-coffee-900"
+                >
+                  ← Cambiar forma de pago
+                </button>
 
                 <div className="text-center">
                   <p className="text-sm text-coffee-600">
@@ -430,7 +492,7 @@ export default function CheckoutPage() {
 
             <ul className="mt-6 space-y-2.5 border-t border-cream-200 pt-4 text-xs text-coffee-600">
               <li className="flex items-center gap-2">
-                <LockIcon /> Pago 100% seguro con Wompi
+                <LockIcon /> Pago seguro en línea o contra entrega
               </li>
               <li className="flex items-center gap-2">
                 <TruckIcon /> Envíos a toda Colombia
@@ -472,6 +534,62 @@ function FormSection({
       </legend>
       {children}
     </fieldset>
+  );
+}
+
+function PaymentOption({
+  selected,
+  onClick,
+  icon,
+  title,
+  description,
+}: {
+  selected: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex items-start gap-3 rounded-xl border p-4 text-left transition-colors ${
+        selected ? 'border-coffee-900 bg-cream-100' : 'border-cream-200 hover:border-coffee-300'
+      }`}
+    >
+      <span
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+          selected ? 'bg-coffee-900 text-cream-50' : 'bg-cream-100 text-coffee-500'
+        }`}
+      >
+        {icon}
+      </span>
+      <span className="min-w-0">
+        <span className="block text-sm font-medium text-coffee-900">{title}</span>
+        <span className="mt-0.5 block text-xs text-coffee-500">{description}</span>
+      </span>
+    </button>
+  );
+}
+
+function CardIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <rect x="3" y="6" width="18" height="13" rx="2" />
+      <path d="M3 10h18" strokeLinecap="round" />
+      <path d="M7 14.5h4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function CashIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <rect x="2.5" y="6.5" width="19" height="11" rx="2" />
+      <circle cx="12" cy="12" r="2.6" />
+      <path d="M5.5 9v0M18.5 15v0" strokeLinecap="round" />
+    </svg>
   );
 }
 

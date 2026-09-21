@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { buildWompiSignature, generateOrderReference, getWompiPublicKey } from '@/lib/wompi';
+import { sendOrderConfirmationEmail } from '@/lib/email';
 
 const schema = z.object({
   customerEmail: z.string().email(),
@@ -14,6 +15,7 @@ const schema = z.object({
   shippingPhone: z.string().min(7),
   deliveryNotes: z.string().optional(),
   couponCode: z.string().optional(),
+  paymentMethod: z.enum(['WOMPI', 'COD']).default('WOMPI'),
   items: z
     .array(
       z.object({
@@ -31,7 +33,7 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
-  const { items, couponCode, ...customer } = parsed.data;
+  const { items, couponCode, paymentMethod, ...customer } = parsed.data;
 
   const products = await prisma.product.findMany({
     where: { id: { in: items.map((i) => i.productId) }, active: true },
@@ -67,6 +69,7 @@ export async function POST(req: NextRequest) {
   const order = await prisma.order.create({
     data: {
       ...customer,
+      paymentMethod,
       subtotalCents,
       discountCents,
       totalCents,
@@ -82,7 +85,27 @@ export async function POST(req: NextRequest) {
         })),
       },
     },
+    include: { items: { include: { product: true } } },
   });
+
+  // Pago contra entrega: no hay pasarela que confirme el pago, así que el
+  // pedido queda comprometido de una vez (se descuenta stock y se avisa al
+  // cliente) apenas se crea, en vez de esperar un webhook que nunca llega.
+  if (paymentMethod === 'COD') {
+    await prisma.$transaction(
+      order.items.map((item) =>
+        prisma.product.update({ where: { id: item.productId }, data: { stock: { decrement: item.quantity } } })
+      )
+    );
+    await sendOrderConfirmationEmail(order);
+    return NextResponse.json({
+      orderId: order.id,
+      reference,
+      amountInCents: totalCents,
+      currency: 'COP',
+      paymentMethod,
+    });
+  }
 
   const [signature, publicKey] = await Promise.all([
     buildWompiSignature(reference, totalCents, 'COP'),
@@ -96,5 +119,6 @@ export async function POST(req: NextRequest) {
     currency: 'COP',
     signature,
     publicKey,
+    paymentMethod,
   });
 }

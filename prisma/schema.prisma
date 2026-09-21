@@ -26,6 +26,11 @@ enum DiscountType {
   FIXED
 }
 
+enum PaymentMethod {
+  WOMPI
+  COD
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -88,6 +93,7 @@ model Order {
   totalCents        Int
   couponCode        String?
   status            OrderStatus @default(PENDING)
+  paymentMethod     PaymentMethod @default(WOMPI)
   wompiReference    String      @unique
   wompiTransactionId String?
   carrier           String      @default("Inter Rapidísimo")

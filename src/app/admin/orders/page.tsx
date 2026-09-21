@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { formatCOP } from '@/lib/format';
+import { buildOrderConfirmationMessage, buildWhatsAppLink } from '@/lib/whatsapp';
 
 type Order = {
   id: string;
@@ -16,6 +17,7 @@ type Order = {
   shippingPhone: string;
   deliveryNotes: string | null;
   status: 'PENDING' | 'PAID' | 'SHIPPED' | 'CANCELLED';
+  paymentMethod: 'WOMPI' | 'COD';
   totalCents: number;
   trackingNumber: string | null;
   carrier: string;
@@ -28,6 +30,11 @@ const STATUS_LABEL: Record<Order['status'], string> = {
   PAID: 'Pagado',
   SHIPPED: 'Enviado',
   CANCELLED: 'Cancelado',
+};
+
+const PAYMENT_LABEL: Record<Order['paymentMethod'], string> = {
+  WOMPI: 'Wompi',
+  COD: 'Contra entrega',
 };
 
 export default function OrdersPage() {
@@ -88,20 +95,29 @@ export default function OrdersPage() {
                 )}
               </div>
               <div className="text-sm font-medium text-coffee-800">{formatCOP(order.totalCents)}</div>
-              <span
-                className={`text-xs px-3 py-1 rounded-full ${
-                  order.status === 'PAID'
-                    ? 'bg-yellow-100 text-yellow-800'
-                    : order.status === 'SHIPPED'
-                    ? 'bg-green-100 text-green-800'
-                    : order.status === 'CANCELLED'
-                    ? 'bg-red-100 text-red-800'
-                    : 'bg-cream-200 text-coffee-700'
-                }`}
-              >
-                {STATUS_LABEL[order.status]}
-              </span>
-              {order.status === 'PAID' && (
+              <div className="flex items-center gap-1.5">
+                <span
+                  className={`text-xs px-3 py-1 rounded-full ${
+                    order.status === 'PAID'
+                      ? 'bg-yellow-100 text-yellow-800'
+                      : order.status === 'SHIPPED'
+                      ? 'bg-green-100 text-green-800'
+                      : order.status === 'CANCELLED'
+                      ? 'bg-red-100 text-red-800'
+                      : 'bg-cream-200 text-coffee-700'
+                  }`}
+                >
+                  {STATUS_LABEL[order.status]}
+                </span>
+                <span
+                  className={`text-xs px-3 py-1 rounded-full ${
+                    order.paymentMethod === 'COD' ? 'bg-amber-50 text-amber-700' : 'bg-cream-200 text-coffee-700'
+                  }`}
+                >
+                  {PAYMENT_LABEL[order.paymentMethod]}
+                </span>
+              </div>
+              {(order.status === 'PAID' || (order.paymentMethod === 'COD' && order.status === 'PENDING')) && (
                 <div className="flex gap-2">
                   <input
                     placeholder="Guía Inter Rapidísimo"
@@ -122,7 +138,15 @@ export default function OrdersPage() {
               )}
             </div>
 
-            <div className="mt-3 flex items-center gap-4 border-t border-cream-200 pt-3">
+            <div className="mt-3 flex flex-wrap items-center gap-4 border-t border-cream-200 pt-3">
+              <a
+                href={buildWhatsAppLink(order.shippingPhone, buildOrderConfirmationMessage(order))}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-[#128C7E] transition-colors hover:text-[#0e6b60]"
+              >
+                Enviar confirmación por WhatsApp
+              </a>
               <Link
                 href={`/voucher/${order.id}`}
                 target="_blank"

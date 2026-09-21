@@ -20,21 +20,26 @@ export async function sendOrderConfirmationEmail(order: OrderWithItems) {
     .join('');
 
   const total = (order.totalCents / 100).toLocaleString('es-CO', { style: 'currency', currency: 'COP' });
+  const isCod = order.paymentMethod === 'COD';
 
   await resend.emails.send({
     from: 'AFRA <pedidos@afra.co>',
     to: order.customerEmail,
-    subject: 'Tu compra ha sido exitosa',
+    subject: isCod ? 'Tu pedido ha sido confirmado' : 'Tu compra ha sido exitosa',
     html: `
       <div style="font-family: -apple-system, sans-serif; background:#FDFCFA; padding:32px; color:#2A2119;">
         <h1 style="font-weight:600; letter-spacing:-0.02em;">Gracias por tu compra, ${order.customerName}</h1>
         <p style="font-size:16px; line-height:1.6;">
-          Tu compra ha sido exitosa. Tu producto será enviado el día de mañana y te compartiremos tu guía de seguimiento.
+          ${
+            isCod
+              ? 'Tu pedido quedó confirmado con pago contra entrega. Lo enviaremos el día de mañana y pagas en efectivo o con datáfono cuando lo recibas.'
+              : 'Tu compra ha sido exitosa. Tu producto será enviado el día de mañana y te compartiremos tu guía de seguimiento.'
+          }
         </p>
         <table style="width:100%; margin:24px 0; border-top:1px solid #F1EADD; border-bottom:1px solid #F1EADD;">
           ${itemsHtml}
         </table>
-        <p style="font-size:18px; font-weight:600;">Total: ${total}</p>
+        <p style="font-size:18px; font-weight:600;">Total${isCod ? ' a pagar en la entrega' : ''}: ${total}</p>
         <p style="font-size:14px; color:#4A3B2F;">Referencia de pedido: ${order.wompiReference}</p>
       </div>
     `,
