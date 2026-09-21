@@ -26,7 +26,10 @@ export default function ProductGallery({
     // flex-col-reverse + md:flex-row (no reverse) puts the thumbnails strip
     // wherever it reads first in the DOM: below the main image on mobile,
     // to its left on desktop — no JS reordering needed for either layout.
-    <div className="flex flex-col-reverse gap-3 md:flex-row md:gap-4">
+    // self-start: without it, the PDP's grid stretches this column to match
+    // the buy panel's height, which then stretches the square image frame
+    // into a tall rectangle regardless of aspect-square.
+    <div className="flex flex-col-reverse gap-3 self-start md:flex-row md:gap-4">
       {media.length > 1 && (
         <div className="flex gap-3 overflow-x-auto pb-1 md:w-20 md:shrink-0 md:flex-col md:overflow-x-visible md:overflow-y-auto md:pb-0">
           {media.map((item, i) => (
@@ -52,7 +55,7 @@ export default function ProductGallery({
         </div>
       )}
 
-      <div className="relative aspect-[4/5] flex-1 overflow-hidden rounded-2xl bg-cream-100">
+      <div className="relative aspect-square flex-1 overflow-hidden rounded-2xl bg-cream-100">
         <AnimatePresence mode="wait">
           <motion.div
             key={active}
@@ -63,14 +66,14 @@ export default function ProductGallery({
             className="absolute inset-0"
           >
             {current?.type === 'image' && (
-              <Image src={current.src} alt={name} fill className="object-cover" priority sizes="(max-width: 768px) 100vw, 50vw" />
+              <Image src={current.src} alt={name} fill className="object-contain" priority sizes="(max-width: 768px) 100vw, 50vw" />
             )}
             {current?.type === 'video' && (
               <video
                 src={current.src}
                 controls
                 playsInline
-                className="h-full w-full object-cover"
+                className="h-full w-full object-contain"
               />
             )}
           </motion.div>
