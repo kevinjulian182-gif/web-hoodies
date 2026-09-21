@@ -224,6 +224,34 @@ export default function AdminProductsPage() {
             </FormField>
             <FormField label="Precio antes del descuento (opcional)">
               <input type="number" value={form.compareAtPriceCents} onChange={(e) => setForm({ ...form, compareAtPriceCents: e.target.value })} className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm" />
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] text-coffee-500">Descuento rápido:</span>
+                {[10, 20, 30, 40, 50].map((pct) => (
+                  <button
+                    key={pct}
+                    type="button"
+                    disabled={!form.priceCents}
+                    onClick={() =>
+                      setForm({
+                        ...form,
+                        compareAtPriceCents: String(Math.round(Number(form.priceCents) / (1 - pct / 100))),
+                      })
+                    }
+                    className="rounded-full border border-cream-300 px-2 py-0.5 text-[11px] text-coffee-600 hover:border-coffee-600 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    -{pct}%
+                  </button>
+                ))}
+                {form.compareAtPriceCents && (
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, compareAtPriceCents: '' })}
+                    className="text-[11px] text-coffee-400 hover:text-coffee-700"
+                  >
+                    Quitar
+                  </button>
+                )}
+              </div>
             </FormField>
             <FormField label="Stock" className="col-span-2">
               <input type="number" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} required className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm" />

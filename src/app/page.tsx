@@ -1,16 +1,24 @@
+import Link from 'next/link';
 import Hero from '@/components/Hero';
 import BrandSpotlight from '@/components/BrandSpotlight';
 import ProductGrid from '@/components/ProductGrid';
 import TrustSection from '@/components/TrustSection';
 import NewsletterForm from '@/components/NewsletterForm';
 import { prisma } from '@/lib/prisma';
+import { isOnSale } from '@/lib/discount';
 import { getSiteContent, getHomeSectionOrder, getHeroImages, type HomeSectionId } from '@/lib/content';
 import type { Product } from '@prisma/client';
 import type { SiteContent } from '@/lib/content';
 
 export const dynamic = 'force-dynamic';
 
-function renderSection(id: HomeSectionId, content: SiteContent, products: Product[], isFirst: boolean) {
+function renderSection(
+  id: HomeSectionId,
+  content: SiteContent,
+  products: Product[],
+  promoProducts: Product[],
+  isFirst: boolean
+) {
   switch (id) {
     case 'hero':
       return (
@@ -43,6 +51,22 @@ function renderSection(id: HomeSectionId, content: SiteContent, products: Produc
       );
     case 'products':
       return <ProductGrid key={id} products={products} />;
+    case 'promos':
+      if (promoProducts.length === 0) return null;
+      return (
+        <div key={id} className="border-t border-cream-200">
+          <div className="mx-auto flex max-w-7xl items-end justify-between px-6 pt-12">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[0.2em] text-red-700">Por tiempo limitado</p>
+              <h2 className="mt-1 text-2xl font-semibold tracking-tightest text-coffee-900">Promociones</h2>
+            </div>
+            <Link href="/promos" className="text-sm font-medium text-coffee-700 hover:text-coffee-900">
+              Ver todas →
+            </Link>
+          </div>
+          <ProductGrid products={promoProducts} />
+        </div>
+      );
     case 'trust':
       return (
         <TrustSection
@@ -73,16 +97,18 @@ function renderSection(id: HomeSectionId, content: SiteContent, products: Produc
 }
 
 export default async function HomePage() {
-  const [products, content] = await Promise.all([
+  const [products, allActive, content] = await Promise.all([
     prisma.product.findMany({
       where: { active: true },
       orderBy: { createdAt: 'desc' },
       take: 8,
     }),
+    prisma.product.findMany({ where: { active: true } }),
     getSiteContent(),
   ]);
 
+  const promoProducts = allActive.filter((p) => isOnSale(p.priceCents, p.compareAtPriceCents)).slice(0, 4);
   const order = getHomeSectionOrder(content);
 
-  return <>{order.map((id, index) => renderSection(id, content, products, index === 0))}</>;
+  return <>{order.map((id, index) => renderSection(id, content, products, promoProducts, index === 0))}</>;
 }

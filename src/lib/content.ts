@@ -46,6 +46,7 @@ export const CONTENT_DEFAULTS = {
     { id: 'hero', visible: true },
     { id: 'spotlight', visible: true },
     { id: 'products', visible: true },
+    { id: 'promos', visible: true },
     { id: 'trust', visible: true },
     { id: 'newsletter', visible: true },
   ]),
@@ -55,6 +56,7 @@ export const HOME_SECTIONS = [
   { id: 'hero', label: 'Portada (Hero)' },
   { id: 'spotlight', label: 'Sección editorial' },
   { id: 'products', label: 'Catálogo destacado' },
+  { id: 'promos', label: 'Promociones' },
   { id: 'trust', label: 'Sección de confianza' },
   { id: 'newsletter', label: 'Newsletter' },
 ] as const;
