@@ -42,7 +42,7 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
       transition={{ duration: 0.6, delay: (index % 4) * 0.08, ease: [0.16, 1, 0.3, 1] }}
     >
       <Link href={`/productos/${product.slug}`} className="group block">
-        <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-cream-100">
+        <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-cream-50">
           {product.images[0] && (
             <Image
               src={product.images[0]}
