@@ -23,8 +23,36 @@ export default function ProductGallery({
   const current = media[active];
 
   return (
-    <div>
-      <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-cream-100">
+    // flex-col-reverse + md:flex-row (no reverse) puts the thumbnails strip
+    // wherever it reads first in the DOM: below the main image on mobile,
+    // to its left on desktop — no JS reordering needed for either layout.
+    <div className="flex flex-col-reverse gap-3 md:flex-row md:gap-4">
+      {media.length > 1 && (
+        <div className="flex gap-3 overflow-x-auto pb-1 md:w-20 md:shrink-0 md:flex-col md:overflow-x-visible md:overflow-y-auto md:pb-0">
+          {media.map((item, i) => (
+            <button
+              key={item.src}
+              onClick={() => setActive(i)}
+              className={`relative h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-cream-100 transition-opacity md:w-full ${
+                active === i ? 'opacity-100 ring-2 ring-coffee-900' : 'opacity-60 hover:opacity-100'
+              }`}
+            >
+              {item.type === 'image' ? (
+                <Image src={item.src} alt={`${name} ${i + 1}`} fill className="object-cover" sizes="64px" />
+              ) : (
+                <>
+                  <video src={item.src} className="h-full w-full object-cover" muted />
+                  <span className="absolute inset-0 flex items-center justify-center bg-coffee-900/30">
+                    <PlayIcon />
+                  </span>
+                </>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="relative aspect-[4/5] flex-1 overflow-hidden rounded-2xl bg-cream-100">
         <AnimatePresence mode="wait">
           <motion.div
             key={active}
@@ -48,31 +76,6 @@ export default function ProductGallery({
           </motion.div>
         </AnimatePresence>
       </div>
-
-      {media.length > 1 && (
-        <div className="mt-4 flex gap-3 overflow-x-auto pb-1">
-          {media.map((item, i) => (
-            <button
-              key={item.src}
-              onClick={() => setActive(i)}
-              className={`relative h-20 w-16 overflow-hidden rounded-lg bg-cream-100 transition-opacity ${
-                active === i ? 'opacity-100 ring-2 ring-coffee-900' : 'opacity-60 hover:opacity-100'
-              }`}
-            >
-              {item.type === 'image' ? (
-                <Image src={item.src} alt={`${name} ${i + 1}`} fill className="object-cover" sizes="64px" />
-              ) : (
-                <>
-                  <video src={item.src} className="h-full w-full object-cover" muted />
-                  <span className="absolute inset-0 flex items-center justify-center bg-coffee-900/30">
-                    <PlayIcon />
-                  </span>
-                </>
-              )}
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
