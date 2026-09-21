@@ -40,10 +40,23 @@ export default function MediaUploader({
 
   const remove = (url: string) => onChange(items.filter((i) => i !== url));
 
+  const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    const files = Array.from(e.clipboardData.items)
+      .filter((item) => item.type.startsWith(`${kind}/`))
+      .map((item) => item.getAsFile())
+      .filter((file): file is File => file !== null);
+    if (files.length > 0) {
+      e.preventDefault();
+      uploadFiles(files);
+    }
+  };
+
   return (
     <div>
       <p className="mb-1.5 text-xs text-coffee-600">{label}</p>
       <div
+        tabIndex={0}
+        onPaste={handlePaste}
         onDragOver={(e) => {
           e.preventDefault();
           setDragOver(true);
@@ -59,7 +72,9 @@ export default function MediaUploader({
           dragOver ? 'border-coffee-600 bg-cream-100' : 'border-cream-300 text-coffee-500'
         }`}
       >
-        {uploading ? 'Subiendo…' : `Arrastra ${kind === 'image' ? 'imágenes' : 'videos'} aquí o haz clic para elegir`}
+        {uploading
+          ? 'Subiendo…'
+          : `Arrastra ${kind === 'image' ? 'imágenes' : 'videos'} aquí, haz clic para elegir, o pega con Ctrl+V`}
         <input
           ref={inputRef}
           type="file"
