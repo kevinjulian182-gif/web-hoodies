@@ -48,7 +48,7 @@ export default function CustomCursor() {
     <div ref={posRef} className="pointer-events-none fixed left-0 top-0 z-[100]">
       <div
         ref={dotRef}
-        className="h-2 w-2 rounded-full bg-white mix-blend-difference transition-transform duration-150 ease-out"
+        className="h-2 w-2 rounded-full bg-coffee-900 shadow-[0_0_0_1.5px_rgba(253,252,250,0.95)] transition-transform duration-150 ease-out"
       />
     </div>
   );

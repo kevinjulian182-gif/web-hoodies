@@ -16,12 +16,33 @@ const SECTION_PREVIEW_PATH: Record<string, string> = {
   'Pie de página': '/',
 };
 
+const SECTION_HINTS: Record<string, string> = {
+  'General del sitio': 'Título de pestaña, descripción para buscadores y favicon.',
+  'Portada (Hero)': 'Lo primero que ve un visitante. Usa un video O un carrusel de imágenes de fondo, no ambos.',
+  'Sección editorial': 'El bloque de storytelling debajo de la portada.',
+  'Sección de confianza': 'Los tres argumentos de venta que aparecen en el inicio y en Sobre nosotros.',
+  'Newsletter (inicio)': 'El bloque de suscripción al final del inicio.',
+  'Sobre nosotros': 'Textos de la página /nosotros.',
+  'Pie de página': 'La descripción de la marca en el pie de todas las páginas.',
+};
+
+const STRUCTURE_TAB = 'Estructura del inicio';
+
+function parseImageList(value: string): string[] {
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter((v) => typeof v === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function AdminContentPage() {
   const [values, setValues] = useState<SiteContent | null>(null);
   const [dirty, setDirty] = useState<Partial<Record<ContentKey, string>>>({});
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [activeTab, setActiveTab] = useState<string>(STRUCTURE_TAB);
 
   useEffect(() => {
     fetch('/api/admin/content')
@@ -48,6 +69,15 @@ export default function AdminContentPage() {
     return Array.from(groups.entries());
   }, []);
 
+  const dirtySections = useMemo(() => {
+    const set = new Set<string>();
+    for (const key of Object.keys(dirty)) {
+      const field = CONTENT_FIELDS.find((f) => f.key === key);
+      if (field) set.add(field.section);
+    }
+    return set;
+  }, [dirty]);
+
   const handleChange = (key: ContentKey, value: string) => {
     setValues((prev) => (prev ? { ...prev, [key]: value } : prev));
     setDirty((prev) => ({ ...prev, [key]: value }));
@@ -73,76 +103,72 @@ export default function AdminContentPage() {
 
   if (!values) return <p className="text-coffee-600">Cargando…</p>;
 
+  const dirtyCount = Object.keys(dirty).length;
+  const activeFields = sections.find(([section]) => section === activeTab)?.[1] ?? [];
+
   return (
-    <div className="max-w-3xl">
-      <div className="mb-6 flex items-center justify-between gap-4">
+    <div>
+      <div className="sticky top-0 z-10 -mx-8 mb-6 flex items-center justify-between gap-4 border-b border-cream-200 bg-cream-50 px-8 py-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tightest text-coffee-900">Contenido de la web</h1>
-          <p className="mt-1 text-sm text-coffee-600">
-            Edita los textos de la portada, la sección editorial, la de confianza, Sobre nosotros y el pie de página.
-          </p>
+          {dirtyCount > 0 && (
+            <p className="mt-0.5 text-xs text-amber-700">
+              {dirtyCount} {dirtyCount === 1 ? 'cambio sin guardar' : 'cambios sin guardar'}
+            </p>
+          )}
         </div>
         <button
           onClick={handleSave}
-          disabled={saving || Object.keys(dirty).length === 0}
-          className="shrink-0 rounded-full bg-coffee-900 px-6 py-2.5 text-sm font-medium text-cream-50 disabled:opacity-40"
+          disabled={saving || dirtyCount === 0}
+          className="shrink-0 rounded-full bg-coffee-900 px-6 py-2.5 text-sm font-medium text-cream-50 transition-opacity disabled:opacity-40"
         >
           {saving ? 'Guardando…' : saved ? 'Guardado ✓' : 'Guardar cambios'}
         </button>
       </div>
 
-      {Object.keys(dirty).length > 0 && (
-        <p className="mb-4 text-xs text-amber-700">Tienes cambios sin guardar.</p>
-      )}
+      <div className="flex flex-col gap-8 md:flex-row md:items-start">
+        <nav className="flex shrink-0 gap-1.5 overflow-x-auto pb-2 md:w-56 md:flex-col md:overflow-visible md:pb-0">
+          <TabButton
+            label={STRUCTURE_TAB}
+            active={activeTab === STRUCTURE_TAB}
+            dirty={false}
+            onClick={() => setActiveTab(STRUCTURE_TAB)}
+          />
+          {sections.map(([section]) => (
+            <TabButton
+              key={section}
+              label={section}
+              active={activeTab === section}
+              dirty={dirtySections.has(section)}
+              onClick={() => setActiveTab(section)}
+            />
+          ))}
+        </nav>
 
-      <div className="mb-6 rounded-xl border border-cream-200 p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <span className="text-xs font-medium uppercase tracking-[0.2em] text-coffee-600">
-            Estructura del inicio
-          </span>
-          <Link href="/" target="_blank" className="text-xs text-coffee-500 underline hover:text-coffee-800">
-            Ver en la web ↗
-          </Link>
-        </div>
-        <p className="mb-3 text-xs text-coffee-500">
-          Muestra, oculta y reordena las secciones de la página de inicio.
-        </p>
-        <SectionManager value={values['home.sections']} onChange={(json) => handleChange('home.sections', json)} />
-      </div>
-
-      <div className="space-y-6">
-        {sections.map(([section, fields]) => {
-          const isCollapsed = collapsed[section];
-          return (
-            <div key={section} className="rounded-xl border border-cream-200">
-              <button
-                type="button"
-                onClick={() => setCollapsed((prev) => ({ ...prev, [section]: !prev[section] }))}
-                className="flex w-full items-center justify-between px-4 py-3 text-left"
-              >
-                <span className="text-xs font-medium uppercase tracking-[0.2em] text-coffee-600">{section}</span>
-                <span className="flex items-center gap-3">
-                  {SECTION_PREVIEW_PATH[section] && (
-                    <Link
-                      href={SECTION_PREVIEW_PATH[section]}
-                      target="_blank"
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-xs text-coffee-500 underline hover:text-coffee-800"
-                    >
-                      Ver en la web ↗
-                    </Link>
-                  )}
-                  <span className="text-coffee-400">{isCollapsed ? '+' : '–'}</span>
-                </span>
-              </button>
-
-              {!isCollapsed && (
-                <div className="space-y-3 border-t border-cream-200 p-4">
-                  {fields.map((field) => (
-                    <div key={field.key}>
-                      <div className="mb-1 flex items-center justify-between">
-                        <label className="block text-xs text-coffee-600">{field.label}</label>
-                        {field.type !== 'video' && values[field.key] !== CONTENT_DEFAULTS[field.key] && (
+        <div className="min-w-0 max-w-2xl flex-1">
+          {activeTab === STRUCTURE_TAB ? (
+            <div>
+              <SectionHeader title={STRUCTURE_TAB} hint="Muestra, oculta y reordena las secciones de la página de inicio." previewPath="/" />
+              <SectionManager
+                value={values['home.sections']}
+                onChange={(json) => handleChange('home.sections', json)}
+              />
+            </div>
+          ) : (
+            <div>
+              <SectionHeader
+                title={activeTab}
+                hint={SECTION_HINTS[activeTab]}
+                previewPath={SECTION_PREVIEW_PATH[activeTab]}
+              />
+              <div className="space-y-5">
+                {activeFields.map((field) => (
+                  <div key={field.key}>
+                    <div className="mb-1.5 flex items-center justify-between">
+                      <label className="block text-xs font-medium text-coffee-600">{field.label}</label>
+                      {field.type !== 'video' &&
+                        field.type !== 'images' &&
+                        values[field.key] !== CONTENT_DEFAULTS[field.key] && (
                           <button
                             type="button"
                             onClick={() => handleReset(field.key)}
@@ -151,56 +177,119 @@ export default function AdminContentPage() {
                             Restablecer
                           </button>
                         )}
-                      </div>
-                      {field.type === 'video' ? (
-                        <div>
-                          <MediaUploader
-                            label=""
-                            kind="video"
-                            items={values[field.key] ? [values[field.key]] : []}
-                            onChange={(items) => handleChange(field.key, items[items.length - 1] ?? '')}
-                          />
-                          <p className="mt-1.5 text-xs text-coffee-500">
-                            Opcional. Si subes un video, reemplaza el fondo animado de la portada.
-                          </p>
-                        </div>
-                      ) : field.type === 'image' ? (
-                        <div>
-                          <MediaUploader
-                            label=""
-                            kind="image"
-                            items={values[field.key] ? [values[field.key]] : []}
-                            onChange={(items) => handleChange(field.key, items[items.length - 1] ?? '')}
-                          />
-                          <p className="mt-1.5 text-xs text-coffee-500">
-                            Usa una imagen cuadrada (idealmente 512×512px). Se aplica en la pestaña del
-                            navegador.
-                          </p>
-                        </div>
-                      ) : field.multiline ? (
-                        <textarea
-                          value={values[field.key]}
-                          onChange={(e) => handleChange(field.key, e.target.value)}
-                          placeholder={CONTENT_DEFAULTS[field.key]}
-                          rows={2}
-                          className="w-full rounded-lg border border-cream-200 px-3 py-2 text-sm"
-                        />
-                      ) : (
-                        <input
-                          value={values[field.key]}
-                          onChange={(e) => handleChange(field.key, e.target.value)}
-                          placeholder={CONTENT_DEFAULTS[field.key]}
-                          className="w-full rounded-lg border border-cream-200 px-3 py-2 text-sm"
-                        />
-                      )}
                     </div>
-                  ))}
-                </div>
-              )}
+                    {field.type === 'video' ? (
+                      <div>
+                        <MediaUploader
+                          label=""
+                          kind="video"
+                          items={values[field.key] ? [values[field.key]] : []}
+                          onChange={(items) => handleChange(field.key, items[items.length - 1] ?? '')}
+                        />
+                        <p className="mt-1.5 text-xs text-coffee-500">
+                          Opcional. Si subes un video, reemplaza el fondo de la portada (tiene prioridad
+                          sobre el carrusel de imágenes).
+                        </p>
+                      </div>
+                    ) : field.type === 'images' ? (
+                      <div>
+                        <MediaUploader
+                          label=""
+                          kind="image"
+                          items={parseImageList(values[field.key])}
+                          onChange={(items) => handleChange(field.key, JSON.stringify(items))}
+                        />
+                        <p className="mt-1.5 text-xs text-coffee-500">
+                          Sube 2 o más imágenes para que roten cada 5 segundos en el fondo de la portada.
+                          Solo se usa si no hay un video configurado.
+                        </p>
+                      </div>
+                    ) : field.type === 'image' ? (
+                      <div>
+                        <MediaUploader
+                          label=""
+                          kind="image"
+                          items={values[field.key] ? [values[field.key]] : []}
+                          onChange={(items) => handleChange(field.key, items[items.length - 1] ?? '')}
+                        />
+                        <p className="mt-1.5 text-xs text-coffee-500">
+                          Usa una imagen cuadrada (idealmente 512×512px). Se aplica en la pestaña del
+                          navegador.
+                        </p>
+                      </div>
+                    ) : field.multiline ? (
+                      <textarea
+                        value={values[field.key]}
+                        onChange={(e) => handleChange(field.key, e.target.value)}
+                        placeholder={CONTENT_DEFAULTS[field.key]}
+                        rows={3}
+                        className="w-full rounded-lg border border-cream-200 px-3 py-2 text-sm focus:outline-none focus:border-coffee-600"
+                      />
+                    ) : (
+                      <input
+                        value={values[field.key]}
+                        onChange={(e) => handleChange(field.key, e.target.value)}
+                        placeholder={CONTENT_DEFAULTS[field.key]}
+                        className="w-full rounded-lg border border-cream-200 px-3 py-2 text-sm focus:outline-none focus:border-coffee-600"
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-          );
-        })}
+          )}
+        </div>
       </div>
+    </div>
+  );
+}
+
+function TabButton({
+  label,
+  active,
+  dirty,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  dirty: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-left text-sm transition-colors md:whitespace-normal ${
+        active ? 'bg-coffee-900 text-cream-50' : 'text-coffee-700 hover:bg-cream-100'
+      }`}
+    >
+      {label}
+      {dirty && (
+        <span
+          className={`h-1.5 w-1.5 shrink-0 rounded-full ${active ? 'bg-cream-50' : 'bg-amber-600'}`}
+          aria-label="Cambios sin guardar"
+        />
+      )}
+    </button>
+  );
+}
+
+function SectionHeader({ title, hint, previewPath }: { title: string; hint?: string; previewPath?: string }) {
+  return (
+    <div className="mb-5 flex items-start justify-between gap-4 border-b border-cream-200 pb-4">
+      <div>
+        <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-coffee-900">{title}</h2>
+        {hint && <p className="mt-1 text-xs text-coffee-500">{hint}</p>}
+      </div>
+      {previewPath && (
+        <Link
+          href={previewPath}
+          target="_blank"
+          className="shrink-0 text-xs text-coffee-500 underline hover:text-coffee-800"
+        >
+          Ver en la web ↗
+        </Link>
+      )}
     </div>
   );
 }

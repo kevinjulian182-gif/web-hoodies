@@ -18,8 +18,8 @@ export const dynamic = 'force-dynamic';
 export async function generateMetadata(): Promise<Metadata> {
   const content = await getSiteContent();
   return {
-    title: 'AFRA — Streetwear de lujo',
-    description: 'Hoodies, sudaderas y chaquetas de las marcas más exclusivas.',
+    title: content['site.title'],
+    description: content['site.description'],
     icons: content['site.favicon_url'] ? { icon: content['site.favicon_url'] } : undefined,
   };
 }

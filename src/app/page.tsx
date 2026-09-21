@@ -4,7 +4,7 @@ import ProductGrid from '@/components/ProductGrid';
 import TrustSection from '@/components/TrustSection';
 import NewsletterForm from '@/components/NewsletterForm';
 import { prisma } from '@/lib/prisma';
-import { getSiteContent, getHomeSectionOrder, type HomeSectionId } from '@/lib/content';
+import { getSiteContent, getHomeSectionOrder, getHeroImages, type HomeSectionId } from '@/lib/content';
 import type { Product } from '@prisma/client';
 import type { SiteContent } from '@/lib/content';
 
@@ -23,6 +23,7 @@ function renderSection(id: HomeSectionId, content: SiteContent, products: Produc
             subtitle: content['hero.subtitle'],
             cta: content['hero.cta'],
             videoUrl: content['hero.video_url'] || undefined,
+            images: getHeroImages(content),
           }}
         />
       );

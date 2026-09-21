@@ -59,14 +59,10 @@ export default function Navbar() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`group relative flex items-center gap-1.5 py-1 font-semibold ${
+                  className={`py-1 font-semibold ${
                     pathname.startsWith(link.href) ? 'text-red-700' : 'text-red-700/90 hover:text-red-700'
                   }`}
                 >
-                  <span className="relative flex h-1.5 w-1.5">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
-                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-red-600" />
-                  </span>
                   {link.label}
                 </Link>
               ) : (

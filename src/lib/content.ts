@@ -1,12 +1,15 @@
 import { prisma } from '@/lib/prisma';
 
 export const CONTENT_DEFAULTS = {
+  'site.title': 'AFRA — Streetwear de lujo',
+  'site.description': 'Hoodies, sudaderas y chaquetas de las marcas más exclusivas.',
   'hero.eyebrow': 'Colección permanente',
   'hero.title_line1': 'Streetwear',
   'hero.title_line2': 'de élite.',
   'hero.subtitle': 'Piezas originales de las marcas más exclusivas. Curado para quienes exigen lo mejor.',
   'hero.cta': 'Explorar colección',
   'hero.video_url': '',
+  'hero.images': '[]',
   'spotlight.eyebrow': 'La filosofía AFRA',
   'spotlight.title': 'No seguimos tendencias.',
   'spotlight.title_line2': 'Las curamos.',
@@ -83,6 +86,15 @@ export function getHomeSectionOrder(content: SiteContent): HomeSectionId[] {
     .map((e) => e.id);
 }
 
+export function getHeroImages(content: SiteContent): string[] {
+  try {
+    const parsed = JSON.parse(content['hero.images']);
+    return Array.isArray(parsed) ? parsed.filter((url) => typeof url === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
 export type ContentKey = keyof typeof CONTENT_DEFAULTS;
 export type SiteContent = Record<ContentKey, string>;
 
@@ -91,8 +103,15 @@ export const CONTENT_FIELDS: Array<{
   label: string;
   section: string;
   multiline?: boolean;
-  type?: 'text' | 'video' | 'image';
+  type?: 'text' | 'video' | 'image' | 'images';
 }> = [
+  { key: 'site.title', label: 'Título del sitio (pestaña del navegador)', section: 'General del sitio' },
+  {
+    key: 'site.description',
+    label: 'Descripción para buscadores (SEO)',
+    section: 'General del sitio',
+    multiline: true,
+  },
   { key: 'site.favicon_url', label: 'Favicon', section: 'General del sitio', type: 'image' },
   { key: 'hero.eyebrow', label: 'Texto superior', section: 'Portada (Hero)' },
   { key: 'hero.title_line1', label: 'Título — línea 1', section: 'Portada (Hero)' },
@@ -100,6 +119,7 @@ export const CONTENT_FIELDS: Array<{
   { key: 'hero.subtitle', label: 'Subtítulo', section: 'Portada (Hero)', multiline: true },
   { key: 'hero.cta', label: 'Texto del botón', section: 'Portada (Hero)' },
   { key: 'hero.video_url', label: 'Video de fondo', section: 'Portada (Hero)', type: 'video' },
+  { key: 'hero.images', label: 'Imágenes de fondo (carrusel)', section: 'Portada (Hero)', type: 'images' },
   { key: 'spotlight.eyebrow', label: 'Texto superior', section: 'Sección editorial' },
   { key: 'spotlight.title', label: 'Título — línea 1', section: 'Sección editorial' },
   { key: 'spotlight.title_line2', label: 'Título — línea 2', section: 'Sección editorial' },
