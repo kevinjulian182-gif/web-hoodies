@@ -384,10 +384,7 @@ async function main() {
         stock: product.stock,
       },
       // Keep the catalog's text/attributes in sync on re-seed, but never
-      // clobber stock an admin may have already adjusted live. Images ARE
-      // included here for this one-time swap from text-card placeholders to
-      // sample photography — drop this field from `update` again afterward
-      // so future re-seeds stop overwriting real product photos.
+      // clobber stock or images an admin may have already replaced live.
       update: {
         name: product.name,
         brand: product.brand,
@@ -397,7 +394,6 @@ async function main() {
         careInstructions: CARE_INSTRUCTIONS,
         priceCents: product.priceCOP * 100,
         compareAtPriceCents: product.compareAtPriceCOP ? product.compareAtPriceCOP * 100 : null,
-        images: stockPhotos(product.slug, 3),
         sizes: SIZES,
         colors: product.colors,
       },
