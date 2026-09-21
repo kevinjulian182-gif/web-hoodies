@@ -41,6 +41,7 @@ export const CONTENT_DEFAULTS = {
   'footer.tagline':
     'Streetwear de élite. Piezas originales de las marcas más exclusivas, curadas para quienes exigen lo mejor.',
   'site.favicon_url': '',
+  'site.logo_url': '',
   'home.sections': JSON.stringify([
     { id: 'hero', visible: true },
     { id: 'spotlight', visible: true },
@@ -111,6 +112,12 @@ export const CONTENT_FIELDS: Array<{
     label: 'Descripción para buscadores (SEO)',
     section: 'General del sitio',
     multiline: true,
+  },
+  {
+    key: 'site.logo_url',
+    label: 'Logo del navbar (opcional)',
+    section: 'General del sitio',
+    type: 'image',
   },
   { key: 'site.favicon_url', label: 'Favicon', section: 'General del sitio', type: 'image' },
   { key: 'hero.eyebrow', label: 'Texto superior', section: 'Portada (Hero)' },

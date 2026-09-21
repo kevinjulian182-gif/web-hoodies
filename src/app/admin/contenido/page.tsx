@@ -213,8 +213,9 @@ export default function AdminContentPage() {
                           onChange={(items) => handleChange(field.key, items[items.length - 1] ?? '')}
                         />
                         <p className="mt-1.5 text-xs text-coffee-500">
-                          Usa una imagen cuadrada (idealmente 512×512px). Se aplica en la pestaña del
-                          navegador.
+                          {field.key === 'site.logo_url'
+                            ? 'Opcional. Si subes un logo, reemplaza el texto "AFRA°" del menú. Quítalo para volver al texto.'
+                            : 'Usa una imagen cuadrada (idealmente 512×512px). Se aplica en la pestaña del navegador.'}
                         </p>
                       </div>
                     ) : field.multiline ? (

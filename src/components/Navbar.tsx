@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -15,7 +16,14 @@ const LINKS = [
   { href: '/nosotros', label: 'Nosotros' },
 ];
 
-export default function Navbar() {
+function Wordmark({ logoUrl, className }: { logoUrl?: string; className: string }) {
+  if (logoUrl) {
+    return <Image src={logoUrl} alt="AFRA" width={140} height={40} className="h-8 w-auto object-contain" />;
+  }
+  return <span className={className}>AFRA°</span>;
+}
+
+export default function Navbar({ logoUrl }: { logoUrl?: string }) {
   const pathname = usePathname();
   const { items, openCart } = useCart();
   const { ids: wishlistIds } = useWishlist();
@@ -49,8 +57,8 @@ export default function Navbar() {
         }`}
       >
         <nav className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="text-lg font-semibold tracking-tightest text-coffee-900">
-            AFRA°
+          <Link href="/">
+            <Wordmark logoUrl={logoUrl} className="text-lg font-semibold tracking-tightest text-coffee-900" />
           </Link>
 
           <div className="hidden md:flex items-center gap-10 text-sm font-medium text-coffee-700">
@@ -142,8 +150,8 @@ export default function Navbar() {
             className="fixed inset-0 z-50 bg-cream-50 md:hidden"
           >
             <div className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
-              <Link href="/" className="text-lg font-semibold tracking-tightest text-coffee-900">
-                AFRA°
+              <Link href="/">
+                <Wordmark logoUrl={logoUrl} className="text-lg font-semibold tracking-tightest text-coffee-900" />
               </Link>
               <button aria-label="Cerrar menú" onClick={() => setMenuOpen(false)} className="text-coffee-900">
                 <CloseIcon />

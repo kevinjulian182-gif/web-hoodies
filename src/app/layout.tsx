@@ -32,7 +32,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body>
         <CartProvider>
           <WishlistProvider>
-            <Navbar />
+            <Navbar logoUrl={content['site.logo_url'] || undefined} />
             <main>
               <PageTransition>{children}</PageTransition>
             </main>
