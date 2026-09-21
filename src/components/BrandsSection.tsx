@@ -31,18 +31,18 @@ export default function BrandsSection({ brands }: { brands: BrandItem[] }) {
             >
               <Link
                 href={`/productos?marca=${encodeURIComponent(brand.name)}`}
-                className="flex h-24 flex-col items-center justify-center gap-2 rounded-2xl border border-cream-200 bg-cream-50 px-3 text-center transition-colors hover:border-coffee-500"
+                className="flex h-32 flex-col items-center justify-center gap-2 rounded-2xl border border-cream-200 bg-cream-50 px-4 text-center transition-colors hover:border-coffee-500"
               >
                 {brand.logoUrl ? (
                   <Image
                     src={brand.logoUrl}
                     alt={brand.name}
-                    width={80}
-                    height={40}
-                    className="h-8 w-auto max-w-[80%] object-contain"
+                    width={140}
+                    height={72}
+                    className="h-16 w-auto max-w-[85%] object-contain"
                   />
                 ) : (
-                  <span className="text-sm font-semibold tracking-tightest text-coffee-900">{brand.name}</span>
+                  <span className="text-base font-semibold tracking-tightest text-coffee-900">{brand.name}</span>
                 )}
               </Link>
             </motion.div>
