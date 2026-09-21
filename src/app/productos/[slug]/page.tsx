@@ -140,34 +140,36 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             </li>
           </ul>
 
-          {details.length > 0 && (
-            <div className="mt-6 border-t border-cream-200 pt-6 text-sm text-coffee-600">
-              <p className="font-medium text-coffee-900">Detalles del producto</p>
-              <ul className="mt-2 space-y-1.5 leading-relaxed">
-                {details.map((line) => (
-                  <li key={line} className="flex items-start gap-2">
-                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-coffee-400" />
-                    {line}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          <div className="mt-6 border-t border-cream-200 pt-6 text-sm text-coffee-600">
-            <p className="font-medium text-coffee-900">Materiales</p>
-            <p className="mt-2 leading-relaxed">
-              {product.materials || 'Algodón pesado y felpa francesa de gramaje alto.'}
-            </p>
-          </div>
-
-          <div className="mt-6 border-t border-cream-200 pt-6 text-sm text-coffee-600">
-            <p className="font-medium text-coffee-900">Talla y cuidado</p>
-            <p className="mt-2 leading-relaxed">
-              {product.careInstructions ||
-                'Guía de tallas en formato US. Si dudas entre dos tallas, elige la más grande para un calce más relajado. Lava en frío, del revés y evita la secadora para conservar la impresión y el bordado.'}
-            </p>
-          </div>
+          <ul className="mt-6 space-y-5 border-t border-cream-200 pt-6 text-sm text-coffee-700">
+            {details.length > 0 && (
+              <li className="flex items-start gap-3">
+                <TagIcon />
+                <span>
+                  <strong className="block font-medium text-coffee-900">Detalles del producto</strong>
+                  <span className="mt-1 block leading-relaxed text-coffee-600">{details.join(' · ')}</span>
+                </span>
+              </li>
+            )}
+            <li className="flex items-start gap-3">
+              <FabricIcon />
+              <span>
+                <strong className="block font-medium text-coffee-900">Materiales</strong>
+                <span className="mt-1 block leading-relaxed text-coffee-600">
+                  {product.materials || 'Algodón pesado y felpa francesa de gramaje alto.'}
+                </span>
+              </span>
+            </li>
+            <li className="flex items-start gap-3">
+              <DropletIcon />
+              <span>
+                <strong className="block font-medium text-coffee-900">Talla y cuidado</strong>
+                <span className="mt-1 block leading-relaxed text-coffee-600">
+                  {product.careInstructions ||
+                    'Guía de tallas en formato US. Si dudas entre dos tallas, elige la más grande para un calce más relajado. Lava en frío, del revés y evita la secadora para conservar la impresión y el bordado.'}
+                </span>
+              </span>
+            </li>
+          </ul>
         </div>
       </div>
 
@@ -203,6 +205,59 @@ function CheckIcon() {
     >
       <circle cx="12" cy="12" r="9" />
       <path d="m8.5 12.5 2.5 2.5 4.5-5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function TagIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className="mt-0.5 shrink-0 text-coffee-600"
+    >
+      <path d="M11.5 3H5a2 2 0 0 0-2 2v6.5a2 2 0 0 0 .6 1.4l9 9a2 2 0 0 0 2.8 0l6.5-6.5a2 2 0 0 0 0-2.8l-9-9a2 2 0 0 0-1.4-.6Z" strokeLinejoin="round" />
+      <circle cx="8" cy="8" r="1.4" />
+    </svg>
+  );
+}
+
+function FabricIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className="mt-0.5 shrink-0 text-coffee-600"
+    >
+      <path d="M4 4c2 1.5 2 3 0 4.5S2 12 4 13.5" strokeLinecap="round" />
+      <path d="M9 4c2 1.5 2 3 0 4.5S7 12 9 13.5" strokeLinecap="round" />
+      <path d="M14 4c2 1.5 2 3 0 4.5S12 12 14 13.5" strokeLinecap="round" />
+      <path d="M4 18h16" strokeLinecap="round" />
+      <path d="M4 21h16" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function DropletIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className="mt-0.5 shrink-0 text-coffee-600"
+    >
+      <path d="M12 3s6.5 7.2 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 10.2 12 3 12 3Z" strokeLinejoin="round" />
     </svg>
   );
 }

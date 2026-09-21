@@ -31,9 +31,18 @@ function extractError(error: unknown): string {
   return 'No se pudo iniciar el pago. Intenta de nuevo.';
 }
 
+type Step = 1 | 2 | 3 | 4;
+
+const STEP_LABELS: Record<Step, string> = {
+  1: 'Contacto',
+  2: 'Envío',
+  3: 'Detalles',
+  4: 'Pago',
+};
+
 export default function CheckoutPage() {
   const { items, subtotalCents } = useCart();
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<Step>(1);
   const [form, setForm] = useState({
     customerEmail: '',
     customerName: '',
@@ -49,7 +58,13 @@ export default function CheckoutPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const goToNextStep = (e: React.FormEvent, next: Step) => {
+    e.preventDefault();
+    setError('');
+    setStep(next);
+  };
+
+  const handleInitCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
@@ -69,7 +84,7 @@ export default function CheckoutPage() {
         return;
       }
       setCheckoutData(data);
-      setStep(2);
+      setStep(4);
     } catch {
       setError('No se pudo conectar. Revisa tu conexión e intenta de nuevo.');
     } finally {
@@ -98,20 +113,31 @@ export default function CheckoutPage() {
           AFRA°
         </Link>
 
-        <div className="mx-auto mb-10 flex max-w-xs items-center justify-center gap-3">
-          <StepDot n={1} label="Envío" active={step === 1} done={step === 2} />
-          <span className={`h-px w-10 ${step === 2 ? 'bg-coffee-900' : 'bg-cream-300'}`} />
-          <StepDot n={2} label="Pago" active={step === 2} done={false} />
+        <div className="mx-auto mb-10 flex max-w-sm items-center justify-center">
+          {([1, 2, 3, 4] as Step[]).map((n, i) => (
+            <div key={n} className={i > 0 ? 'flex flex-1 items-center' : 'flex items-center'}>
+              {i > 0 && <span className={`h-px flex-1 ${step > n - 1 ? 'bg-coffee-900' : 'bg-cream-300'}`} />}
+              <StepDot
+                n={n}
+                label={STEP_LABELS[n]}
+                active={step === n}
+                done={step > n}
+                clickable={n < step}
+                onClick={() => n < step && setStep(n)}
+              />
+            </div>
+          ))}
         </div>
 
         <div className="grid gap-8 md:grid-cols-[1fr_360px] md:items-start">
           <div className="order-2 md:order-1">
             {step === 1 && (
               <motion.form
+                key="step1"
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                onSubmit={handleSubmit}
+                onSubmit={(e) => goToNextStep(e, 2)}
                 className="space-y-8 rounded-2xl border border-cream-200 p-6 md:p-8"
               >
                 <FormSection icon={<UserIcon />} title="Contacto">
@@ -136,6 +162,24 @@ export default function CheckoutPage() {
                   </Field>
                 </FormSection>
 
+                <button
+                  type="submit"
+                  className="w-full bg-coffee-900 text-cream-50 py-4 rounded-full text-sm font-medium tracking-wide transition-all hover:bg-coffee-800 active:scale-[0.99]"
+                >
+                  Continuar a dirección de envío
+                </button>
+              </motion.form>
+            )}
+
+            {step === 2 && (
+              <motion.form
+                key="step2"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                onSubmit={(e) => goToNextStep(e, 3)}
+                className="space-y-8 rounded-2xl border border-cream-200 p-6 md:p-8"
+              >
                 <FormSection icon={<PinIcon />} title="Dirección de envío">
                   <Field label="Dirección">
                     <input
@@ -195,6 +239,33 @@ export default function CheckoutPage() {
                   </Field>
                 </FormSection>
 
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setStep(1)}
+                    className="rounded-full px-6 py-4 text-sm font-medium text-coffee-600 transition-colors hover:text-coffee-900"
+                  >
+                    Atrás
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 bg-coffee-900 text-cream-50 py-4 rounded-full text-sm font-medium tracking-wide transition-all hover:bg-coffee-800 active:scale-[0.99]"
+                  >
+                    Continuar a detalles de entrega
+                  </button>
+                </div>
+              </motion.form>
+            )}
+
+            {step === 3 && (
+              <motion.form
+                key="step3"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                onSubmit={handleInitCheckout}
+                className="space-y-8 rounded-2xl border border-cream-200 p-6 md:p-8"
+              >
                 <FormSection icon={<NoteIcon />} title="Detalles de entrega">
                   <Field label="Comentarios para la entrega (opcional)">
                     <textarea
@@ -218,18 +289,28 @@ export default function CheckoutPage() {
                 {error && (
                   <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
                 )}
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-coffee-900 text-cream-50 py-4 rounded-full text-sm font-medium tracking-wide transition-all hover:bg-coffee-800 active:scale-[0.99] disabled:opacity-50"
-                >
-                  {loading ? 'Procesando…' : 'Continuar al pago'}
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setStep(2)}
+                    className="rounded-full px-6 py-4 text-sm font-medium text-coffee-600 transition-colors hover:text-coffee-900"
+                  >
+                    Atrás
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="flex-1 bg-coffee-900 text-cream-50 py-4 rounded-full text-sm font-medium tracking-wide transition-all hover:bg-coffee-800 active:scale-[0.99] disabled:opacity-50"
+                  >
+                    {loading ? 'Procesando…' : 'Continuar al pago'}
+                  </button>
+                </div>
               </motion.form>
             )}
 
-            {step === 2 && checkoutData && (
+            {step === 4 && checkoutData && (
               <motion.div
+                key="step4"
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
@@ -237,10 +318,10 @@ export default function CheckoutPage() {
               >
                 <button
                   type="button"
-                  onClick={() => setStep(1)}
+                  onClick={() => setStep(3)}
                   className="text-sm text-coffee-600 transition-colors hover:text-coffee-900"
                 >
-                  ← Editar datos de envío
+                  ← Editar datos de entrega
                 </button>
 
                 <div className="rounded-xl bg-cream-100 p-5 text-sm text-coffee-700">
@@ -408,21 +489,53 @@ function NoteIcon() {
   );
 }
 
-function StepDot({ n, label, active, done }: { n: number; label: string; active: boolean; done: boolean }) {
-  return (
-    <div className="flex items-center gap-2">
+function StepDot({
+  n,
+  label,
+  active,
+  done,
+  clickable,
+  onClick,
+}: {
+  n: number;
+  label: string;
+  active: boolean;
+  done: boolean;
+  clickable: boolean;
+  onClick: () => void;
+}) {
+  const content = (
+    <>
       <span
-        className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium ${
+        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium transition-colors ${
           active || done ? 'bg-coffee-900 text-cream-50' : 'bg-cream-200 text-coffee-500'
         }`}
       >
         {done ? '✓' : n}
       </span>
-      <span className={`text-xs font-medium uppercase tracking-wide ${active ? 'text-coffee-900' : 'text-coffee-500'}`}>
+      <span
+        className={`hidden text-xs font-medium uppercase tracking-wide sm:inline ${
+          active ? 'text-coffee-900' : 'text-coffee-500'
+        }`}
+      >
         {label}
       </span>
-    </div>
+    </>
   );
+
+  if (clickable) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex shrink-0 items-center gap-2 transition-opacity hover:opacity-70"
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return <div className="flex shrink-0 items-center gap-2">{content}</div>;
 }
 
 function LockIcon() {
