@@ -17,6 +17,10 @@ html {
 
 body {
   @apply bg-cream-50 text-coffee-900 antialiased;
+  /* Safety net: a single element that's a hair too wide (a full-bleed
+     section, an untruncated long word) shouldn't be able to open a
+     page-level horizontal scrollbar on mobile. */
+  overflow-x: hidden;
 }
 
 /* iOS Safari zooms the page on focus for any input under 16px and never

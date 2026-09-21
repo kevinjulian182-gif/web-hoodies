@@ -36,7 +36,7 @@ export default function ProductGallery({
             <button
               key={item.src}
               onClick={() => setActive(i)}
-              className={`relative h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-cream-100 transition-opacity md:w-full ${
+              className={`relative h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-cream-50 transition-opacity md:w-full ${
                 active === i ? 'opacity-100 ring-2 ring-coffee-900' : 'opacity-60 hover:opacity-100'
               }`}
             >
@@ -55,7 +55,7 @@ export default function ProductGallery({
         </div>
       )}
 
-      <div className="relative aspect-square flex-1 overflow-hidden rounded-2xl bg-cream-100">
+      <div className="relative aspect-square flex-1 overflow-hidden rounded-2xl bg-cream-50">
         <AnimatePresence mode="wait">
           <motion.div
             key={active}

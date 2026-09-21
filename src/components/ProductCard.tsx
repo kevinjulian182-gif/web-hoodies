@@ -76,14 +76,14 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
           )}
         </div>
 
-        <div className="mt-4 flex items-baseline justify-between">
+        <div className="mt-5 flex items-baseline justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-wide text-coffee-600">{product.brand}</p>
-            <h3 className="min-h-[2.5rem] text-base font-medium leading-5 text-coffee-900 line-clamp-2">
+            <p className="text-xs uppercase tracking-[0.15em] text-coffee-500">{product.brand}</p>
+            <h3 className="mt-1 min-h-[2.5rem] text-base font-medium leading-5 text-coffee-900 line-clamp-2">
               {product.name}
             </h3>
           </div>
-          <div className="text-right">
+          <div className="shrink-0 text-right">
             {onSale && (
               <p className="text-xs text-coffee-400 line-through">{formatCOP(product.compareAtPriceCents as number)}</p>
             )}
@@ -93,54 +93,58 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
           </div>
         </div>
 
-        <div className="mt-3 space-y-2">
-          {/* Fixed height regardless of whether this product has colors, so
-              the sizes/button below always start at the same y across every
-              card in the row — a variable-height block here is what causes
-              neighboring cards to look misaligned on mobile's 2-col grid. */}
-          <div className="flex h-5 flex-wrap gap-1.5">
-            {product.colors.map((c) => (
-              <button
-                key={c}
-                title={c}
-                aria-label={c}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setColor(c);
-                }}
-                className={`h-5 w-5 rounded-full border-2 transition-transform ${
-                  color === c ? 'border-coffee-900 scale-110' : 'border-transparent'
-                }`}
-              >
-                <span className="block h-full w-full rounded-full" style={{ backgroundColor: colorToHex(c) }} />
-              </button>
-            ))}
-          </div>
-          {product.sizes.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {product.sizes.map((s) => (
+        <div className="mt-5">
+          {/* Color/size pickers are desktop-only — on mobile's tighter 2-col
+              grid they read as clutter, so the card there is just image,
+              name, price and one clear action; picking a variant happens on
+              the product page instead. Fixed height on desktop regardless of
+              whether this product has colors, so the sizes/button below
+              always start at the same y across every card in the row. */}
+          <div className="hidden md:block">
+            <div className="flex h-5 flex-wrap gap-1.5">
+              {product.colors.map((c) => (
                 <button
-                  key={s}
+                  key={c}
+                  title={c}
+                  aria-label={c}
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    setSize(s);
+                    setColor(c);
                   }}
-                  className={`h-7 min-w-7 rounded-full px-1.5 text-[11px] font-medium border transition-colors ${
-                    size === s
-                      ? 'bg-coffee-900 text-cream-50 border-coffee-900'
-                      : 'border-cream-300 text-coffee-700'
+                  className={`h-5 w-5 rounded-full border-2 transition-transform ${
+                    color === c ? 'border-coffee-900 scale-110' : 'border-transparent'
                   }`}
                 >
-                  {s}
+                  <span className="block h-full w-full rounded-full" style={{ backgroundColor: colorToHex(c) }} />
                 </button>
               ))}
             </div>
-          )}
+            {product.sizes.length > 0 && (
+              <div className="mt-2.5 flex flex-wrap gap-1.5">
+                {product.sizes.map((s) => (
+                  <button
+                    key={s}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setSize(s);
+                    }}
+                    className={`h-7 min-w-7 rounded-full px-1.5 text-[11px] font-medium border transition-colors ${
+                      size === s
+                        ? 'bg-coffee-900 text-cream-50 border-coffee-900'
+                        : 'border-cream-300 text-coffee-700'
+                    }`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <button
             onClick={handleAdd}
-            className="w-full rounded-full bg-coffee-900 py-2 text-[11px] font-medium uppercase tracking-wide text-cream-50 transition-transform active:scale-[0.97]"
+            className="mt-2.5 w-full rounded-full bg-coffee-900 py-2.5 text-[11px] font-medium uppercase tracking-[0.15em] text-cream-50 transition-transform active:scale-[0.97]"
           >
             {added ? 'Agregado ✓' : 'Agregar al carrito'}
           </button>

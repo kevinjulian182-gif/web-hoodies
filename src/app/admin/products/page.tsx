@@ -7,6 +7,7 @@ import { colorToHex, COMMON_COLORS } from '@/lib/colors';
 import { isOnSale, discountPercent } from '@/lib/discount';
 import ChipListEditor from '@/components/admin/ChipListEditor';
 import MediaUploader from '@/components/admin/MediaUploader';
+import ReviewsManager from '@/components/admin/ReviewsManager';
 
 type Product = {
   id: string;
@@ -14,6 +15,9 @@ type Product = {
   slug: string;
   brand: string;
   description: string;
+  materials: string | null;
+  details: string | null;
+  careInstructions: string | null;
   priceCents: number;
   compareAtPriceCents: number | null;
   images: string[];
@@ -32,6 +36,9 @@ type FormState = {
   slug: string;
   brand: string;
   description: string;
+  materials: string;
+  details: string;
+  careInstructions: string;
   price: string;
   compareAtPrice: string;
   stock: string;
@@ -46,6 +53,9 @@ const emptyForm: FormState = {
   slug: '',
   brand: '',
   description: '',
+  materials: '',
+  details: '',
+  careInstructions: '',
   price: '',
   compareAtPrice: '',
   stock: '',
@@ -64,6 +74,9 @@ function toForm(p: Product): FormState {
     slug: p.slug,
     brand: p.brand,
     description: p.description,
+    materials: p.materials ?? '',
+    details: p.details ?? '',
+    careInstructions: p.careInstructions ?? '',
     price: String(p.priceCents / 100),
     compareAtPrice: p.compareAtPriceCents ? String(p.compareAtPriceCents / 100) : '',
     stock: String(p.stock),
@@ -138,6 +151,9 @@ export default function AdminProductsPage() {
       slug: form.slug,
       brand: form.brand,
       description: form.description,
+      materials: form.materials || null,
+      details: form.details || null,
+      careInstructions: form.careInstructions || null,
       priceCents: Math.round(Number(form.price) * 100),
       compareAtPriceCents: form.compareAtPrice ? Math.round(Number(form.compareAtPrice) * 100) : null,
       stock: Number(form.stock),
@@ -265,11 +281,43 @@ export default function AdminProductsPage() {
             <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} required className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm" rows={2} />
           </FormField>
 
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <FormField label="Materiales (opcional)">
+              <textarea
+                value={form.materials}
+                onChange={(e) => setForm({ ...form, materials: e.target.value })}
+                placeholder="100% algodón felpa francesa 400g"
+                className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm"
+                rows={3}
+              />
+            </FormField>
+            <FormField label="Detalles del producto (opcional)">
+              <textarea
+                value={form.details}
+                onChange={(e) => setForm({ ...form, details: e.target.value })}
+                placeholder={'Un detalle por línea, ej:\nCorte oversized\nBolsillo canguro\nEtiqueta bordada'}
+                className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm"
+                rows={3}
+              />
+            </FormField>
+            <FormField label="Recomendaciones de lavado (opcional)">
+              <textarea
+                value={form.careInstructions}
+                onChange={(e) => setForm({ ...form, careInstructions: e.target.value })}
+                placeholder="Lavar en frío, del revés, sin secadora"
+                className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm"
+                rows={3}
+              />
+            </FormField>
+          </div>
+
           <ChipListEditor label="Tallas" items={form.sizes} onChange={(sizes) => setForm({ ...form, sizes })} suggestions={COMMON_SIZES} />
           <ChipListEditor label="Colores" items={form.colors} onChange={(colors) => setForm({ ...form, colors })} suggestions={COMMON_COLORS} swatch={colorToHex} />
 
           <MediaUploader label="Imágenes" kind="image" items={form.images} onChange={(images) => setForm({ ...form, images })} />
           <MediaUploader label="Videos" kind="video" items={form.videos} onChange={(videos) => setForm({ ...form, videos })} />
+
+          {editingId !== 'new' && editingId !== null && <ReviewsManager productId={editingId} />}
 
           {error && <p className="text-sm text-red-600">{error}</p>}
 

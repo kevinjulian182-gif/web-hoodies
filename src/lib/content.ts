@@ -40,15 +40,89 @@ export const CONTENT_DEFAULTS = {
     'Pago contra entrega, seguimiento real de tu pedido y un equipo que responde — no un bot genérico.',
   'footer.tagline':
     'Streetwear de élite. Piezas originales de las marcas más exclusivas, curadas para quienes exigen lo mejor.',
+  'footer.copyright_year': String(new Date().getFullYear()),
+  'social.instagram_url': '',
+  'social.tiktok_url': '',
+  'social.facebook_url': '',
+  'social.x_url': '',
   'site.favicon_url': '',
   'site.logo_url': '',
+  'brands.items': JSON.stringify([
+    { name: 'Nike', logoUrl: '' },
+    { name: 'Supreme', logoUrl: '' },
+    { name: 'Essentials', logoUrl: '' },
+    { name: 'Bape', logoUrl: '' },
+  ]),
+  'faq.items': JSON.stringify([
+    {
+      question: '¿Cómo funciona el pago contra entrega?',
+      answer:
+        'Haces tu pedido sin pagar nada por adelantado. Un mensajero de Inter Rapidísimo te lo lleva a la puerta y pagas ahí mismo, en efectivo o con datáfono.',
+    },
+    {
+      question: '¿Cuánto tarda el envío?',
+      answer: 'Entre 2 y 5 días hábiles según tu ciudad. Recibes el número de guía para hacer seguimiento en tiempo real.',
+    },
+    {
+      question: '¿Los productos son originales?',
+      answer: 'Sí. Trabajamos con distribuidores autorizados y cada pieza pasa control de calidad antes de salir de bodega.',
+    },
+    {
+      question: '¿Puedo cambiar o devolver una prenda?',
+      answer: 'Sí, tienes 8 días desde que recibes tu pedido para solicitar cambio de talla o devolución, siempre que la prenda esté sin usar.',
+    },
+  ]),
+  'howwork.eyebrow': 'Cómo trabajamos',
+  'howwork.title': 'De la bodega a tu puerta, sin sorpresas.',
+  'howwork.step1_title': 'Eliges tu pieza',
+  'howwork.step1_body': 'Explora el catálogo y arma tu pedido con la talla y el color que quieras.',
+  'howwork.step2_title': 'Confirmamos por WhatsApp',
+  'howwork.step2_body': 'Verificamos disponibilidad y tu dirección antes de despachar, sin letras chiquitas.',
+  'howwork.step3_title': 'Empacamos con cuidado',
+  'howwork.step3_body': 'Cada prenda pasa control de calidad y va protegida para el viaje.',
+  'howwork.step4_title': 'Pagas al recibir',
+  'howwork.step4_body': 'Revisas tu pedido en la puerta de tu casa y pagas contra entrega.',
+  'shipping.eyebrow': 'Envíos seguros',
+  'shipping.title': 'Tu pedido, cuidado en cada kilómetro.',
+  'shipping.body':
+    'Trabajamos con Inter Rapidísimo en toda Colombia, con seguimiento real y empaque que protege cada prenda del bodegaje al último kilómetro.',
+  'shipping.item1_title': 'Guía de seguimiento',
+  'shipping.item1_body': 'Recibes tu número de guía apenas despachamos, para rastrear tu pedido en cualquier momento.',
+  'shipping.item2_title': 'Empaque protegido',
+  'shipping.item2_body': 'Bolsas selladas y refuerzo en cada envío para que tu pieza llegue impecable.',
+  'shipping.item3_title': 'Cobertura nacional',
+  'shipping.item3_body': 'Llegamos a las principales ciudades y municipios de Colombia.',
+  'quality.eyebrow': 'Materiales e importación',
+  'quality.title': 'Calidad que se siente al tacto.',
+  'quality.body':
+    'Importamos directamente de distribuidores autorizados y verificamos cada lote antes de que llegue a nuestra bodega. Nada de intermediarios dudosos.',
+  'quality.item1_title': 'Algodón pesado',
+  'quality.item1_body': 'Felpa francesa y algodón de gramaje alto que resisten el uso diario por años.',
+  'quality.item2_title': 'Control de calidad',
+  'quality.item2_body': 'Revisamos costuras, estampados y acabados antes de que tu pedido salga de bodega.',
+  'quality.item3_title': 'Importación directa',
+  'quality.item3_body': 'Trabajamos con distribuidores autorizados, sin réplicas ni intermediarios sin verificar.',
+  'cta.eyebrow': 'Tu próxima pieza te espera',
+  'cta.title': '¿Listo para vestir diferente?',
+  'cta.body': 'Explora el catálogo completo y paga contra entrega en toda Colombia. Sin adelantos, sin riesgos.',
+  'cta.button_text': 'Ver catálogo',
+  'cta.button_href': '/productos',
+  'home.faq_title': 'Preguntas frecuentes',
+  'pdp.faq_title': 'Preguntas frecuentes',
+  'pdp.reviews_title': 'Lo que dicen nuestros clientes',
   'home.sections': JSON.stringify([
     { id: 'hero', visible: true },
     { id: 'spotlight', visible: true },
     { id: 'products', visible: true },
     { id: 'promos', visible: true },
+    { id: 'brands', visible: true },
     { id: 'trust', visible: true },
+    { id: 'howwork', visible: true },
+    { id: 'quality', visible: true },
+    { id: 'shipping', visible: true },
+    { id: 'faq', visible: true },
     { id: 'newsletter', visible: true },
+    { id: 'cta', visible: true },
   ]),
 } as const;
 
@@ -57,8 +131,14 @@ export const HOME_SECTIONS = [
   { id: 'spotlight', label: 'Sección editorial' },
   { id: 'products', label: 'Catálogo destacado' },
   { id: 'promos', label: 'Promociones' },
+  { id: 'brands', label: 'Compra por marca' },
   { id: 'trust', label: 'Sección de confianza' },
+  { id: 'howwork', label: 'Cómo trabajamos' },
+  { id: 'quality', label: 'Materiales y calidad' },
+  { id: 'shipping', label: 'Envíos seguros' },
+  { id: 'faq', label: 'Preguntas frecuentes' },
   { id: 'newsletter', label: 'Newsletter' },
+  { id: 'cta', label: 'CTA final' },
 ] as const;
 
 export type HomeSectionId = (typeof HOME_SECTIONS)[number]['id'];
@@ -93,6 +173,33 @@ export function getHeroImages(content: SiteContent): string[] {
   try {
     const parsed = JSON.parse(content['hero.images']);
     return Array.isArray(parsed) ? parsed.filter((url) => typeof url === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+export type FaqItem = { question: string; answer: string };
+export function getFaqItems(content: SiteContent): FaqItem[] {
+  try {
+    const parsed = JSON.parse(content['faq.items']);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (item): item is FaqItem =>
+        item && typeof item.question === 'string' && typeof item.answer === 'string' && item.question.trim() !== ''
+    );
+  } catch {
+    return [];
+  }
+}
+
+export type BrandItem = { name: string; logoUrl: string };
+export function getBrandItems(content: SiteContent): BrandItem[] {
+  try {
+    const parsed = JSON.parse(content['brands.items']);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (item): item is BrandItem => item && typeof item.name === 'string' && item.name.trim() !== ''
+    );
   } catch {
     return [];
   }
@@ -153,6 +260,47 @@ export const CONTENT_FIELDS: Array<{
   { key: 'nosotros.value3_title', label: 'Valor 3 — título', section: 'Sobre nosotros' },
   { key: 'nosotros.value3_body', label: 'Valor 3 — texto', section: 'Sobre nosotros', multiline: true },
   { key: 'footer.tagline', label: 'Descripción de la marca', section: 'Pie de página', multiline: true },
+  { key: 'footer.copyright_year', label: 'Año del copyright', section: 'Pie de página' },
+  { key: 'social.instagram_url', label: 'Instagram (URL, opcional)', section: 'Pie de página' },
+  { key: 'social.tiktok_url', label: 'TikTok (URL, opcional)', section: 'Pie de página' },
+  { key: 'social.facebook_url', label: 'Facebook (URL, opcional)', section: 'Pie de página' },
+  { key: 'social.x_url', label: 'X / Twitter (URL, opcional)', section: 'Pie de página' },
+  { key: 'howwork.eyebrow', label: 'Texto superior', section: 'Cómo trabajamos' },
+  { key: 'howwork.title', label: 'Título', section: 'Cómo trabajamos' },
+  { key: 'howwork.step1_title', label: 'Paso 1 — título', section: 'Cómo trabajamos' },
+  { key: 'howwork.step1_body', label: 'Paso 1 — texto', section: 'Cómo trabajamos', multiline: true },
+  { key: 'howwork.step2_title', label: 'Paso 2 — título', section: 'Cómo trabajamos' },
+  { key: 'howwork.step2_body', label: 'Paso 2 — texto', section: 'Cómo trabajamos', multiline: true },
+  { key: 'howwork.step3_title', label: 'Paso 3 — título', section: 'Cómo trabajamos' },
+  { key: 'howwork.step3_body', label: 'Paso 3 — texto', section: 'Cómo trabajamos', multiline: true },
+  { key: 'howwork.step4_title', label: 'Paso 4 — título', section: 'Cómo trabajamos' },
+  { key: 'howwork.step4_body', label: 'Paso 4 — texto', section: 'Cómo trabajamos', multiline: true },
+  { key: 'shipping.eyebrow', label: 'Texto superior', section: 'Envíos seguros' },
+  { key: 'shipping.title', label: 'Título', section: 'Envíos seguros' },
+  { key: 'shipping.body', label: 'Texto introductorio', section: 'Envíos seguros', multiline: true },
+  { key: 'shipping.item1_title', label: 'Punto 1 — título', section: 'Envíos seguros' },
+  { key: 'shipping.item1_body', label: 'Punto 1 — texto', section: 'Envíos seguros', multiline: true },
+  { key: 'shipping.item2_title', label: 'Punto 2 — título', section: 'Envíos seguros' },
+  { key: 'shipping.item2_body', label: 'Punto 2 — texto', section: 'Envíos seguros', multiline: true },
+  { key: 'shipping.item3_title', label: 'Punto 3 — título', section: 'Envíos seguros' },
+  { key: 'shipping.item3_body', label: 'Punto 3 — texto', section: 'Envíos seguros', multiline: true },
+  { key: 'quality.eyebrow', label: 'Texto superior', section: 'Materiales y calidad' },
+  { key: 'quality.title', label: 'Título', section: 'Materiales y calidad' },
+  { key: 'quality.body', label: 'Texto introductorio', section: 'Materiales y calidad', multiline: true },
+  { key: 'quality.item1_title', label: 'Punto 1 — título', section: 'Materiales y calidad' },
+  { key: 'quality.item1_body', label: 'Punto 1 — texto', section: 'Materiales y calidad', multiline: true },
+  { key: 'quality.item2_title', label: 'Punto 2 — título', section: 'Materiales y calidad' },
+  { key: 'quality.item2_body', label: 'Punto 2 — texto', section: 'Materiales y calidad', multiline: true },
+  { key: 'quality.item3_title', label: 'Punto 3 — título', section: 'Materiales y calidad' },
+  { key: 'quality.item3_body', label: 'Punto 3 — texto', section: 'Materiales y calidad', multiline: true },
+  { key: 'cta.eyebrow', label: 'Texto superior', section: 'CTA final' },
+  { key: 'cta.title', label: 'Título', section: 'CTA final' },
+  { key: 'cta.body', label: 'Texto', section: 'CTA final', multiline: true },
+  { key: 'cta.button_text', label: 'Texto del botón', section: 'CTA final' },
+  { key: 'cta.button_href', label: 'Enlace del botón', section: 'CTA final' },
+  { key: 'home.faq_title', label: 'Título de FAQ en inicio', section: 'Preguntas frecuentes' },
+  { key: 'pdp.faq_title', label: 'Título de FAQ en producto', section: 'Preguntas frecuentes' },
+  { key: 'pdp.reviews_title', label: 'Título de reseñas en producto', section: 'Preguntas frecuentes' },
 ];
 
 export async function getSiteContent(): Promise<SiteContent> {

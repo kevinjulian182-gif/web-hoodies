@@ -24,9 +24,9 @@ export default function ProductGrid({
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-16">
+    <div className="mx-auto max-w-7xl px-6 py-20">
       {brands.length > 1 && (
-        <div className="mb-10 flex flex-wrap gap-2">
+        <div className="mb-12 flex flex-wrap gap-2">
           <FilterChip label="Todas" active={activeBrand === null} onClick={() => setActiveBrand(null)} />
           {brands.map((brand) => (
             <FilterChip
@@ -39,7 +39,7 @@ export default function ProductGrid({
         </div>
       )}
 
-      <motion.div layout className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-12">
+      <motion.div layout className="grid grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-16 md:gap-x-10 md:gap-y-20 lg:grid-cols-4">
         {filtered.map((product, i) => (
           <ProductCard key={product.id} product={product} index={i} />
         ))}

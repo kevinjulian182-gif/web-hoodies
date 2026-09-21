@@ -5,12 +5,18 @@ import Link from 'next/link';
 import { CONTENT_FIELDS, CONTENT_DEFAULTS, type ContentKey, type SiteContent } from '@/lib/content';
 import MediaUploader from '@/components/admin/MediaUploader';
 import SectionManager from '@/components/admin/SectionManager';
+import RepeatableListEditor from '@/components/admin/RepeatableListEditor';
 
 const SECTION_PREVIEW_PATH: Record<string, string> = {
   'General del sitio': '/',
   'Portada (Hero)': '/',
   'Sección editorial': '/',
   'Sección de confianza': '/',
+  'Cómo trabajamos': '/',
+  'Envíos seguros': '/',
+  'Materiales y calidad': '/',
+  'Preguntas frecuentes': '/',
+  'CTA final': '/',
   'Newsletter (inicio)': '/',
   'Sobre nosotros': '/nosotros',
   'Pie de página': '/',
@@ -21,12 +27,18 @@ const SECTION_HINTS: Record<string, string> = {
   'Portada (Hero)': 'Lo primero que ve un visitante. Usa un video O un carrusel de imágenes de fondo, no ambos.',
   'Sección editorial': 'El bloque de storytelling debajo de la portada.',
   'Sección de confianza': 'Los tres argumentos de venta que aparecen en el inicio y en Sobre nosotros.',
+  'Cómo trabajamos': 'Los 4 pasos del proceso de compra, en el inicio.',
+  'Envíos seguros': 'Argumentos de confianza sobre el envío, en el inicio.',
+  'Materiales y calidad': 'Argumentos sobre la calidad de las prendas y la importación, en el inicio.',
+  'Preguntas frecuentes': 'Se muestran en el inicio y en cada ficha de producto.',
+  'CTA final': 'El llamado a la acción antes del pie de página.',
   'Newsletter (inicio)': 'El bloque de suscripción al final del inicio.',
   'Sobre nosotros': 'Textos de la página /nosotros.',
-  'Pie de página': 'La descripción de la marca en el pie de todas las páginas.',
+  'Pie de página': 'La descripción de la marca, redes sociales y año del copyright en el pie de todas las páginas.',
 };
 
 const STRUCTURE_TAB = 'Estructura del inicio';
+const BRANDS_TAB = 'Compra por marca';
 
 function parseImageList(value: string): string[] {
   try {
@@ -75,6 +87,7 @@ export default function AdminContentPage() {
       const field = CONTENT_FIELDS.find((f) => f.key === key);
       if (field) set.add(field.section);
     }
+    if (dirty['faq.items']) set.add('Preguntas frecuentes');
     return set;
   }, [dirty]);
 
@@ -134,6 +147,12 @@ export default function AdminContentPage() {
             dirty={false}
             onClick={() => setActiveTab(STRUCTURE_TAB)}
           />
+          <TabButton
+            label={BRANDS_TAB}
+            active={activeTab === BRANDS_TAB}
+            dirty={Boolean(dirty['brands.items'])}
+            onClick={() => setActiveTab(BRANDS_TAB)}
+          />
           {sections.map(([section]) => (
             <TabButton
               key={section}
@@ -152,6 +171,24 @@ export default function AdminContentPage() {
               <SectionManager
                 value={values['home.sections']}
                 onChange={(json) => handleChange('home.sections', json)}
+              />
+            </div>
+          ) : activeTab === BRANDS_TAB ? (
+            <div>
+              <SectionHeader
+                title={BRANDS_TAB}
+                hint="Las marcas que aparecen en la sección 'Compra por marca' del inicio, con su logo."
+                previewPath="/"
+              />
+              <RepeatableListEditor
+                value={values['brands.items']}
+                onChange={(json) => handleChange('brands.items', json)}
+                fields={[
+                  { key: 'name', label: 'Nombre de la marca' },
+                  { key: 'logoUrl', label: 'Logo', type: 'image' },
+                ]}
+                emptyItem={{ name: '', logoUrl: '' }}
+                addLabel="Agregar marca"
               />
             </div>
           ) : (
@@ -237,6 +274,21 @@ export default function AdminContentPage() {
                   </div>
                 ))}
               </div>
+              {activeTab === 'Preguntas frecuentes' && (
+                <div className="mt-6 border-t border-cream-200 pt-6">
+                  <p className="mb-1.5 text-xs font-medium text-coffee-600">Preguntas y respuestas</p>
+                  <RepeatableListEditor
+                    value={values['faq.items']}
+                    onChange={(json) => handleChange('faq.items', json)}
+                    fields={[
+                      { key: 'question', label: 'Pregunta' },
+                      { key: 'answer', label: 'Respuesta', type: 'textarea' },
+                    ]}
+                    emptyItem={{ question: '', answer: '' }}
+                    addLabel="Agregar pregunta"
+                  />
+                </div>
+              )}
             </div>
           )}
         </div>

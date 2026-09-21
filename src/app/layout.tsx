@@ -31,6 +31,18 @@ export async function generateMetadata(): Promise<Metadata> {
     title: content['site.title'],
     description: content['site.description'],
     icons: content['site.favicon_url'] ? { icon: content['site.favicon_url'] } : undefined,
+    openGraph: {
+      siteName: 'AFRA',
+      title: content['site.title'],
+      description: content['site.description'],
+      locale: 'es_CO',
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: content['site.title'],
+      description: content['site.description'],
+    },
   };
 }
 
@@ -45,11 +57,29 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body>
         <CartProvider>
           <WishlistProvider>
-            <Navbar logoUrl={content['site.logo_url'] || undefined} transparentOverHero={heroIsFirstAndDark} />
+            <Navbar
+              logoUrl={content['site.logo_url'] || undefined}
+              transparentOverHero={heroIsFirstAndDark}
+              social={{
+                instagramUrl: content['social.instagram_url'] || undefined,
+                tiktokUrl: content['social.tiktok_url'] || undefined,
+                facebookUrl: content['social.facebook_url'] || undefined,
+                xUrl: content['social.x_url'] || undefined,
+              }}
+            />
             <main>
               <PageTransition>{children}</PageTransition>
             </main>
-            <Footer tagline={content['footer.tagline']} />
+            <Footer
+              tagline={content['footer.tagline']}
+              copyrightYear={content['footer.copyright_year']}
+              social={{
+                instagramUrl: content['social.instagram_url'] || undefined,
+                tiktokUrl: content['social.tiktok_url'] || undefined,
+                facebookUrl: content['social.facebook_url'] || undefined,
+                xUrl: content['social.x_url'] || undefined,
+              }}
+            />
             <CartDrawer />
             <WhatsAppButton />
             <CustomCursor />

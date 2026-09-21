@@ -21,6 +21,50 @@ function blogCover(seed: string) {
   return `https://picsum.photos/seed/afra-blog-${seed}/1600/900`;
 }
 
+function materialsFor(name: string) {
+  if (/jacket/i.test(name)) return '100% nylon ripstop con forro interior acolchado y costuras reforzadas.';
+  return '80% algodón peinado, 20% poliéster — felpa francesa de 400 GSM, tacto suave y alta durabilidad.';
+}
+
+function detailsFor(name: string) {
+  if (/jacket/i.test(name)) {
+    return ['Cierre frontal completo', 'Bolsillos laterales con cremallera', 'Capucha ajustable', 'Puños y cintura elásticos'].join(
+      '\n'
+    );
+  }
+  return ['Corte oversized relajado', 'Bolsillo canguro delantero', 'Capucha forrada de doble tela', 'Puños y cintura acanalados'].join(
+    '\n'
+  );
+}
+
+const CARE_INSTRUCTIONS =
+  'Lava en frío, del revés y con colores similares. Evita la secadora y no planches directamente sobre estampados o bordados.';
+
+const REVIEWS: Record<string, { authorName: string; rating: number; comment: string }[]> = {
+  'nike-tech-fleece-hoodie': [
+    { authorName: 'Camila Restrepo', rating: 5, comment: 'La tela se siente premium de verdad y llegó en 3 días a Medellín.' },
+    { authorName: 'Juan Pablo Osorio', rating: 4, comment: 'Me quedó un poco grande en M, pero la calidad es excelente.' },
+  ],
+  'supreme-box-logo-hoodie': [
+    { authorName: 'Daniela Marulanda', rating: 5, comment: 'Original 100%, verifiqué las costuras y todo coincide con la tienda oficial.' },
+    { authorName: 'Andrés Felipe Cano', rating: 5, comment: 'Pago contra entrega sin complicaciones, la pieza vale cada peso.' },
+  ],
+  'bape-shark-full-zip-hoodie': [
+    { authorName: 'Laura Vanessa Gómez', rating: 5, comment: 'El camuflaje es idéntico al oficial, capucha bien forrada.' },
+    { authorName: 'Miguel Ángel Torres', rating: 4, comment: 'Excelente hoodie, tardó 4 días en llegar a Cali pero llegó impecable.' },
+  ],
+  'essentials-core-hoodie': [
+    { authorName: 'Valentina Zapata', rating: 5, comment: 'El logo reflectivo se nota muy bien de noche, corte perfecto.' },
+    { authorName: 'Santiago Ríos', rating: 4, comment: 'Buena calidad, aunque esperaba un poco más de peso en la tela.' },
+  ],
+  'adidas-trefoil-hoodie': [
+    { authorName: 'María José Peláez', rating: 5, comment: 'Clásico que nunca falla, el bordado quedó perfecto después de varios lavados.' },
+  ],
+  'tommy-hilfiger-varsity-jacket': [
+    { authorName: 'Carlos Eduardo Mesa', rating: 4, comment: 'Muy buen acabado, los parches bordados se ven de calidad real.' },
+  ],
+};
+
 const PRODUCTS: Array<{
   name: string;
   slug: string;
@@ -322,13 +366,16 @@ async function main() {
   });
 
   for (const product of PRODUCTS) {
-    await prisma.product.upsert({
+    const saved = await prisma.product.upsert({
       where: { slug: product.slug },
       create: {
         name: product.name,
         slug: product.slug,
         brand: product.brand,
         description: product.description,
+        materials: materialsFor(product.name),
+        details: detailsFor(product.name),
+        careInstructions: CARE_INSTRUCTIONS,
         priceCents: product.priceCOP * 100,
         compareAtPriceCents: product.compareAtPriceCOP ? product.compareAtPriceCOP * 100 : null,
         images: stockPhotos(product.slug, 3),
@@ -345,6 +392,9 @@ async function main() {
         name: product.name,
         brand: product.brand,
         description: product.description,
+        materials: materialsFor(product.name),
+        details: detailsFor(product.name),
+        careInstructions: CARE_INSTRUCTIONS,
         priceCents: product.priceCOP * 100,
         compareAtPriceCents: product.compareAtPriceCOP ? product.compareAtPriceCOP * 100 : null,
         images: stockPhotos(product.slug, 3),
@@ -352,6 +402,16 @@ async function main() {
         colors: product.colors,
       },
     });
+
+    const sampleReviews = REVIEWS[product.slug];
+    if (sampleReviews) {
+      const existing = await prisma.review.count({ where: { productId: saved.id } });
+      if (existing === 0) {
+        await prisma.review.createMany({
+          data: sampleReviews.map((r) => ({ ...r, productId: saved.id })),
+        });
+      }
+    }
   }
 
   for (const post of BLOG_POSTS) {

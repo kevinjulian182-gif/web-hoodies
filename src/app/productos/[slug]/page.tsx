@@ -9,6 +9,10 @@ import ProductGallery from '@/components/ProductGallery';
 import ProductGrid from '@/components/ProductGrid';
 import HeartButton from '@/components/HeartButton';
 import MobileBuyBar from '@/components/MobileBuyBar';
+import ReviewsSection from '@/components/ReviewsSection';
+import ComparisonTable from '@/components/ComparisonTable';
+import FaqSection from '@/components/FaqSection';
+import { getSiteContent, getFaqItems } from '@/lib/content';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,12 +36,19 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const product = await prisma.product.findUnique({ where: { slug } });
   if (!product || !product.active) notFound();
 
-  const related = await prisma.product.findMany({
-    where: { brand: product.brand, active: true, id: { not: product.id } },
-    take: 4,
-  });
+  const [related, reviews, content] = await Promise.all([
+    prisma.product.findMany({
+      where: { brand: product.brand, active: true, id: { not: product.id } },
+      take: 4,
+    }),
+    prisma.review.findMany({ where: { productId: product.id }, orderBy: { createdAt: 'desc' } }),
+    getSiteContent(),
+  ]);
 
   const onSale = isOnSale(product.priceCents, product.compareAtPriceCents);
+  const details = product.details
+    ? product.details.split('\n').map((line) => line.trim()).filter(Boolean)
+    : [];
 
   return (
     <div>
@@ -126,16 +137,39 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             </li>
           </ul>
 
+          {details.length > 0 && (
+            <div className="mt-6 border-t border-cream-200 pt-6 text-sm text-coffee-600">
+              <p className="font-medium text-coffee-900">Detalles del producto</p>
+              <ul className="mt-2 space-y-1.5 leading-relaxed">
+                {details.map((line) => (
+                  <li key={line} className="flex items-start gap-2">
+                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-coffee-400" />
+                    {line}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="mt-6 border-t border-cream-200 pt-6 text-sm text-coffee-600">
+            <p className="font-medium text-coffee-900">Materiales</p>
+            <p className="mt-2 leading-relaxed">
+              {product.materials || 'Algodón pesado y felpa francesa de gramaje alto.'}
+            </p>
+          </div>
+
           <div className="mt-6 border-t border-cream-200 pt-6 text-sm text-coffee-600">
             <p className="font-medium text-coffee-900">Talla y cuidado</p>
             <p className="mt-2 leading-relaxed">
-              Guía de tallas en formato US. Si dudas entre dos tallas, elige la más grande para un
-              calce más relajado. Lava en frío, del revés y evita la secadora para conservar la
-              impresión y el bordado.
+              {product.careInstructions ||
+                'Guía de tallas en formato US. Si dudas entre dos tallas, elige la más grande para un calce más relajado. Lava en frío, del revés y evita la secadora para conservar la impresión y el bordado.'}
             </p>
           </div>
         </div>
       </div>
+
+      <ReviewsSection title={content['pdp.reviews_title']} reviews={reviews} />
+      <ComparisonTable current={product} others={related.slice(0, 3)} />
 
       {related.length > 0 && (
         <div className="border-t border-cream-200">
@@ -145,6 +179,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           <ProductGrid products={related} />
         </div>
       )}
+
+      <FaqSection title={content['pdp.faq_title']} items={getFaqItems(content)} />
 
       <MobileBuyBar name={product.name} priceCents={product.priceCents} />
     </div>

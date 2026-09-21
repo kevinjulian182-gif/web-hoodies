@@ -23,12 +23,23 @@ function Wordmark({ logoUrl, className }: { logoUrl?: string; className: string 
   return <span className={className}>AFRA°</span>;
 }
 
+const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER;
+
+type SocialLinks = {
+  instagramUrl?: string;
+  tiktokUrl?: string;
+  facebookUrl?: string;
+  xUrl?: string;
+};
+
 export default function Navbar({
   logoUrl,
   transparentOverHero,
+  social,
 }: {
   logoUrl?: string;
   transparentOverHero?: boolean;
+  social?: SocialLinks;
 }) {
   const pathname = usePathname();
   const { items, openCart } = useCart();
@@ -167,60 +178,177 @@ export default function Navbar({
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-cream-50 md:hidden"
           >
-            <div className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
-              <Link href="/">
-                <Wordmark logoUrl={logoUrl} className="text-lg font-semibold tracking-tightest text-coffee-900" />
-              </Link>
-              <button aria-label="Cerrar menú" onClick={() => setMenuOpen(false)} className="text-coffee-900">
-                <CloseIcon />
-              </button>
-            </div>
-            <motion.div
-              initial={{ y: 16, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.1, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              className="flex flex-col gap-6 px-6 pt-12"
-            >
-              {LINKS.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`text-4xl font-semibold tracking-tightest ${
-                    link.href === '/promos' ? 'text-red-700' : 'text-coffee-900'
-                  }`}
-                >
-                  {link.label}
+            <div className="flex h-full flex-col">
+              <div className="mx-auto flex h-16 w-full max-w-7xl shrink-0 items-center justify-between px-6">
+                <Link href="/">
+                  <Wordmark logoUrl={logoUrl} className="text-lg font-semibold tracking-tightest text-coffee-900" />
                 </Link>
-              ))}
-              <Link
-                href="/favoritos"
-                className="text-4xl font-semibold tracking-tightest text-coffee-900"
-              >
-                Favoritos{wishlistIds.length > 0 && ` (${wishlistIds.length})`}
-              </Link>
-              <button
-                onClick={() => {
-                  setMenuOpen(false);
-                  setSearchOpen(true);
-                }}
-                className="text-left text-4xl font-semibold tracking-tightest text-coffee-900"
-              >
-                Buscar
-              </button>
-              <button
-                onClick={() => {
-                  setMenuOpen(false);
-                  openCart();
-                }}
-                className="text-left text-4xl font-semibold tracking-tightest text-coffee-900"
-              >
-                Carrito{itemCount > 0 && ` (${itemCount})`}
-              </button>
-            </motion.div>
+                <button aria-label="Cerrar menú" onClick={() => setMenuOpen(false)} className="text-coffee-900">
+                  <CloseIcon />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto overscroll-contain px-6 pb-8 pt-6">
+                <motion.nav
+                  initial={{ y: 16, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.08, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                  className="flex flex-col gap-2"
+                >
+                  {LINKS.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className={`py-2 text-3xl font-semibold tracking-tightest ${
+                        link.href === '/promos' ? 'text-red-700' : 'text-coffee-900'
+                      }`}
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                </motion.nav>
+
+                <motion.div
+                  initial={{ y: 16, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.14, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                  className="mt-8 border-t border-cream-200 pt-6"
+                >
+                  <p className="mb-3 text-xs font-medium uppercase tracking-[0.2em] text-coffee-400">Tu cuenta</p>
+                  <div className="flex flex-col gap-1">
+                    <button
+                      onClick={() => {
+                        setMenuOpen(false);
+                        setSearchOpen(true);
+                      }}
+                      className="flex items-center justify-between py-3 text-left text-base font-medium text-coffee-800"
+                    >
+                      Buscar
+                      <SearchIcon />
+                    </button>
+                    <Link
+                      href="/favoritos"
+                      className="flex items-center justify-between py-3 text-base font-medium text-coffee-800"
+                    >
+                      Favoritos
+                      <span className="flex items-center gap-2 text-coffee-500">
+                        {wishlistIds.length > 0 && <span>{wishlistIds.length}</span>}
+                        <HeartIcon />
+                      </span>
+                    </Link>
+                    <button
+                      onClick={() => {
+                        setMenuOpen(false);
+                        openCart();
+                      }}
+                      className="flex items-center justify-between py-3 text-left text-base font-medium text-coffee-800"
+                    >
+                      Carrito
+                      <span className="flex items-center gap-2 text-coffee-500">
+                        {itemCount > 0 && <span>{itemCount}</span>}
+                        <BagIcon />
+                      </span>
+                    </button>
+                  </div>
+                </motion.div>
+
+                {WHATSAPP_NUMBER && (
+                  <motion.a
+                    initial={{ y: 16, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.18, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                    href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('Hola, tengo una pregunta sobre un producto de AFRA.')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-8 flex items-center justify-center gap-2 rounded-full bg-coffee-900 py-3.5 text-sm font-medium text-cream-50"
+                  >
+                    Escríbenos por WhatsApp
+                  </motion.a>
+                )}
+
+                {social && Object.values(social).some(Boolean) && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.22, duration: 0.4 }}
+                    className="mt-8 flex items-center gap-3"
+                  >
+                    {social.instagramUrl && (
+                      <SocialIconLink href={social.instagramUrl} label="Instagram">
+                        <InstagramIcon />
+                      </SocialIconLink>
+                    )}
+                    {social.tiktokUrl && (
+                      <SocialIconLink href={social.tiktokUrl} label="TikTok">
+                        <TikTokIcon />
+                      </SocialIconLink>
+                    )}
+                    {social.facebookUrl && (
+                      <SocialIconLink href={social.facebookUrl} label="Facebook">
+                        <FacebookIcon />
+                      </SocialIconLink>
+                    )}
+                    {social.xUrl && (
+                      <SocialIconLink href={social.xUrl} label="X (Twitter)">
+                        <XIcon />
+                      </SocialIconLink>
+                    )}
+                  </motion.div>
+                )}
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
     </>
+  );
+}
+
+function SocialIconLink({ href, label, children }: { href: string; label: string; children: React.ReactNode }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={label}
+      className="flex h-10 w-10 items-center justify-center rounded-full border border-cream-200 text-coffee-700"
+    >
+      {children}
+    </a>
+  );
+}
+
+function InstagramIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+      <rect x="3" y="3" width="18" height="18" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function TikTokIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M16.5 2h-3v13.5a3 3 0 1 1-2.4-2.94V9.4a6.1 6.1 0 1 0 5.4 6.06V8.8a7.3 7.3 0 0 0 4.5 1.55V7.3a4.4 4.4 0 0 1-4.5-4.3V2Z" />
+    </svg>
+  );
+}
+
+function FacebookIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M13.5 21v-7.8h2.6l.4-3h-3v-1.9c0-.87.24-1.46 1.5-1.46h1.6V4.14C15.9 4.1 14.9 4 13.7 4c-2.4 0-4 1.47-4 4.16v2.05H7v3h2.7V21h3.8Z" />
+    </svg>
+  );
+}
+
+function XIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M4 3h4.2l4 5.5L16.8 3H21l-6.6 8.4L21 21h-4.2l-4.3-5.9L7.2 21H3l6.9-8.8L4 3Z" />
+    </svg>
   );
 }
 

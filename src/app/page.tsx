@@ -4,9 +4,21 @@ import BrandSpotlight from '@/components/BrandSpotlight';
 import ProductGrid from '@/components/ProductGrid';
 import TrustSection from '@/components/TrustSection';
 import NewsletterForm from '@/components/NewsletterForm';
+import HowItWorks from '@/components/HowItWorks';
+import FeatureSplit from '@/components/FeatureSplit';
+import FaqSection from '@/components/FaqSection';
+import BrandsSection from '@/components/BrandsSection';
+import FinalCta from '@/components/FinalCta';
 import { prisma } from '@/lib/prisma';
 import { isOnSale } from '@/lib/discount';
-import { getSiteContent, getHomeSectionOrder, getHeroImages, type HomeSectionId } from '@/lib/content';
+import {
+  getSiteContent,
+  getHomeSectionOrder,
+  getHeroImages,
+  getFaqItems,
+  getBrandItems,
+  type HomeSectionId,
+} from '@/lib/content';
 import type { Product } from '@prisma/client';
 import type { SiteContent } from '@/lib/content';
 
@@ -81,6 +93,75 @@ function renderSection(
           }}
         />
       );
+    case 'brands':
+      return <BrandsSection key={id} brands={getBrandItems(content)} />;
+    case 'howwork':
+      return (
+        <HowItWorks
+          key={id}
+          content={{
+            eyebrow: content['howwork.eyebrow'],
+            title: content['howwork.title'],
+            steps: [
+              { title: content['howwork.step1_title'], body: content['howwork.step1_body'] },
+              { title: content['howwork.step2_title'], body: content['howwork.step2_body'] },
+              { title: content['howwork.step3_title'], body: content['howwork.step3_body'] },
+              { title: content['howwork.step4_title'], body: content['howwork.step4_body'] },
+            ],
+          }}
+        />
+      );
+    case 'quality':
+      return (
+        <FeatureSplit
+          key={id}
+          tone="cream-100"
+          icon={<FabricIcon />}
+          content={{
+            eyebrow: content['quality.eyebrow'],
+            title: content['quality.title'],
+            body: content['quality.body'],
+            items: [
+              { title: content['quality.item1_title'], body: content['quality.item1_body'] },
+              { title: content['quality.item2_title'], body: content['quality.item2_body'] },
+              { title: content['quality.item3_title'], body: content['quality.item3_body'] },
+            ],
+          }}
+        />
+      );
+    case 'shipping':
+      return (
+        <FeatureSplit
+          key={id}
+          reverse
+          icon={<ShieldIcon />}
+          content={{
+            eyebrow: content['shipping.eyebrow'],
+            title: content['shipping.title'],
+            body: content['shipping.body'],
+            items: [
+              { title: content['shipping.item1_title'], body: content['shipping.item1_body'] },
+              { title: content['shipping.item2_title'], body: content['shipping.item2_body'] },
+              { title: content['shipping.item3_title'], body: content['shipping.item3_body'] },
+            ],
+          }}
+        />
+      );
+    case 'faq':
+      return <FaqSection key={id} title={content['home.faq_title']} items={getFaqItems(content)} />;
+    case 'cta':
+      return (
+        <FinalCta
+          key={id}
+          content={{
+            eyebrow: content['cta.eyebrow'],
+            title: content['cta.title'],
+            body: content['cta.body'],
+            buttonText: content['cta.button_text'],
+            buttonHref: content['cta.button_href'],
+          }}
+        />
+      );
     case 'newsletter':
       return (
         <section key={id} className="bg-cream-100 py-20 px-6 text-center">
@@ -94,6 +175,27 @@ function renderSection(
     default:
       return null;
   }
+}
+
+function FabricIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+      <path d="M4 4c2 1.5 2 3 0 4.5S2 12 4 13.5" strokeLinecap="round" />
+      <path d="M9 4c2 1.5 2 3 0 4.5S7 12 9 13.5" strokeLinecap="round" />
+      <path d="M14 4c2 1.5 2 3 0 4.5S12 12 14 13.5" strokeLinecap="round" />
+      <path d="M4 18h16" strokeLinecap="round" />
+      <path d="M4 21h16" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ShieldIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+      <path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z" strokeLinejoin="round" />
+      <path d="m9 12 2 2 4-4.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
 }
 
 export default async function HomePage() {

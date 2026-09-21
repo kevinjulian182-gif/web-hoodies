@@ -6,13 +6,19 @@ import { useCart } from '@/lib/cart';
 import { colorToHex } from '@/lib/colors';
 import type { Product } from '@prisma/client';
 
+const LOW_STOCK_THRESHOLD = 5;
+
 export default function AddToCartButton({ product }: { product: Product }) {
   const { addItem } = useCart();
   const [size, setSize] = useState(product.sizes[0] ?? '');
   const [color, setColor] = useState(product.colors[0] ?? '');
   const [added, setAdded] = useState(false);
 
+  const outOfStock = product.stock <= 0;
+  const lowStock = !outOfStock && product.stock <= LOW_STOCK_THRESHOLD;
+
   const handleAdd = () => {
+    if (outOfStock) return;
     addItem({
       productId: product.id,
       name: product.name,
@@ -73,13 +79,30 @@ export default function AddToCartButton({ product }: { product: Product }) {
         ))}
       </div>
 
+      {lowStock && (
+        <p className="mb-3 flex items-center gap-2 text-sm font-medium text-red-700">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-red-600" />
+          </span>
+          ¡Solo quedan {product.stock} unidades!
+        </p>
+      )}
+
       <motion.button
         onClick={handleAdd}
-        whileTap={{ scale: 0.96 }}
-        className="relative w-full bg-coffee-900 text-cream-50 py-4 rounded-full text-sm font-medium tracking-wide overflow-hidden"
+        disabled={outOfStock}
+        whileTap={outOfStock ? undefined : { scale: 0.96 }}
+        className={`relative w-full overflow-hidden rounded-full py-5 text-base font-semibold tracking-[0.04em] shadow-[0_10px_30px_rgba(54,37,25,0.25)] transition-opacity ${
+          outOfStock ? 'cursor-not-allowed bg-coffee-300 text-coffee-50 shadow-none' : 'bg-coffee-900 text-cream-50'
+        }`}
       >
         <AnimatePresence mode="wait">
-          {added ? (
+          {outOfStock ? (
+            <motion.span key="oos" className="block">
+              Agotado
+            </motion.span>
+          ) : added ? (
             <motion.span
               key="added"
               initial={{ y: 12, opacity: 0 }}
