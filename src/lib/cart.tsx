@@ -1,0 +1,112 @@
+'use client';
+
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+
+export type CartItem = {
+  productId: string;
+  name: string;
+  slug: string;
+  image: string;
+  size: string;
+  color?: string;
+  priceCents: number;
+  quantity: number;
+};
+
+type CartContextValue = {
+  items: CartItem[];
+  addItem: (item: CartItem, options?: { openDrawer?: boolean }) => void;
+  removeItem: (productId: string, size: string, color?: string) => void;
+  updateQuantity: (productId: string, size: string, quantity: number, color?: string) => void;
+  clear: () => void;
+  subtotalCents: number;
+  isOpen: boolean;
+  openCart: () => void;
+  closeCart: () => void;
+};
+
+const CartContext = createContext<CartContextValue | null>(null);
+const STORAGE_KEY = 'hoodies-cart';
+
+function sameLine(a: CartItem, productId: string, size: string, color?: string) {
+  return a.productId === productId && a.size === size && (a.color ?? '') === (color ?? '');
+}
+
+export function CartProvider({ children }: { children: ReactNode }) {
+  const [items, setItems] = useState<CartItem[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
+
+  // A single mount-time read, with no companion "write on every items change"
+  // effect: that pairing races on mount (the write effect fires with the
+  // still-empty initial state before the read's setItems is applied),
+  // wiping out whatever was just persisted on the previous page.
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) setItems(JSON.parse(stored));
+    } catch {
+      // ignore malformed/inaccessible storage
+    }
+  }, []);
+
+  const persist = (next: CartItem[]) => {
+    setItems(next);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    } catch {
+      // ignore storage write failures (e.g. private browsing)
+    }
+  };
+
+  const addItem = (item: CartItem, options?: { openDrawer?: boolean }) => {
+    const existing = items.find((i) => sameLine(i, item.productId, item.size, item.color));
+    const next = existing
+      ? items.map((i) => (i === existing ? { ...i, quantity: i.quantity + item.quantity } : i))
+      : [...items, item];
+    persist(next);
+    if (options?.openDrawer !== false) setIsOpen(true);
+  };
+
+  const removeItem = (productId: string, size: string, color?: string) => {
+    persist(items.filter((i) => !sameLine(i, productId, size, color)));
+  };
+
+  const updateQuantity = (productId: string, size: string, quantity: number, color?: string) => {
+    if (quantity < 1) {
+      removeItem(productId, size, color);
+      return;
+    }
+    persist(items.map((i) => (sameLine(i, productId, size, color) ? { ...i, quantity } : i)));
+  };
+
+  const clear = () => persist([]);
+
+  const subtotalCents = useMemo(
+    () => items.reduce((sum, i) => sum + i.priceCents * i.quantity, 0),
+    [items]
+  );
+
+  return (
+    <CartContext.Provider
+      value={{
+        items,
+        addItem,
+        removeItem,
+        updateQuantity,
+        clear,
+        subtotalCents,
+        isOpen,
+        openCart: () => setIsOpen(true),
+        closeCart: () => setIsOpen(false),
+      }}
+    >
+      {children}
+    </CartContext.Provider>
+  );
+}
+
+export function useCart() {
+  const ctx = useContext(CartContext);
+  if (!ctx) throw new Error('useCart debe usarse dentro de CartProvider');
+  return ctx;
+}

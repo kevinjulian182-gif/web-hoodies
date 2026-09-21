@@ -1,0 +1,44 @@
+name: Configurar base de datos
+
+# Se ejecuta manualmente desde la pestaña "Actions" de GitHub.
+# No requiere nada instalado en tu computador: solo el secreto
+# DATABASE_URL configurado en Settings > Secrets and variables > Actions.
+on:
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: "Crear usuarios y producto de ejemplo (seed)"
+        type: boolean
+        default: true
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Aplicar el esquema a la base de datos
+        # DIRECT_URL usa el modo "Session" (puerto 5432) del mismo pooler de
+        # Supabase: el modo "Transaction" (6543) de DATABASE_URL no soporta
+        # los advisory locks que Prisma necesita para aplicar el esquema.
+        run: DIRECT_URL="${DATABASE_URL/:6543/:5432}" npx prisma db push
+
+      - name: Crear Super Admin, Admin y producto de ejemplo
+        if: ${{ inputs.seed }}
+        # pgbouncer=true desactiva los prepared statements de Prisma: el
+        # pooler en modo "Transaction" no los soporta de forma confiable.
+        run: |
+          case "$DATABASE_URL" in
+            *\?*) export DATABASE_URL="${DATABASE_URL}&pgbouncer=true" ;;
+            *) export DATABASE_URL="${DATABASE_URL}?pgbouncer=true" ;;
+          esac
+          npm run db:seed
