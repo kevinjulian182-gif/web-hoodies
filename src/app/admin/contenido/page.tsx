@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { CONTENT_FIELDS, CONTENT_DEFAULTS, type ContentKey, type SiteContent } from '@/lib/content';
 import MediaUploader from '@/components/admin/MediaUploader';
+import SectionManager from '@/components/admin/SectionManager';
 
 const SECTION_PREVIEW_PATH: Record<string, string> = {
   'Portada (Hero)': '/',
@@ -92,6 +93,21 @@ export default function AdminContentPage() {
       {Object.keys(dirty).length > 0 && (
         <p className="mb-4 text-xs text-amber-700">Tienes cambios sin guardar.</p>
       )}
+
+      <div className="mb-6 rounded-xl border border-cream-200 p-4">
+        <div className="mb-3 flex items-center justify-between">
+          <span className="text-xs font-medium uppercase tracking-[0.2em] text-coffee-600">
+            Estructura del inicio
+          </span>
+          <Link href="/" target="_blank" className="text-xs text-coffee-500 underline hover:text-coffee-800">
+            Ver en la web ↗
+          </Link>
+        </div>
+        <p className="mb-3 text-xs text-coffee-500">
+          Muestra, oculta y reordena las secciones de la página de inicio.
+        </p>
+        <SectionManager value={values['home.sections']} onChange={(json) => handleChange('home.sections', json)} />
+      </div>
 
       <div className="space-y-6">
         {sections.map(([section, fields]) => {

@@ -37,7 +37,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           year: 'numeric',
         })}
       </p>
-      <h1 className="font-display mt-2 text-4xl md:text-6xl font-semibold italic text-coffee-900 leading-[1.1]">
+      <h1 className="mt-2 text-3xl md:text-5xl font-semibold tracking-tightest text-coffee-900 leading-[1.1]">
         {post.title}
       </h1>
 

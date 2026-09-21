@@ -37,7 +37,50 @@ export const CONTENT_DEFAULTS = {
     'Pago contra entrega, seguimiento real de tu pedido y un equipo que responde — no un bot genérico.',
   'footer.tagline':
     'Streetwear de élite. Piezas originales de las marcas más exclusivas, curadas para quienes exigen lo mejor.',
+  'home.sections': JSON.stringify([
+    { id: 'hero', visible: true },
+    { id: 'spotlight', visible: true },
+    { id: 'products', visible: true },
+    { id: 'trust', visible: true },
+    { id: 'newsletter', visible: true },
+  ]),
 } as const;
+
+export const HOME_SECTIONS = [
+  { id: 'hero', label: 'Portada (Hero)' },
+  { id: 'spotlight', label: 'Sección editorial' },
+  { id: 'products', label: 'Catálogo destacado' },
+  { id: 'trust', label: 'Sección de confianza' },
+  { id: 'newsletter', label: 'Newsletter' },
+] as const;
+
+export type HomeSectionId = (typeof HOME_SECTIONS)[number]['id'];
+export type HomeSectionEntry = { id: HomeSectionId; visible: boolean };
+
+/** Parses the saved home section list (order + show/hide), dropping unknown
+ * ids and appending any registry section missing from a stale saved list
+ * (e.g. after a new section type ships) as visible by default. */
+export function getHomeSectionEntries(content: SiteContent): HomeSectionEntry[] {
+  const validIds = HOME_SECTIONS.map((s) => s.id) as string[];
+  let saved: HomeSectionEntry[] = [];
+  try {
+    saved = JSON.parse(content['home.sections']);
+  } catch {
+    saved = [];
+  }
+  const known = saved.filter((e) => e && validIds.includes(e.id));
+  const knownIds = known.map((e) => e.id) as string[];
+  const missing = validIds
+    .filter((id) => !knownIds.includes(id))
+    .map((id) => ({ id: id as HomeSectionId, visible: true }));
+  return [...known, ...missing];
+}
+
+export function getHomeSectionOrder(content: SiteContent): HomeSectionId[] {
+  return getHomeSectionEntries(content)
+    .filter((e) => e.visible)
+    .map((e) => e.id);
+}
 
 export type ContentKey = keyof typeof CONTENT_DEFAULTS;
 export type SiteContent = Record<ContentKey, string>;

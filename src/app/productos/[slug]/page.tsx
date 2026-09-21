@@ -55,7 +55,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-coffee-600">{product.brand}</p>
-              <h1 className="font-display mt-1 text-3xl md:text-4xl font-semibold italic text-coffee-900">
+              <h1 className="mt-1 text-3xl md:text-4xl font-semibold tracking-tightest text-coffee-900">
                 {product.name}
               </h1>
             </div>
@@ -75,7 +75,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
       {related.length > 0 && (
         <div className="border-t border-cream-200">
-          <h2 className="font-display mx-auto max-w-7xl px-6 pt-16 text-2xl md:text-3xl italic font-semibold text-coffee-900">
+          <h2 className="mx-auto max-w-7xl px-6 pt-16 text-2xl font-semibold tracking-tightest text-coffee-900">
             Más de {product.brand}
           </h2>
           <ProductGrid products={related} />

@@ -68,7 +68,7 @@ export default function Hero({ content }: { content: HeroContent }) {
           initial={{ opacity: 0, y: 32 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-          className={`font-display text-7xl md:text-[8.5rem] font-semibold italic leading-[0.92] tracking-tight ${hasVideo ? 'text-cream-50' : 'text-coffee-900'}`}
+          className={`text-6xl md:text-8xl font-semibold tracking-tightest leading-[0.95] ${hasVideo ? 'text-cream-50' : 'text-coffee-900'}`}
         >
           {content.titleLine1}
           <br />

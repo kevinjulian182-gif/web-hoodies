@@ -50,7 +50,7 @@ export default function Footer({ tagline }: { tagline: string }) {
 
       <div className="mx-auto max-w-7xl px-6 py-16 grid md:grid-cols-[1.5fr_1fr_1fr] gap-12">
         <div>
-          <p className="font-display text-3xl italic font-semibold text-cream-50">AFRA°</p>
+          <p className="text-2xl font-semibold tracking-tightest text-cream-50">AFRA°</p>
           <p className="mt-4 text-sm text-cream-100/60 max-w-xs leading-relaxed">{tagline}</p>
         </div>
 

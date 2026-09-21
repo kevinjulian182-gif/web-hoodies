@@ -30,7 +30,7 @@ export default async function AboutPage() {
         <p className="text-xs font-medium uppercase tracking-[0.3em] text-coffee-600 mb-6">
           {content['nosotros.eyebrow']}
         </p>
-        <h1 className="font-display text-5xl md:text-7xl font-semibold italic text-coffee-900 leading-[1.05]">
+        <h1 className="text-4xl md:text-6xl font-semibold tracking-tightest text-coffee-900 leading-[1.05]">
           {content['nosotros.title_line1']}
           <br />
           {content['nosotros.title_line2']}

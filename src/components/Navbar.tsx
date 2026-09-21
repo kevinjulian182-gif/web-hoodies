@@ -48,7 +48,7 @@ export default function Navbar() {
         }`}
       >
         <nav className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="font-display text-2xl italic font-semibold text-coffee-900">
+          <Link href="/" className="text-lg font-semibold tracking-tightest text-coffee-900">
             AFRA°
           </Link>
 
@@ -129,7 +129,7 @@ export default function Navbar() {
             className="fixed inset-0 z-50 bg-cream-50 md:hidden"
           >
             <div className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
-              <Link href="/" className="font-display text-2xl italic font-semibold text-coffee-900">
+              <Link href="/" className="text-lg font-semibold tracking-tightest text-coffee-900">
                 AFRA°
               </Link>
               <button aria-label="Cerrar menú" onClick={() => setMenuOpen(false)} className="text-coffee-900">
