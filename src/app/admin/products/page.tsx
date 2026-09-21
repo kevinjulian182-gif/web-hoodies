@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import { formatCOP } from '@/lib/format';
 import { colorToHex, COMMON_COLORS } from '@/lib/colors';
 import { isOnSale, discountPercent } from '@/lib/discount';
@@ -24,6 +25,7 @@ type Product = {
 };
 
 const COMMON_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+const LOW_STOCK_THRESHOLD = 5;
 
 type FormState = {
   name: string;
@@ -75,6 +77,8 @@ export default function AdminProductsPage() {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [query, setQuery] = useState('');
+  const [brandFilter, setBrandFilter] = useState<string | null>(null);
 
   const load = async () => {
     const res = await fetch('/api/products');
@@ -84,6 +88,17 @@ export default function AdminProductsPage() {
   useEffect(() => {
     load();
   }, []);
+
+  const brands = useMemo(() => Array.from(new Set(products.map((p) => p.brand))).sort(), [products]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return products.filter((p) => {
+      if (brandFilter && p.brand !== brandFilter) return false;
+      if (q && !p.name.toLowerCase().includes(q) && !p.brand.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [products, query, brandFilter]);
 
   const startCreate = () => {
     setEditingId('new');
@@ -195,15 +210,29 @@ export default function AdminProductsPage() {
           </h2>
 
           <div className="grid grid-cols-2 gap-3">
-            <input placeholder="Nombre" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className="border border-cream-200 rounded-lg px-3 py-2 text-sm" />
-            <input placeholder="Slug (url)" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} required className="border border-cream-200 rounded-lg px-3 py-2 text-sm" />
-            <input placeholder="Marca" value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} required className="border border-cream-200 rounded-lg px-3 py-2 text-sm" />
-            <input placeholder="Precio en centavos (COP)" type="number" value={form.priceCents} onChange={(e) => setForm({ ...form, priceCents: e.target.value })} required className="border border-cream-200 rounded-lg px-3 py-2 text-sm" />
-            <input placeholder="Precio antes del descuento (opcional)" type="number" value={form.compareAtPriceCents} onChange={(e) => setForm({ ...form, compareAtPriceCents: e.target.value })} className="border border-cream-200 rounded-lg px-3 py-2 text-sm" />
-            <input placeholder="Stock" type="number" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} required className="col-span-2 border border-cream-200 rounded-lg px-3 py-2 text-sm" />
+            <FormField label="Nombre">
+              <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm" />
+            </FormField>
+            <FormField label="Slug (url)">
+              <input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} required className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm" />
+            </FormField>
+            <FormField label="Marca">
+              <input value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} required className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm" />
+            </FormField>
+            <FormField label="Precio en centavos (COP)">
+              <input type="number" value={form.priceCents} onChange={(e) => setForm({ ...form, priceCents: e.target.value })} required className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm" />
+            </FormField>
+            <FormField label="Precio antes del descuento (opcional)">
+              <input type="number" value={form.compareAtPriceCents} onChange={(e) => setForm({ ...form, compareAtPriceCents: e.target.value })} className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm" />
+            </FormField>
+            <FormField label="Stock" className="col-span-2">
+              <input type="number" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} required className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm" />
+            </FormField>
           </div>
 
-          <textarea placeholder="Descripción" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} required className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm" rows={2} />
+          <FormField label="Descripción">
+            <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} required className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm" rows={2} />
+          </FormField>
 
           <ChipListEditor label="Tallas" items={form.sizes} onChange={(sizes) => setForm({ ...form, sizes })} suggestions={COMMON_SIZES} />
           <ChipListEditor label="Colores" items={form.colors} onChange={(colors) => setForm({ ...form, colors })} suggestions={COMMON_COLORS} swatch={colorToHex} />
@@ -224,37 +253,133 @@ export default function AdminProductsPage() {
         </form>
       )}
 
-      <div className="space-y-2">
-        {products.map((p) => (
-          <div key={p.id} className="border border-cream-200 rounded-xl p-4 flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <p className="font-medium text-coffee-900">
-                {p.name} {!p.active && <span className="text-xs text-red-600">(inactivo)</span>}
-                {isOnSale(p.priceCents, p.compareAtPriceCents) && (
-                  <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
-                    -{discountPercent(p.priceCents, p.compareAtPriceCents as number)}%
-                  </span>
-                )}
-              </p>
-              <p className="text-sm text-coffee-600">
-                {p.brand} · {formatCOP(p.priceCents)} · Stock: {p.stock}
-                {p.colors.length > 0 && ` · ${p.colors.join(', ')}`}
-              </p>
-            </div>
-            <div className="flex shrink-0 gap-3">
-              <button onClick={() => startEdit(p)} className="text-sm text-coffee-700 hover:text-coffee-900">
-                Editar
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Buscar por nombre o marca…"
+          className="w-full max-w-xs rounded-full border border-cream-200 px-4 py-2 text-sm focus:outline-none focus:border-coffee-600"
+        />
+        {brands.length > 1 && (
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              onClick={() => setBrandFilter(null)}
+              className={`rounded-full border px-3 py-1.5 text-xs font-medium uppercase tracking-wide transition-colors ${
+                brandFilter === null ? 'border-coffee-900 bg-coffee-900 text-cream-50' : 'border-cream-200 text-coffee-600 hover:border-coffee-600'
+              }`}
+            >
+              Todas
+            </button>
+            {brands.map((b) => (
+              <button
+                key={b}
+                onClick={() => setBrandFilter(b)}
+                className={`rounded-full border px-3 py-1.5 text-xs font-medium uppercase tracking-wide transition-colors ${
+                  brandFilter === b ? 'border-coffee-900 bg-coffee-900 text-cream-50' : 'border-cream-200 text-coffee-600 hover:border-coffee-600'
+                }`}
+              >
+                {b}
               </button>
-              <button onClick={() => duplicate(p)} className="text-sm text-coffee-700 hover:text-coffee-900">
-                Duplicar
-              </button>
-              <button onClick={() => toggleActive(p)} className={`text-sm ${p.active ? 'text-red-600' : 'text-green-700'}`}>
-                {p.active ? 'Desactivar' : 'Reactivar'}
-              </button>
-            </div>
+            ))}
           </div>
-        ))}
+        )}
+        <span className="text-xs text-coffee-500">
+          {filtered.length} de {products.length} producto{products.length === 1 ? '' : 's'}
+        </span>
+      </div>
+
+      <div className="space-y-2">
+        {filtered.length === 0 && (
+          <p className="rounded-xl border border-dashed border-cream-300 p-8 text-center text-sm text-coffee-500">
+            Ningún producto coincide con la búsqueda.
+          </p>
+        )}
+        {filtered.map((p) => {
+          const onSale = isOnSale(p.priceCents, p.compareAtPriceCents);
+          const lowStock = p.active && p.stock > 0 && p.stock <= LOW_STOCK_THRESHOLD;
+          return (
+            <div key={p.id} className="flex items-center gap-4 rounded-xl border border-cream-200 p-3">
+              <div className="relative h-16 w-14 shrink-0 overflow-hidden rounded-lg bg-cream-100">
+                {p.images[0] ? (
+                  <Image src={p.images[0]} alt={p.name} fill className="object-cover" sizes="56px" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-coffee-300">
+                    <NoImageIcon />
+                  </div>
+                )}
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-medium text-coffee-900">{p.name}</p>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                      p.active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                    }`}
+                  >
+                    {p.active ? 'Activo' : 'Inactivo'}
+                  </span>
+                  {onSale && (
+                    <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">
+                      -{discountPercent(p.priceCents, p.compareAtPriceCents as number)}%
+                    </span>
+                  )}
+                </div>
+                <p className="mt-0.5 text-sm text-coffee-600">
+                  {p.brand} · {formatCOP(p.priceCents)} ·{' '}
+                  <span className={lowStock ? 'font-medium text-amber-700' : ''}>
+                    Stock: {p.stock}
+                    {lowStock && ' (bajo)'}
+                  </span>
+                </p>
+                {p.colors.length > 0 && (
+                  <div className="mt-1.5 flex items-center gap-1">
+                    {p.colors.map((c) => (
+                      <span
+                        key={c}
+                        title={c}
+                        className="h-3.5 w-3.5 rounded-full border border-cream-300"
+                        style={{ backgroundColor: colorToHex(c) }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex shrink-0 gap-3">
+                <button onClick={() => startEdit(p)} className="text-sm text-coffee-700 hover:text-coffee-900">
+                  Editar
+                </button>
+                <button onClick={() => duplicate(p)} className="text-sm text-coffee-700 hover:text-coffee-900">
+                  Duplicar
+                </button>
+                <button onClick={() => toggleActive(p)} className={`text-sm ${p.active ? 'text-red-600' : 'text-green-700'}`}>
+                  {p.active ? 'Desactivar' : 'Reactivar'}
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
+  );
+}
+
+function FormField({ label, className = '', children }: { label: string; className?: string; children: React.ReactNode }) {
+  return (
+    <label className={`block ${className}`}>
+      <span className="mb-1 block text-xs text-coffee-600">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function NoImageIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <circle cx="9" cy="10" r="1.8" />
+      <path d="m4 18 5-5 3.5 3.5L18 11l2 2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
