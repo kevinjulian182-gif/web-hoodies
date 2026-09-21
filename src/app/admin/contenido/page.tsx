@@ -8,6 +8,7 @@ import SectionManager from '@/components/admin/SectionManager';
 import RepeatableListEditor from '@/components/admin/RepeatableListEditor';
 
 const SECTION_PREVIEW_PATH: Record<string, string> = {
+  'Colores': '/',
   'General del sitio': '/',
   'Portada (Hero)': '/',
   'Sección editorial': '/',
@@ -24,6 +25,7 @@ const SECTION_PREVIEW_PATH: Record<string, string> = {
 };
 
 const SECTION_HINTS: Record<string, string> = {
+  'Colores': 'El resto de la paleta (botones, textos, fondos) se genera automáticamente a partir de estos dos colores.',
   'General del sitio': 'Título de pestaña, descripción para buscadores y favicon.',
   'Portada (Hero)': 'Lo primero que ve un visitante. Usa un video O un carrusel de imágenes de fondo, no ambos.',
   'Sección editorial': 'El bloque de storytelling debajo de la portada.',
@@ -229,6 +231,21 @@ export default function AdminContentPage() {
                         />
                         {field.label}
                       </label>
+                    ) : field.type === 'color' ? (
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="color"
+                          value={values[field.key]}
+                          onChange={(e) => handleChange(field.key, e.target.value)}
+                          className="h-11 w-14 shrink-0 cursor-pointer rounded-lg border border-cream-200 bg-transparent p-1"
+                        />
+                        <input
+                          value={values[field.key]}
+                          onChange={(e) => handleChange(field.key, e.target.value)}
+                          placeholder={CONTENT_DEFAULTS[field.key]}
+                          className="w-full rounded-lg border border-cream-200 px-3 py-2 text-sm uppercase focus:outline-none focus:border-coffee-600"
+                        />
+                      </div>
                     ) : field.type === 'video' ? (
                       <div>
                         <MediaUploader

@@ -5,19 +5,24 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Values come from CSS custom properties (see globals.css for
+        // defaults, layout.tsx for the admin-configurable override) instead
+        // of static hex, so Admin > Contenido can retint the whole site at
+        // runtime without a rebuild. `<alpha-value>` keeps opacity utilities
+        // like `bg-cream-50/90` working.
         cream: {
-          50: '#FBF6EC',
-          100: '#F5EDDD',
-          200: '#ECE0C8',
-          300: '#DEC9A8',
+          50: 'rgb(var(--color-cream-50) / <alpha-value>)',
+          100: 'rgb(var(--color-cream-100) / <alpha-value>)',
+          200: 'rgb(var(--color-cream-200) / <alpha-value>)',
+          300: 'rgb(var(--color-cream-300) / <alpha-value>)',
         },
         coffee: {
-          400: '#9C8468',
-          500: '#83694F',
-          600: '#6B5140',
-          700: '#573F2F',
-          800: '#453023',
-          900: '#362519',
+          400: 'rgb(var(--color-coffee-400) / <alpha-value>)',
+          500: 'rgb(var(--color-coffee-500) / <alpha-value>)',
+          600: 'rgb(var(--color-coffee-600) / <alpha-value>)',
+          700: 'rgb(var(--color-coffee-700) / <alpha-value>)',
+          800: 'rgb(var(--color-coffee-800) / <alpha-value>)',
+          900: 'rgb(var(--color-coffee-900) / <alpha-value>)',
         },
       },
       fontFamily: {

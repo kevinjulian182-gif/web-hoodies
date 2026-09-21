@@ -2,6 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Fallback palette (as "R G B" triplets, matching Tailwind's rgb(var(..) /
+   <alpha-value>) opacity syntax). Admin > Contenido > Colores overrides
+   these at runtime via an inline <style> tag in the root layout — this
+   block only matters before that tag loads or if it's ever absent. */
+:root {
+  --color-cream-50: 251 246 236;
+  --color-cream-100: 247 238 219;
+  --color-cream-200: 242 226 194;
+  --color-cream-300: 234 208 156;
+  --color-coffee-400: 165 112 76;
+  --color-coffee-500: 131 89 61;
+  --color-coffee-600: 104 71 48;
+  --color-coffee-700: 79 54 36;
+  --color-coffee-800: 58 40 27;
+  --color-coffee-900: 41 28 19;
+}
+
 html {
   scroll-behavior: smooth;
   /* No font inflation when the phone rotates to landscape. */

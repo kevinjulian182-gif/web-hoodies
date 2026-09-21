@@ -1,6 +1,8 @@
 import { prisma } from '@/lib/prisma';
 
 export const CONTENT_DEFAULTS = {
+  'theme.coffee_color': '#291C13',
+  'theme.cream_color': '#FBF6EC',
   'site.title': 'AFRA — Streetwear de lujo',
   'site.description': 'Hoodies, sudaderas y chaquetas de las marcas más exclusivas.',
   'hero.eyebrow': 'Colección permanente',
@@ -215,8 +217,20 @@ export const CONTENT_FIELDS: Array<{
   label: string;
   section: string;
   multiline?: boolean;
-  type?: 'text' | 'video' | 'image' | 'images' | 'boolean';
+  type?: 'text' | 'video' | 'image' | 'images' | 'boolean' | 'color';
 }> = [
+  {
+    key: 'theme.coffee_color',
+    label: 'Color principal (café — botones, texto, acentos)',
+    section: 'Colores',
+    type: 'color',
+  },
+  {
+    key: 'theme.cream_color',
+    label: 'Color de fondo (crema)',
+    section: 'Colores',
+    type: 'color',
+  },
   { key: 'site.title', label: 'Título del sitio (pestaña del navegador)', section: 'General del sitio' },
   {
     key: 'site.description',

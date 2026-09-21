@@ -10,6 +10,7 @@ import CartDrawer from '@/components/CartDrawer';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import CustomCursor from '@/components/CustomCursor';
 import { getSiteContent, getHomeSectionOrder, getHeroImages } from '@/lib/content';
+import { generateThemeVars, themeVarsToCss } from '@/lib/theme';
 
 // The footer pulls its tagline from the editable SiteContent table on every
 // request; without this, Next would bake it into the static HTML at build
@@ -52,10 +53,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const heroIsFirstAndDark =
     getHomeSectionOrder(content)[0] === 'hero' &&
     (Boolean(content['hero.video_url']) || getHeroImages(content).length > 0);
+  const themeCss = themeVarsToCss(generateThemeVars(content['theme.coffee_color'], content['theme.cream_color']));
 
   return (
     <html lang="es">
       <body>
+        <style dangerouslySetInnerHTML={{ __html: themeCss }} />
         <CartProvider>
           <WishlistProvider>
             <CatalogSettingsProvider
