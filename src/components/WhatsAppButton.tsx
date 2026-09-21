@@ -7,7 +7,13 @@ const MESSAGE = encodeURIComponent('Hola, tengo una pregunta sobre un producto d
 
 export default function WhatsAppButton() {
   const pathname = usePathname();
-  if (!NUMBER || pathname.startsWith('/admin') || pathname.startsWith('/checkout')) return null;
+  if (
+    !NUMBER ||
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/checkout') ||
+    pathname.startsWith('/voucher')
+  )
+    return null;
 
   // Product detail pages show a sticky mobile buy bar across the full
   // bottom edge — lift the button above it there so they never overlap.

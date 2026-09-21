@@ -60,7 +60,7 @@ export default function Navbar({
     setSearchOpen(false);
   }, [pathname]);
 
-  if (pathname.startsWith('/checkout')) return null;
+  if (pathname.startsWith('/checkout') || pathname.startsWith('/voucher')) return null;
 
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
   // Float transparently over the hero's own dark media instead of drawing a

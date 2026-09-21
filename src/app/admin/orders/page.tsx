@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { formatCOP } from '@/lib/format';
 
 type Order = {
   id: string;
   customerName: string;
+  customerDocument: string | null;
   customerEmail: string;
   shippingAddress: string;
   shippingAddressComplement: string | null;
@@ -54,6 +56,14 @@ export default function OrdersPage() {
     if (res.ok) load();
   };
 
+  const handleDelete = async (order: Order) => {
+    if (!confirm(`¿Eliminar el pedido de ${order.customerName} (${order.wompiReference})? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+    const res = await fetch(`/api/orders/${order.id}`, { method: 'DELETE' });
+    if (res.ok) load();
+  };
+
   if (loading) return <p className="text-coffee-600">Cargando…</p>;
 
   return (
@@ -61,54 +71,72 @@ export default function OrdersPage() {
       <h1 className="text-2xl font-semibold tracking-tightest text-coffee-900 mb-6">Pedidos</h1>
       <div className="space-y-4">
         {orders.map((order) => (
-          <div key={order.id} className="border border-cream-200 rounded-xl p-4 flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <p className="font-medium text-coffee-900">{order.customerName}</p>
-              <p className="text-sm text-coffee-600">{order.customerEmail}</p>
-              <p className="text-xs text-coffee-500">{order.wompiReference}</p>
-              <p className="mt-1.5 text-xs text-coffee-600">
-                {order.shippingAddress}
-                {order.shippingAddressComplement && `, ${order.shippingAddressComplement}`} —{' '}
-                {order.shippingCity}
-                {order.shippingDepartment && `, ${order.shippingDepartment}`} · {order.shippingPhone}
-              </p>
-              {order.deliveryNotes && (
-                <p className="mt-1 text-xs italic text-amber-700">Nota: {order.deliveryNotes}</p>
+          <div key={order.id} className="border border-cream-200 rounded-xl p-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="min-w-0">
+                <p className="font-medium text-coffee-900">{order.customerName}</p>
+                <p className="text-sm text-coffee-600">{order.customerEmail}</p>
+                <p className="text-xs text-coffee-500">{order.wompiReference}</p>
+                <p className="mt-1.5 text-xs text-coffee-600">
+                  {order.shippingAddress}
+                  {order.shippingAddressComplement && `, ${order.shippingAddressComplement}`} —{' '}
+                  {order.shippingCity}
+                  {order.shippingDepartment && `, ${order.shippingDepartment}`} · {order.shippingPhone}
+                </p>
+                {order.deliveryNotes && (
+                  <p className="mt-1 text-xs italic text-amber-700">Nota: {order.deliveryNotes}</p>
+                )}
+              </div>
+              <div className="text-sm font-medium text-coffee-800">{formatCOP(order.totalCents)}</div>
+              <span
+                className={`text-xs px-3 py-1 rounded-full ${
+                  order.status === 'PAID'
+                    ? 'bg-yellow-100 text-yellow-800'
+                    : order.status === 'SHIPPED'
+                    ? 'bg-green-100 text-green-800'
+                    : order.status === 'CANCELLED'
+                    ? 'bg-red-100 text-red-800'
+                    : 'bg-cream-200 text-coffee-700'
+                }`}
+              >
+                {STATUS_LABEL[order.status]}
+              </span>
+              {order.status === 'PAID' && (
+                <div className="flex gap-2">
+                  <input
+                    placeholder="Guía Inter Rapidísimo"
+                    value={tracking[order.id] ?? ''}
+                    onChange={(e) => setTracking({ ...tracking, [order.id]: e.target.value })}
+                    className="border border-cream-200 rounded-lg px-3 py-2 text-sm"
+                  />
+                  <button
+                    onClick={() => handleShip(order.id)}
+                    className="bg-coffee-900 text-cream-50 px-4 py-2 rounded-lg text-sm"
+                  >
+                    Marcar enviado
+                  </button>
+                </div>
+              )}
+              {order.status === 'SHIPPED' && order.trackingNumber && (
+                <p className="text-xs text-coffee-600">Guía: {order.trackingNumber}</p>
               )}
             </div>
-            <div className="text-sm font-medium text-coffee-800">{formatCOP(order.totalCents)}</div>
-            <span
-              className={`text-xs px-3 py-1 rounded-full ${
-                order.status === 'PAID'
-                  ? 'bg-yellow-100 text-yellow-800'
-                  : order.status === 'SHIPPED'
-                  ? 'bg-green-100 text-green-800'
-                  : order.status === 'CANCELLED'
-                  ? 'bg-red-100 text-red-800'
-                  : 'bg-cream-200 text-coffee-700'
-              }`}
-            >
-              {STATUS_LABEL[order.status]}
-            </span>
-            {order.status === 'PAID' && (
-              <div className="flex gap-2">
-                <input
-                  placeholder="Guía Inter Rapidísimo"
-                  value={tracking[order.id] ?? ''}
-                  onChange={(e) => setTracking({ ...tracking, [order.id]: e.target.value })}
-                  className="border border-cream-200 rounded-lg px-3 py-2 text-sm"
-                />
-                <button
-                  onClick={() => handleShip(order.id)}
-                  className="bg-coffee-900 text-cream-50 px-4 py-2 rounded-lg text-sm"
-                >
-                  Marcar enviado
-                </button>
-              </div>
-            )}
-            {order.status === 'SHIPPED' && order.trackingNumber && (
-              <p className="text-xs text-coffee-600">Guía: {order.trackingNumber}</p>
-            )}
+
+            <div className="mt-3 flex items-center gap-4 border-t border-cream-200 pt-3">
+              <Link
+                href={`/voucher/${order.id}`}
+                target="_blank"
+                className="text-sm text-coffee-700 transition-colors hover:text-coffee-900"
+              >
+                Generar boucher
+              </Link>
+              <button
+                onClick={() => handleDelete(order)}
+                className="text-sm text-red-600 transition-colors hover:text-red-800"
+              >
+                Eliminar pedido
+              </button>
+            </div>
           </div>
         ))}
       </div>

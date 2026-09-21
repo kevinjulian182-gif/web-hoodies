@@ -9,7 +9,7 @@ export default function CustomCursor() {
   const dotRef = useRef<HTMLDivElement>(null);
   const [enabled, setEnabled] = useState(false);
 
-  const disabled = pathname.startsWith('/admin');
+  const disabled = pathname.startsWith('/admin') || pathname.startsWith('/voucher');
 
   useEffect(() => {
     if (disabled) return;

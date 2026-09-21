@@ -75,6 +75,7 @@ model Order {
   userId            String?
   customerEmail     String
   customerName      String
+  customerDocument  String?
   shippingAddress   String
   shippingAddressComplement String?
   shippingDepartment String?

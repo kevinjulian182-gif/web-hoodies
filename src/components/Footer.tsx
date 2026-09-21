@@ -49,7 +49,12 @@ export default function Footer({
   social: SocialLinks;
 }) {
   const pathname = usePathname();
-  if (pathname.startsWith('/checkout') || pathname.startsWith('/admin')) return null;
+  if (
+    pathname.startsWith('/checkout') ||
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/voucher')
+  )
+    return null;
 
   const allSocialLinks = [
     { href: social.instagramUrl, label: 'Instagram', icon: <InstagramIcon /> },

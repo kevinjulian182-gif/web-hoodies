@@ -46,6 +46,7 @@ export default function CheckoutPage() {
   const [form, setForm] = useState({
     customerEmail: '',
     customerName: '',
+    customerDocument: '',
     shippingAddress: '',
     shippingAddressComplement: '',
     shippingDepartment: '',
@@ -157,6 +158,16 @@ export default function CheckoutPage() {
                       placeholder="tucorreo@ejemplo.com"
                       value={form.customerEmail}
                       onChange={(e) => setForm({ ...form, customerEmail: e.target.value })}
+                      className="w-full border border-cream-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-coffee-600"
+                    />
+                  </Field>
+                  <Field label="Número de documento (cédula)">
+                    <input
+                      required
+                      inputMode="numeric"
+                      placeholder="1023456789"
+                      value={form.customerDocument}
+                      onChange={(e) => setForm({ ...form, customerDocument: e.target.value })}
                       className="w-full border border-cream-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-coffee-600"
                     />
                   </Field>
@@ -329,7 +340,9 @@ export default function CheckoutPage() {
                     Enviaremos estos datos a Wompi
                   </p>
                   <p className="font-medium text-coffee-900">{form.customerName}</p>
-                  <p>{form.customerEmail}</p>
+                  <p>
+                    {form.customerEmail} · CC {form.customerDocument}
+                  </p>
                   <p>
                     {form.shippingAddress}
                     {form.shippingAddressComplement && `, ${form.shippingAddressComplement}`}

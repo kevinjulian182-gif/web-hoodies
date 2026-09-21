@@ -6,6 +6,7 @@ import { buildWompiSignature, generateOrderReference, getWompiPublicKey } from '
 const schema = z.object({
   customerEmail: z.string().email(),
   customerName: z.string().min(1),
+  customerDocument: z.string().min(1),
   shippingAddress: z.string().min(1),
   shippingAddressComplement: z.string().optional(),
   shippingDepartment: z.string().min(1),
