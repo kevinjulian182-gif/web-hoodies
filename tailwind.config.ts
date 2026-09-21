@@ -29,6 +29,7 @@ const config: Config = {
       animation: {
         marquee: 'marquee 28s linear infinite',
         'fade-up': 'fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both',
+        'loading-bar': 'loading-bar 1.1s ease-in-out infinite',
       },
       keyframes: {
         marquee: {
@@ -38,6 +39,10 @@ const config: Config = {
         'fade-up': {
           '0%': { opacity: '0', transform: 'translateY(24px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        'loading-bar': {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(300%)' },
         },
       },
     },

@@ -37,6 +37,7 @@ export const CONTENT_DEFAULTS = {
     'Pago contra entrega, seguimiento real de tu pedido y un equipo que responde — no un bot genérico.',
   'footer.tagline':
     'Streetwear de élite. Piezas originales de las marcas más exclusivas, curadas para quienes exigen lo mejor.',
+  'site.favicon_url': '',
   'home.sections': JSON.stringify([
     { id: 'hero', visible: true },
     { id: 'spotlight', visible: true },
@@ -90,8 +91,9 @@ export const CONTENT_FIELDS: Array<{
   label: string;
   section: string;
   multiline?: boolean;
-  type?: 'text' | 'video';
+  type?: 'text' | 'video' | 'image';
 }> = [
+  { key: 'site.favicon_url', label: 'Favicon', section: 'General del sitio', type: 'image' },
   { key: 'hero.eyebrow', label: 'Texto superior', section: 'Portada (Hero)' },
   { key: 'hero.title_line1', label: 'Título — línea 1', section: 'Portada (Hero)' },
   { key: 'hero.title_line2', label: 'Título — línea 2', section: 'Portada (Hero)' },

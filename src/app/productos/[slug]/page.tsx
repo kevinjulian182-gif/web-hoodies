@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
@@ -10,6 +11,21 @@ import HeartButton from '@/components/HeartButton';
 import MobileBuyBar from '@/components/MobileBuyBar';
 
 export const dynamic = 'force-dynamic';
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const product = await prisma.product.findUnique({ where: { slug } });
+  if (!product) return { title: 'Producto no encontrado — AFRA' };
+  return {
+    title: `${product.name} — ${product.brand} — AFRA`,
+    description: `${product.description} Pago contra entrega y envíos a toda Colombia.`,
+    openGraph: product.images[0] ? { images: [product.images[0]] } : undefined,
+  };
+}
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -52,7 +68,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       </nav>
 
       <div className="mx-auto max-w-6xl px-6 pb-16 pt-6 grid md:grid-cols-2 gap-16">
-        <ProductGallery images={product.images} videos={product.videos} name={product.name} />
+        <ProductGallery images={product.images} videos={product.videos} name={`${product.brand} ${product.name}`} />
 
         <div id="comprar" className="md:sticky md:top-24 md:self-start max-w-md scroll-mt-24">
           <div className="flex items-start justify-between gap-4">
@@ -75,7 +91,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             {onSale && (
               <>
                 <p className="text-base text-coffee-400 line-through">{formatCOP(product.compareAtPriceCents as number)}</p>
-                <span className="rounded-full bg-coffee-900 px-2.5 py-1 text-xs font-semibold text-cream-50">
+                <span className="rounded-full bg-red-700 px-2.5 py-1 text-xs font-semibold text-cream-50">
                   -{discountPercent(product.priceCents, product.compareAtPriceCents as number)}%
                 </span>
               </>
@@ -84,6 +100,39 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           <p className="mt-6 text-coffee-700 leading-relaxed">{product.description}</p>
           <div className="mt-10">
             <AddToCartButton product={product} />
+          </div>
+
+          <ul className="mt-8 space-y-3 border-t border-cream-200 pt-6">
+            <li className="flex items-start gap-3 text-sm text-coffee-700">
+              <CheckIcon />
+              <span>
+                <strong className="font-medium text-coffee-900">Pago contra entrega:</strong> revisa tu
+                pedido y paga en efectivo o con tarjeta cuando lo recibas.
+              </span>
+            </li>
+            <li className="flex items-start gap-3 text-sm text-coffee-700">
+              <CheckIcon />
+              <span>
+                <strong className="font-medium text-coffee-900">100% original:</strong> pieza verificada
+                de {product.brand}, sin réplicas.
+              </span>
+            </li>
+            <li className="flex items-start gap-3 text-sm text-coffee-700">
+              <CheckIcon />
+              <span>
+                <strong className="font-medium text-coffee-900">Envíos a toda Colombia:</strong> 2-5 días
+                hábiles según tu ciudad.
+              </span>
+            </li>
+          </ul>
+
+          <div className="mt-6 border-t border-cream-200 pt-6 text-sm text-coffee-600">
+            <p className="font-medium text-coffee-900">Talla y cuidado</p>
+            <p className="mt-2 leading-relaxed">
+              Guía de tallas en formato US. Si dudas entre dos tallas, elige la más grande para un
+              calce más relajado. Lava en frío, del revés y evita la secadora para conservar la
+              impresión y el bordado.
+            </p>
           </div>
         </div>
       </div>
@@ -99,5 +148,22 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
       <MobileBuyBar name={product.name} priceCents={product.priceCents} />
     </div>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className="mt-0.5 shrink-0 text-coffee-600"
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path d="m8.5 12.5 2.5 2.5 4.5-5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }

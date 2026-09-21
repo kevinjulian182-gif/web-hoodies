@@ -1,7 +1,13 @@
+import type { Metadata } from 'next';
 import ProductGrid from '@/components/ProductGrid';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: 'Promos — AFRA',
+  description: 'Piezas originales de streetwear con descuento por tiempo limitado, pago contra entrega en toda Colombia.',
+};
 
 export default async function PromosPage() {
   const allActive = await prisma.product.findMany({

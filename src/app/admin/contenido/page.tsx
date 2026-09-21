@@ -7,6 +7,7 @@ import MediaUploader from '@/components/admin/MediaUploader';
 import SectionManager from '@/components/admin/SectionManager';
 
 const SECTION_PREVIEW_PATH: Record<string, string> = {
+  'General del sitio': '/',
   'Portada (Hero)': '/',
   'Sección editorial': '/',
   'Sección de confianza': '/',
@@ -161,6 +162,19 @@ export default function AdminContentPage() {
                           />
                           <p className="mt-1.5 text-xs text-coffee-500">
                             Opcional. Si subes un video, reemplaza el fondo animado de la portada.
+                          </p>
+                        </div>
+                      ) : field.type === 'image' ? (
+                        <div>
+                          <MediaUploader
+                            label=""
+                            kind="image"
+                            items={values[field.key] ? [values[field.key]] : []}
+                            onChange={(items) => handleChange(field.key, items[items.length - 1] ?? '')}
+                          />
+                          <p className="mt-1.5 text-xs text-coffee-500">
+                            Usa una imagen cuadrada (idealmente 512×512px). Se aplica en la pestaña del
+                            navegador.
                           </p>
                         </div>
                       ) : field.multiline ? (

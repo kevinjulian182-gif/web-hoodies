@@ -54,11 +54,27 @@ export default function Navbar() {
           </Link>
 
           <div className="hidden md:flex items-center gap-10 text-sm font-medium text-coffee-700">
-            {LINKS.map((link) => (
-              <NavLink key={link.href} href={link.href} active={pathname.startsWith(link.href)}>
-                {link.label}
-              </NavLink>
-            ))}
+            {LINKS.map((link) =>
+              link.href === '/promos' ? (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`group relative flex items-center gap-1.5 py-1 font-semibold ${
+                    pathname.startsWith(link.href) ? 'text-red-700' : 'text-red-700/90 hover:text-red-700'
+                  }`}
+                >
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-red-600" />
+                  </span>
+                  {link.label}
+                </Link>
+              ) : (
+                <NavLink key={link.href} href={link.href} active={pathname.startsWith(link.href)}>
+                  {link.label}
+                </NavLink>
+              )
+            )}
           </div>
 
           <div className="flex items-center gap-5">
@@ -147,7 +163,9 @@ export default function Navbar() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="text-4xl font-semibold tracking-tightest text-coffee-900"
+                  className={`text-4xl font-semibold tracking-tightest ${
+                    link.href === '/promos' ? 'text-red-700' : 'text-coffee-900'
+                  }`}
                 >
                   {link.label}
                 </Link>

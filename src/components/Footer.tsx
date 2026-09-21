@@ -74,8 +74,16 @@ export default function Footer({ tagline }: { tagline: string }) {
       </div>
 
       <div className="border-t border-cream-50/10">
-        <div className="mx-auto max-w-7xl px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-2 text-xs text-cream-100/40">
+        <div className="mx-auto max-w-7xl px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-cream-100/40">
           <p>© {new Date().getFullYear()} AFRA. Todos los derechos reservados.</p>
+          <div className="flex items-center gap-4">
+            <Link href="/terminos" className="hover:text-cream-100/70 transition-colors">
+              Términos y condiciones
+            </Link>
+            <Link href="/privacidad" className="hover:text-cream-100/70 transition-colors">
+              Privacidad
+            </Link>
+          </div>
           <p>Bogotá, Colombia</p>
         </div>
       </div>

@@ -14,6 +14,11 @@ body {
   @apply bg-coffee-800 text-cream-50;
 }
 
+html.custom-cursor,
+html.custom-cursor * {
+  cursor: none !important;
+}
+
 a:focus-visible,
 button:focus-visible,
 input:focus-visible,

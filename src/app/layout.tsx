@@ -7,17 +7,22 @@ import Footer from '@/components/Footer';
 import PageTransition from '@/components/PageTransition';
 import CartDrawer from '@/components/CartDrawer';
 import WhatsAppButton from '@/components/WhatsAppButton';
+import CustomCursor from '@/components/CustomCursor';
 import { getSiteContent } from '@/lib/content';
-
-export const metadata: Metadata = {
-  title: 'AFRA — Streetwear de lujo',
-  description: 'Hoodies, sudaderas y chaquetas de las marcas más exclusivas.',
-};
 
 // The footer pulls its tagline from the editable SiteContent table on every
 // request; without this, Next would bake it into the static HTML at build
 // time and admin edits to it would never show up without a redeploy.
 export const dynamic = 'force-dynamic';
+
+export async function generateMetadata(): Promise<Metadata> {
+  const content = await getSiteContent();
+  return {
+    title: 'AFRA — Streetwear de lujo',
+    description: 'Hoodies, sudaderas y chaquetas de las marcas más exclusivas.',
+    icons: content['site.favicon_url'] ? { icon: content['site.favicon_url'] } : undefined,
+  };
+}
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const content = await getSiteContent();
@@ -34,6 +39,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <Footer tagline={content['footer.tagline']} />
             <CartDrawer />
             <WhatsAppButton />
+            <CustomCursor />
           </WishlistProvider>
         </CartProvider>
       </body>

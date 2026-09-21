@@ -46,9 +46,20 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
           {product.images[0] && (
             <Image
               src={product.images[0]}
-              alt={product.name}
+              alt={`${product.brand} ${product.name}`}
               fill
-              className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+              className={`object-cover transition-transform duration-700 ease-out group-hover:scale-105 ${
+                product.images[1] ? 'group-hover:opacity-0' : ''
+              }`}
+              sizes="(max-width: 768px) 50vw, 25vw"
+            />
+          )}
+          {product.images[1] && (
+            <Image
+              src={product.images[1]}
+              alt={`${product.brand} ${product.name}`}
+              fill
+              className="object-cover opacity-0 transition-opacity duration-500 ease-out group-hover:opacity-100"
               sizes="(max-width: 768px) 50vw, 25vw"
             />
           )}
@@ -59,7 +70,7 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
             className="absolute right-2.5 top-2.5 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-cream-50/90 text-coffee-900 backdrop-blur-sm transition-transform hover:scale-110"
           />
           {onSale && (
-            <span className="absolute left-2.5 top-2.5 z-10 rounded-full bg-coffee-900 px-2.5 py-1 text-[11px] font-semibold text-cream-50">
+            <span className="absolute left-2.5 top-2.5 z-10 rounded-full bg-red-700 px-2.5 py-1 text-[11px] font-semibold text-cream-50">
               -{discountPercent(product.priceCents, product.compareAtPriceCents as number)}%
             </span>
           )}

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
+import sharp from 'sharp';
 import { getSession, requireRole } from '@/lib/auth';
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
@@ -38,10 +39,29 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  if (isImage) {
+    // Re-encode to WebP and cap dimensions: shrinks typical product photos
+    // by 60-80% with no visible quality loss, so the catalog loads faster.
+    const original = Buffer.from(await file.arrayBuffer());
+    const optimized = await sharp(original)
+      .rotate()
+      .resize({ width: 2000, height: 2000, fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 82 })
+      .toBuffer();
+
+    const baseName = file.name.replace(/\.[^./]+$/, '');
+    const blob = await put(`products/${Date.now()}-${baseName}.webp`, optimized, {
+      access: 'public',
+      addRandomSuffix: true,
+      contentType: 'image/webp',
+    });
+    return NextResponse.json({ url: blob.url, type: 'image' });
+  }
+
   const blob = await put(`products/${Date.now()}-${file.name}`, file, {
     access: 'public',
     addRandomSuffix: true,
   });
 
-  return NextResponse.json({ url: blob.url, type: isVideo ? 'video' : 'image' });
+  return NextResponse.json({ url: blob.url, type: 'video' });
 }
