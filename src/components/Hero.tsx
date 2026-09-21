@@ -90,7 +90,7 @@ export default function Hero({ content }: { content: HeroContent }) {
         >
           <Link
             href="/productos"
-            className={`group inline-flex items-center gap-2 px-8 py-4 rounded-full text-sm font-medium tracking-wide transition-colors ${
+            className={`group inline-flex items-center gap-2 px-8 py-4 rounded-full text-sm font-medium tracking-wide transition-all active:scale-[0.97] ${
               hasVideo
                 ? 'bg-cream-50 text-coffee-900 hover:bg-cream-100'
                 : 'bg-coffee-900 text-cream-50 hover:bg-coffee-800'

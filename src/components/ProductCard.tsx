@@ -125,7 +125,7 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
           )}
           <button
             onClick={handleAdd}
-            className="w-full rounded-full bg-coffee-900 py-2 text-[11px] font-medium uppercase tracking-wide text-cream-50"
+            className="w-full rounded-full bg-coffee-900 py-2 text-[11px] font-medium uppercase tracking-wide text-cream-50 transition-transform active:scale-[0.97]"
           >
             {added ? 'Agregado ✓' : 'Agregar al carrito'}
           </button>

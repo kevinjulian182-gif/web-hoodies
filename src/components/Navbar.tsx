@@ -65,7 +65,7 @@ export default function Navbar() {
             <button
               aria-label="Buscar"
               onClick={() => setSearchOpen(true)}
-              className="hidden sm:block text-coffee-800 hover:text-coffee-600 transition-colors"
+              className="hidden sm:block text-coffee-800 transition-all hover:text-coffee-600 active:scale-90"
             >
               <SearchIcon />
             </button>
@@ -86,7 +86,7 @@ export default function Navbar() {
             <button
               aria-label={`Ver carrito${itemCount > 0 ? ` (${itemCount} productos)` : ''}`}
               onClick={openCart}
-              className="relative flex items-center gap-2 text-coffee-800"
+              className="relative flex items-center gap-2 text-coffee-800 transition-transform active:scale-90"
             >
               <BagIcon />
               <AnimatePresence>
@@ -108,7 +108,7 @@ export default function Navbar() {
             <button
               aria-label="Abrir menú"
               onClick={() => setMenuOpen(true)}
-              className="md:hidden text-coffee-900"
+              className="md:hidden text-coffee-900 transition-transform active:scale-90"
             >
               <MenuIcon />
             </button>

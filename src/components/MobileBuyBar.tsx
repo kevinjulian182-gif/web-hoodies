@@ -28,7 +28,7 @@ export default function MobileBuyBar({ name, priceCents }: { name: string; price
       </div>
       <a
         href="#comprar"
-        className="shrink-0 rounded-full bg-coffee-900 px-6 py-3 text-sm font-medium text-cream-50"
+        className="shrink-0 rounded-full bg-coffee-900 px-6 py-3 text-sm font-medium text-cream-50 transition-transform active:scale-[0.97]"
       >
         Comprar
       </a>
