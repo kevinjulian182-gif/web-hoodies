@@ -93,8 +93,10 @@ export default function AddToCartButton({ product }: { product: Product }) {
         onClick={handleAdd}
         disabled={outOfStock}
         whileTap={outOfStock ? undefined : { scale: 0.96 }}
-        className={`relative w-full overflow-hidden rounded-full py-5 text-base font-semibold tracking-[0.04em] shadow-[0_10px_30px_rgba(54,37,25,0.25)] transition-opacity ${
-          outOfStock ? 'cursor-not-allowed bg-coffee-300 text-coffee-50 shadow-none' : 'bg-coffee-900 text-cream-50'
+        className={`relative w-full overflow-hidden rounded-full py-5 text-base font-semibold tracking-[0.04em] shadow-[0_10px_30px_rgba(54,37,25,0.25)] transition-colors transition-opacity ${
+          outOfStock
+            ? 'cursor-not-allowed bg-coffee-300 text-coffee-50 shadow-none'
+            : 'bg-coffee-900 text-cream-50 hover:bg-coffee-800'
         }`}
       >
         <AnimatePresence mode="wait">

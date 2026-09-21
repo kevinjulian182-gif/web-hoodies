@@ -72,7 +72,7 @@ function renderSection(
               <p className="text-xs font-medium uppercase tracking-[0.2em] text-red-700">Por tiempo limitado</p>
               <h2 className="mt-1 text-2xl font-semibold tracking-tightest text-coffee-900">Promociones</h2>
             </div>
-            <Link href="/promos" className="text-sm font-medium text-coffee-700 hover:text-coffee-900">
+            <Link href="/promos" className="text-sm font-medium text-coffee-700 transition-colors hover:text-coffee-900">
               Ver todas →
             </Link>
           </div>

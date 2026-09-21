@@ -1,5 +1,8 @@
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { formatCOP } from '@/lib/format';
 import type { Product } from '@prisma/client';
 
@@ -14,7 +17,13 @@ export default function ComparisonTable({ current, others }: { current: Product;
 
   return (
     <div className="border-t border-cream-200 py-16">
-      <div className="mx-auto max-w-6xl px-6">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-60px' }}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        className="mx-auto max-w-6xl px-6"
+      >
         <h2 className="text-2xl font-semibold tracking-tightest text-coffee-900">Compara con otras piezas</h2>
         <div className="mt-8 overflow-x-auto">
           <table className="w-full min-w-[560px] border-collapse text-sm">
@@ -26,10 +35,16 @@ export default function ComparisonTable({ current, others }: { current: Product;
                     <Link href={`/productos/${p.slug}`} className="group block">
                       <div className="relative aspect-square w-20 overflow-hidden rounded-xl bg-cream-50">
                         {p.images[0] && (
-                          <Image src={p.images[0]} alt={p.name} fill className="object-cover" sizes="80px" />
+                          <Image
+                            src={p.images[0]}
+                            alt={p.name}
+                            fill
+                            className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+                            sizes="80px"
+                          />
                         )}
                       </div>
-                      <p className="mt-2 max-w-[9rem] text-xs font-medium leading-snug text-coffee-900 group-hover:underline">
+                      <p className="mt-2 max-w-[9rem] text-xs font-medium leading-snug text-coffee-900 transition-colors group-hover:text-coffee-600 group-hover:underline">
                         {p.id === current.id ? 'Este producto' : p.name}
                       </p>
                     </Link>
@@ -45,7 +60,7 @@ export default function ComparisonTable({ current, others }: { current: Product;
             </tbody>
           </table>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

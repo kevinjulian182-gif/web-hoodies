@@ -92,7 +92,7 @@ export default function Navbar({
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`py-1 font-semibold ${
+                  className={`py-1 font-semibold transition-colors duration-200 ${
                     overHero
                       ? 'text-red-400 hover:text-red-300'
                       : pathname.startsWith(link.href)
@@ -260,7 +260,7 @@ export default function Navbar({
                     href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('Hola, tengo una pregunta sobre un producto de AFRA.')}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-8 flex items-center justify-center gap-2 rounded-full bg-coffee-900 py-3.5 text-sm font-medium text-cream-50"
+                    className="mt-8 flex items-center justify-center gap-2 rounded-full bg-coffee-900 py-3.5 text-sm font-medium text-cream-50 transition-colors active:scale-[0.98] hover:bg-coffee-800"
                   >
                     Escríbenos por WhatsApp
                   </motion.a>
@@ -366,7 +366,7 @@ function NavLink({
   return (
     <Link href={href} className="group relative py-1">
       <span
-        className={
+        className={`transition-colors duration-200 ${
           light
             ? active
               ? 'text-cream-50'
@@ -374,7 +374,7 @@ function NavLink({
             : active
               ? 'text-coffee-900'
               : 'text-coffee-700 group-hover:text-coffee-900'
-        }
+        }`}
       >
         {children}
       </span>

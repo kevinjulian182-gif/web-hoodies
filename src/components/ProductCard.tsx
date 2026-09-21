@@ -44,7 +44,7 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
       transition={{ duration: 0.6, delay: (index % 4) * 0.08, ease: [0.16, 1, 0.3, 1] }}
     >
       <Link href={`/productos/${product.slug}`} className="group block">
-        <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-cream-50">
+        <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-cream-50 transition-shadow duration-300 group-hover:shadow-[0_18px_40px_-16px_rgba(54,37,25,0.35)]">
           {product.images[0] && (
             <Image
               src={product.images[0]}
@@ -148,7 +148,7 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
           )}
           <button
             onClick={handleAdd}
-            className="mt-2.5 w-full rounded-full bg-coffee-900 py-2.5 text-[11px] font-medium uppercase tracking-[0.15em] text-cream-50 transition-transform active:scale-[0.97]"
+            className="mt-2.5 w-full rounded-full bg-coffee-900 py-2.5 text-[11px] font-medium uppercase tracking-[0.15em] text-cream-50 transition-colors transition-transform hover:bg-coffee-800 active:scale-[0.97]"
           >
             {added ? 'Agregado ✓' : 'Agregar al carrito'}
           </button>

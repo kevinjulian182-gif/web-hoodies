@@ -49,7 +49,7 @@ export default function LoginPage() {
         {error && <p className="text-sm text-red-600">{error}</p>}
         <button
           type="submit"
-          className="w-full bg-coffee-900 text-cream-50 py-3 rounded-full text-sm font-medium"
+          className="w-full bg-coffee-900 text-cream-50 py-3 rounded-full text-sm font-medium transition-colors hover:bg-coffee-800 active:scale-[0.98]"
         >
           Entrar
         </button>

@@ -55,19 +55,22 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       <nav aria-label="Breadcrumb" className="mx-auto max-w-6xl px-6 pt-6 text-xs text-coffee-500">
         <ol className="flex flex-wrap items-center gap-1.5">
           <li>
-            <Link href="/" className="hover:text-coffee-800">
+            <Link href="/" className="transition-colors hover:text-coffee-800">
               Inicio
             </Link>
           </li>
           <li aria-hidden="true">/</li>
           <li>
-            <Link href="/productos" className="hover:text-coffee-800">
+            <Link href="/productos" className="transition-colors hover:text-coffee-800">
               Catálogo
             </Link>
           </li>
           <li aria-hidden="true">/</li>
           <li>
-            <Link href={`/productos?marca=${encodeURIComponent(product.brand)}`} className="hover:text-coffee-800">
+            <Link
+              href={`/productos?marca=${encodeURIComponent(product.brand)}`}
+              className="transition-colors hover:text-coffee-800"
+            >
               {product.brand}
             </Link>
           </li>

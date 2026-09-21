@@ -81,7 +81,11 @@ export default function SearchOverlay({ open, onClose }: { open: boolean; onClos
                   placeholder="Buscar por producto o marca…"
                   className="flex-1 bg-transparent text-lg text-coffee-900 placeholder:text-coffee-400 focus:outline-none"
                 />
-                <button aria-label="Cerrar búsqueda" onClick={onClose} className="text-coffee-500 hover:text-coffee-900">
+                <button
+                  aria-label="Cerrar búsqueda"
+                  onClick={onClose}
+                  className="text-coffee-500 transition-colors hover:text-coffee-900"
+                >
                   <CloseIcon />
                 </button>
               </div>

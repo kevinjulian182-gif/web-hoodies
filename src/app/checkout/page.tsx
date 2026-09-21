@@ -167,7 +167,7 @@ export default function CheckoutPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-coffee-900 text-cream-50 py-4 rounded-full text-sm font-medium tracking-wide transition-all active:scale-[0.99] disabled:opacity-50"
+                  className="w-full bg-coffee-900 text-cream-50 py-4 rounded-full text-sm font-medium tracking-wide transition-all hover:bg-coffee-800 active:scale-[0.99] disabled:opacity-50"
                 >
                   {loading ? 'Procesando…' : 'Continuar al pago'}
                 </button>

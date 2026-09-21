@@ -30,7 +30,7 @@ export default function CustomCursor() {
     const onOver = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       const interactive = target.closest('a, button, input, textarea, select, [role="button"]');
-      dotRef.current?.classList.toggle('scale-[2.5]', Boolean(interactive));
+      dotRef.current?.classList.toggle('scale-[2.2]', Boolean(interactive));
     };
 
     window.addEventListener('mousemove', onMove);
@@ -48,7 +48,7 @@ export default function CustomCursor() {
     <div ref={posRef} className="pointer-events-none fixed left-0 top-0 z-[100]">
       <div
         ref={dotRef}
-        className="h-2 w-2 rounded-full bg-coffee-900 shadow-[0_0_0_1.5px_rgba(253,252,250,0.95)] transition-transform duration-150 ease-out"
+        className="h-1.5 w-1.5 rounded-full bg-coffee-900 shadow-[0_0_0_1.25px_rgba(253,252,250,0.95)] transition-transform duration-150 ease-out"
       />
     </div>
   );

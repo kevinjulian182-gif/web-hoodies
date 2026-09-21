@@ -168,7 +168,7 @@ function CartRow({
             <button
               aria-label="Reducir cantidad"
               onClick={() => onUpdateQuantity(item.quantity - 1)}
-              className="flex h-8 w-8 items-center justify-center text-coffee-700 hover:text-coffee-900"
+              className="flex h-8 w-8 items-center justify-center rounded-full text-coffee-700 transition-colors hover:bg-cream-100 hover:text-coffee-900"
             >
               −
             </button>
@@ -176,7 +176,7 @@ function CartRow({
             <button
               aria-label="Aumentar cantidad"
               onClick={() => onUpdateQuantity(item.quantity + 1)}
-              className="flex h-8 w-8 items-center justify-center text-coffee-700 hover:text-coffee-900"
+              className="flex h-8 w-8 items-center justify-center rounded-full text-coffee-700 transition-colors hover:bg-cream-100 hover:text-coffee-900"
             >
               +
             </button>
