@@ -24,25 +24,41 @@ export default function CustomCursor() {
     let targetY = window.innerHeight / 2;
     let ringX = targetX;
     let ringY = targetY;
+    let rotate = 45;
+    let scale = 1;
+    let isInteractive = false;
     let raf = 0;
 
     const onMove = (e: MouseEvent) => {
       targetX = e.clientX;
       targetY = e.clientY;
-      dotRef.current?.style.setProperty('transform', `translate(${targetX}px, ${targetY}px) translate(-50%, -50%)`);
+      dotRef.current?.style.setProperty(
+        'transform',
+        `translate(${targetX}px, ${targetY}px) translate(-50%, -50%) rotate(45deg)`
+      );
     };
 
     const onOver = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      const interactive = target.closest('a, button, input, textarea, select, [role="button"]');
-      ringRef.current?.classList.toggle('scale-150', Boolean(interactive));
-      ringRef.current?.classList.toggle('opacity-40', Boolean(interactive));
+      isInteractive = Boolean(target.closest('a, button, input, textarea, select, [role="button"]'));
     };
 
+    // Diamond stamp that snaps to a square over anything clickable — the
+    // reticle/tag look reads more "street" than a plain circle. Rotation and
+    // scale are lerped by hand (not CSS transitions) since the element's
+    // transform is already being overwritten every frame for position; a
+    // CSS transition on the same property would just fight that.
     const loop = () => {
       ringX += (targetX - ringX) * 0.2;
       ringY += (targetY - ringY) * 0.2;
-      ringRef.current?.style.setProperty('transform', `translate(${ringX}px, ${ringY}px) translate(-50%, -50%)`);
+      const targetRotate = isInteractive ? 0 : 45;
+      const targetScale = isInteractive ? 1.3 : 1;
+      rotate += (targetRotate - rotate) * 0.25;
+      scale += (targetScale - scale) * 0.25;
+      ringRef.current?.style.setProperty(
+        'transform',
+        `translate(${ringX}px, ${ringY}px) translate(-50%, -50%) rotate(${rotate}deg) scale(${scale})`
+      );
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
@@ -63,11 +79,11 @@ export default function CustomCursor() {
     <>
       <div
         ref={dotRef}
-        className="pointer-events-none fixed left-0 top-0 z-[100] h-1.5 w-1.5 rounded-full bg-coffee-900"
+        className="pointer-events-none fixed left-0 top-0 z-[100] h-2 w-2 bg-white mix-blend-difference"
       />
       <div
         ref={ringRef}
-        className="pointer-events-none fixed left-0 top-0 z-[100] h-7 w-7 rounded-full border border-coffee-900/50 opacity-70 transition-[transform,opacity] duration-200 ease-out"
+        className="pointer-events-none fixed left-0 top-0 z-[100] h-8 w-8 border-2 border-white mix-blend-difference"
       />
     </>
   );
