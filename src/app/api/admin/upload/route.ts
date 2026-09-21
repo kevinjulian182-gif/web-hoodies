@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { put } from '@vercel/blob';
+import { put, BlobError } from '@vercel/blob';
 import sharp from 'sharp';
 import { getSession, requireRole } from '@/lib/auth';
 
@@ -12,13 +12,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
 
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    return NextResponse.json(
-      { error: 'Almacenamiento de archivos no configurado (falta conectar Vercel Blob al proyecto)' },
-      { status: 503 }
-    );
-  }
-
+  // Don't gate on BLOB_READ_WRITE_TOKEN specifically: a store connected via
+  // Vercel's OIDC flow authenticates with BLOB_STORE_ID + an OIDC token
+  // instead, with no static token env var at all. Let put() itself decide
+  // whether it has usable credentials.
   const form = await req.formData();
   const file = form.get('file');
   if (!(file instanceof File)) {
@@ -39,29 +36,35 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if (isImage) {
-    // Re-encode to WebP and cap dimensions: shrinks typical product photos
-    // by 60-80% with no visible quality loss, so the catalog loads faster.
-    const original = Buffer.from(await file.arrayBuffer());
-    const optimized = await sharp(original)
-      .rotate()
-      .resize({ width: 2000, height: 2000, fit: 'inside', withoutEnlargement: true })
-      .webp({ quality: 82 })
-      .toBuffer();
+  try {
+    if (isImage) {
+      // Re-encode to WebP and cap dimensions: shrinks typical product photos
+      // by 60-80% with no visible quality loss, so the catalog loads faster.
+      const original = Buffer.from(await file.arrayBuffer());
+      const optimized = await sharp(original)
+        .rotate()
+        .resize({ width: 2000, height: 2000, fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 82 })
+        .toBuffer();
 
-    const baseName = file.name.replace(/\.[^./]+$/, '');
-    const blob = await put(`products/${Date.now()}-${baseName}.webp`, optimized, {
+      const baseName = file.name.replace(/\.[^./]+$/, '');
+      const blob = await put(`products/${Date.now()}-${baseName}.webp`, optimized, {
+        access: 'public',
+        addRandomSuffix: true,
+        contentType: 'image/webp',
+      });
+      return NextResponse.json({ url: blob.url, type: 'image' });
+    }
+
+    const blob = await put(`products/${Date.now()}-${file.name}`, file, {
       access: 'public',
       addRandomSuffix: true,
-      contentType: 'image/webp',
     });
-    return NextResponse.json({ url: blob.url, type: 'image' });
+
+    return NextResponse.json({ url: blob.url, type: 'video' });
+  } catch (err) {
+    const message = err instanceof BlobError ? err.message : 'No se pudo subir el archivo';
+    console.error('Blob upload failed:', err);
+    return NextResponse.json({ error: message }, { status: 502 });
   }
-
-  const blob = await put(`products/${Date.now()}-${file.name}`, file, {
-    access: 'public',
-    addRandomSuffix: true,
-  });
-
-  return NextResponse.json({ url: blob.url, type: 'video' });
 }
