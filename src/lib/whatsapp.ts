@@ -32,11 +32,11 @@ export function buildOrderConfirmationMessage(order: {
       : order.items.map((i) => `• ${i.quantity}x ${i.product.name}`).join('\n');
 
   return [
-    `¡Hola ${order.customerName}! 🖤`,
+    `👋 ¡Hola ${order.customerName}!`,
     ``,
     `Gracias por comprar en AFRA°.`,
     ``,
-    `🛍️ Pedido confirmado:`,
+    `📦 Pedido confirmado:`,
     productsLine,
     ``,
     paymentLine,
