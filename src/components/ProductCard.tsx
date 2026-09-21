@@ -8,11 +8,13 @@ import { formatCOP } from '@/lib/format';
 import { colorToHex } from '@/lib/colors';
 import { isOnSale, discountPercent } from '@/lib/discount';
 import { useCart } from '@/lib/cart';
+import { useCatalogSettings } from '@/lib/catalogSettings';
 import HeartButton from '@/components/HeartButton';
 import type { Product } from '@prisma/client';
 
 export default function ProductCard({ product, index = 0 }: { product: Product; index?: number }) {
   const { addItem } = useCart();
+  const { showColors, showSizes } = useCatalogSettings();
   const onSale = isOnSale(product.priceCents, product.compareAtPriceCents);
   const [size, setSize] = useState(product.sizes[0] ?? '');
   const [color, setColor] = useState(product.colors[0] ?? '');
@@ -94,54 +96,56 @@ export default function ProductCard({ product, index = 0 }: { product: Product; 
         </div>
 
         <div className="mt-5">
-          {/* Color/size pickers are desktop-only — on mobile's tighter 2-col
-              grid they read as clutter, so the card there is just image,
-              name, price and one clear action; picking a variant happens on
-              the product page instead. Fixed height on desktop regardless of
-              whether this product has colors, so the sizes/button below
-              always start at the same y across every card in the row. */}
-          <div className="hidden md:block">
-            <div className="flex h-5 flex-wrap gap-1.5">
-              {product.colors.map((c) => (
-                <button
-                  key={c}
-                  title={c}
-                  aria-label={c}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setColor(c);
-                  }}
-                  className={`h-5 w-5 rounded-full border-2 transition-transform ${
-                    color === c ? 'border-coffee-900 scale-110' : 'border-transparent'
-                  }`}
-                >
-                  <span className="block h-full w-full rounded-full" style={{ backgroundColor: colorToHex(c) }} />
-                </button>
-              ))}
+          {/* Color/size pickers only render when the admin has them turned on
+              (Admin > Contenido > Catálogo) — off by default for a cleaner,
+              more exclusive-feeling card; picking a variant then happens on
+              the product page instead. */}
+          {(showColors || showSizes) && (
+            <div>
+              {showColors && product.colors.length > 0 && (
+                <div className="flex h-5 flex-wrap gap-1.5">
+                  {product.colors.map((c) => (
+                    <button
+                      key={c}
+                      title={c}
+                      aria-label={c}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setColor(c);
+                      }}
+                      className={`h-5 w-5 rounded-full border-2 transition-transform ${
+                        color === c ? 'border-coffee-900 scale-110' : 'border-transparent'
+                      }`}
+                    >
+                      <span className="block h-full w-full rounded-full" style={{ backgroundColor: colorToHex(c) }} />
+                    </button>
+                  ))}
+                </div>
+              )}
+              {showSizes && product.sizes.length > 0 && (
+                <div className="mt-2.5 flex flex-wrap gap-1.5">
+                  {product.sizes.map((s) => (
+                    <button
+                      key={s}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSize(s);
+                      }}
+                      className={`h-7 min-w-7 rounded-full px-1.5 text-[11px] font-medium border transition-colors ${
+                        size === s
+                          ? 'bg-coffee-900 text-cream-50 border-coffee-900'
+                          : 'border-cream-300 text-coffee-700'
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-            {product.sizes.length > 0 && (
-              <div className="mt-2.5 flex flex-wrap gap-1.5">
-                {product.sizes.map((s) => (
-                  <button
-                    key={s}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setSize(s);
-                    }}
-                    className={`h-7 min-w-7 rounded-full px-1.5 text-[11px] font-medium border transition-colors ${
-                      size === s
-                        ? 'bg-coffee-900 text-cream-50 border-coffee-900'
-                        : 'border-cream-300 text-coffee-700'
-                    }`}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          )}
           <button
             onClick={handleAdd}
             className="mt-2.5 w-full rounded-full bg-coffee-900 py-2.5 text-[11px] font-medium uppercase tracking-[0.15em] text-cream-50 transition-transform active:scale-[0.97]"

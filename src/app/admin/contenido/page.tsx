@@ -12,6 +12,7 @@ const SECTION_PREVIEW_PATH: Record<string, string> = {
   'Portada (Hero)': '/',
   'Sección editorial': '/',
   'Sección de confianza': '/',
+  'Catálogo': '/productos',
   'Cómo trabajamos': '/',
   'Envíos seguros': '/',
   'Materiales y calidad': '/',
@@ -27,6 +28,7 @@ const SECTION_HINTS: Record<string, string> = {
   'Portada (Hero)': 'Lo primero que ve un visitante. Usa un video O un carrusel de imágenes de fondo, no ambos.',
   'Sección editorial': 'El bloque de storytelling debajo de la portada.',
   'Sección de confianza': 'Los tres argumentos de venta que aparecen en el inicio y en Sobre nosotros.',
+  'Catálogo': 'Controla qué se muestra en las tarjetas de producto (inicio, catálogo, promos, favoritos).',
   'Cómo trabajamos': 'Los 4 pasos del proceso de compra, en el inicio.',
   'Envíos seguros': 'Argumentos de confianza sobre el envío, en el inicio.',
   'Materiales y calidad': 'Argumentos sobre la calidad de las prendas y la importación, en el inicio.',
@@ -201,21 +203,33 @@ export default function AdminContentPage() {
               <div className="space-y-5">
                 {activeFields.map((field) => (
                   <div key={field.key}>
-                    <div className="mb-1.5 flex items-center justify-between">
-                      <label className="block text-xs font-medium text-coffee-600">{field.label}</label>
-                      {field.type !== 'video' &&
-                        field.type !== 'images' &&
-                        values[field.key] !== CONTENT_DEFAULTS[field.key] && (
-                          <button
-                            type="button"
-                            onClick={() => handleReset(field.key)}
-                            className="text-[11px] text-coffee-400 hover:text-coffee-700"
-                          >
-                            Restablecer
-                          </button>
-                        )}
-                    </div>
-                    {field.type === 'video' ? (
+                    {field.type !== 'boolean' && (
+                      <div className="mb-1.5 flex items-center justify-between">
+                        <label className="block text-xs font-medium text-coffee-600">{field.label}</label>
+                        {field.type !== 'video' &&
+                          field.type !== 'images' &&
+                          values[field.key] !== CONTENT_DEFAULTS[field.key] && (
+                            <button
+                              type="button"
+                              onClick={() => handleReset(field.key)}
+                              className="text-[11px] text-coffee-400 hover:text-coffee-700"
+                            >
+                              Restablecer
+                            </button>
+                          )}
+                      </div>
+                    )}
+                    {field.type === 'boolean' ? (
+                      <label className="flex items-center gap-2.5 text-sm text-coffee-800">
+                        <input
+                          type="checkbox"
+                          checked={values[field.key] === 'true'}
+                          onChange={(e) => handleChange(field.key, e.target.checked ? 'true' : 'false')}
+                          className="h-4 w-4 accent-coffee-900"
+                        />
+                        {field.label}
+                      </label>
+                    ) : field.type === 'video' ? (
                       <div>
                         <MediaUploader
                           label=""

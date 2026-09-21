@@ -107,6 +107,8 @@ export const CONTENT_DEFAULTS = {
   'cta.body': 'Explora el catálogo completo y paga contra entrega en toda Colombia. Sin adelantos, sin riesgos.',
   'cta.button_text': 'Ver catálogo',
   'cta.button_href': '/productos',
+  'catalog.show_colors_on_card': 'false',
+  'catalog.show_sizes_on_card': 'false',
   'home.faq_title': 'Preguntas frecuentes',
   'pdp.faq_title': 'Preguntas frecuentes',
   'pdp.reviews_title': 'Lo que dicen nuestros clientes',
@@ -213,7 +215,7 @@ export const CONTENT_FIELDS: Array<{
   label: string;
   section: string;
   multiline?: boolean;
-  type?: 'text' | 'video' | 'image' | 'images';
+  type?: 'text' | 'video' | 'image' | 'images' | 'boolean';
 }> = [
   { key: 'site.title', label: 'Título del sitio (pestaña del navegador)', section: 'General del sitio' },
   {
@@ -259,6 +261,18 @@ export const CONTENT_FIELDS: Array<{
   { key: 'nosotros.value2_body', label: 'Valor 2 — texto', section: 'Sobre nosotros', multiline: true },
   { key: 'nosotros.value3_title', label: 'Valor 3 — título', section: 'Sobre nosotros' },
   { key: 'nosotros.value3_body', label: 'Valor 3 — texto', section: 'Sobre nosotros', multiline: true },
+  {
+    key: 'catalog.show_colors_on_card',
+    label: 'Mostrar selector de color en las tarjetas de producto',
+    section: 'Catálogo',
+    type: 'boolean',
+  },
+  {
+    key: 'catalog.show_sizes_on_card',
+    label: 'Mostrar selector de talla en las tarjetas de producto',
+    section: 'Catálogo',
+    type: 'boolean',
+  },
   { key: 'footer.tagline', label: 'Descripción de la marca', section: 'Pie de página', multiline: true },
   { key: 'footer.copyright_year', label: 'Año del copyright', section: 'Pie de página' },
   { key: 'social.instagram_url', label: 'Instagram (URL, opcional)', section: 'Pie de página' },

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { CartProvider } from '@/lib/cart';
 import { WishlistProvider } from '@/lib/wishlist';
+import { CatalogSettingsProvider } from '@/lib/catalogSettings';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import PageTransition from '@/components/PageTransition';
@@ -57,32 +58,37 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body>
         <CartProvider>
           <WishlistProvider>
-            <Navbar
-              logoUrl={content['site.logo_url'] || undefined}
-              transparentOverHero={heroIsFirstAndDark}
-              social={{
-                instagramUrl: content['social.instagram_url'] || undefined,
-                tiktokUrl: content['social.tiktok_url'] || undefined,
-                facebookUrl: content['social.facebook_url'] || undefined,
-                xUrl: content['social.x_url'] || undefined,
-              }}
-            />
-            <main>
-              <PageTransition>{children}</PageTransition>
-            </main>
-            <Footer
-              tagline={content['footer.tagline']}
-              copyrightYear={content['footer.copyright_year']}
-              social={{
-                instagramUrl: content['social.instagram_url'] || undefined,
-                tiktokUrl: content['social.tiktok_url'] || undefined,
-                facebookUrl: content['social.facebook_url'] || undefined,
-                xUrl: content['social.x_url'] || undefined,
-              }}
-            />
-            <CartDrawer />
-            <WhatsAppButton />
-            <CustomCursor />
+            <CatalogSettingsProvider
+              showColors={content['catalog.show_colors_on_card'] === 'true'}
+              showSizes={content['catalog.show_sizes_on_card'] === 'true'}
+            >
+              <Navbar
+                logoUrl={content['site.logo_url'] || undefined}
+                transparentOverHero={heroIsFirstAndDark}
+                social={{
+                  instagramUrl: content['social.instagram_url'] || undefined,
+                  tiktokUrl: content['social.tiktok_url'] || undefined,
+                  facebookUrl: content['social.facebook_url'] || undefined,
+                  xUrl: content['social.x_url'] || undefined,
+                }}
+              />
+              <main>
+                <PageTransition>{children}</PageTransition>
+              </main>
+              <Footer
+                tagline={content['footer.tagline']}
+                copyrightYear={content['footer.copyright_year']}
+                social={{
+                  instagramUrl: content['social.instagram_url'] || undefined,
+                  tiktokUrl: content['social.tiktok_url'] || undefined,
+                  facebookUrl: content['social.facebook_url'] || undefined,
+                  xUrl: content['social.x_url'] || undefined,
+                }}
+              />
+              <CartDrawer />
+              <WhatsAppButton />
+              <CustomCursor />
+            </CatalogSettingsProvider>
           </WishlistProvider>
         </CartProvider>
       </body>
