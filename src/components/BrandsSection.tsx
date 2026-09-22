@@ -20,7 +20,7 @@ export default function BrandsSection({ brands }: { brands: BrandItem[] }) {
           </div>
         </div>
 
-        <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+        <div className="mt-10 grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4">
           {brands.map((brand, i) => (
             <motion.div
               key={brand.name}
@@ -31,18 +31,18 @@ export default function BrandsSection({ brands }: { brands: BrandItem[] }) {
             >
               <Link
                 href={`/productos?marca=${encodeURIComponent(brand.name)}`}
-                className="flex h-32 flex-col items-center justify-center gap-2 rounded-2xl border border-cream-200 bg-cream-50 px-4 text-center transition-colors hover:border-coffee-500"
+                className="flex h-48 flex-col items-center justify-center gap-2 rounded-2xl border border-cream-200 bg-cream-50 px-3 text-center transition-colors hover:border-coffee-500"
               >
                 {brand.logoUrl ? (
                   <Image
                     src={brand.logoUrl}
                     alt={brand.name}
-                    width={140}
-                    height={72}
-                    className="h-16 w-auto max-w-[85%] object-contain"
+                    width={260}
+                    height={130}
+                    className="h-32 w-auto max-w-[95%] object-contain"
                   />
                 ) : (
-                  <span className="text-base font-semibold tracking-tightest text-coffee-900">{brand.name}</span>
+                  <span className="text-lg font-semibold tracking-tightest text-coffee-900">{brand.name}</span>
                 )}
               </Link>
             </motion.div>
