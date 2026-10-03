@@ -205,6 +205,20 @@ export default function AdminProductsPage() {
     startEdit(copy);
   };
 
+  const deleteProduct = async (p: Product) => {
+    if (!confirm(`¿Eliminar "${p.name}" de forma permanente? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+    const res = await fetch(`/api/products/${p.id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      alert(body?.error ?? 'No se pudo eliminar el producto');
+      return;
+    }
+    if (editingId === p.id) cancelEdit();
+    load();
+  };
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
@@ -457,6 +471,9 @@ export default function AdminProductsPage() {
                 </button>
                 <button onClick={() => toggleActive(p)} className={`text-sm ${p.active ? 'text-red-600' : 'text-green-700'}`}>
                   {p.active ? 'Desactivar' : 'Reactivar'}
+                </button>
+                <button onClick={() => deleteProduct(p)} className="text-sm text-red-700 hover:text-red-900">
+                  Eliminar
                 </button>
               </div>
             </div>

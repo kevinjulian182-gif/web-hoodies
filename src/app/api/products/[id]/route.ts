@@ -44,6 +44,19 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   }
 
   const { id } = await params;
-  await prisma.product.update({ where: { id }, data: { active: false } });
+
+  // A product with order history can't be removed (OrderItem.productId is
+  // a required FK) — deleting it would also erase what was actually sold.
+  // Deactivating keeps the record for past orders while hiding it from
+  // the storefront.
+  const orderCount = await prisma.orderItem.count({ where: { productId: id } });
+  if (orderCount > 0) {
+    return NextResponse.json(
+      { error: 'No se puede eliminar: el producto tiene pedidos asociados. Desactívalo en su lugar.' },
+      { status: 409 }
+    );
+  }
+
+  await prisma.product.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }
