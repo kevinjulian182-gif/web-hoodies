@@ -49,7 +49,7 @@ export default function AddToCartButton({ product }: { product: PublicProduct })
                 aria-label={c}
                 title={c}
                 onClick={() => setColor(c)}
-                className={`h-9 w-9 rounded-full border-2 transition-all ${
+                className={`h-11 w-11 rounded-full border-2 transition-all ${
                   color === c ? 'border-coffee-900 scale-110' : 'border-transparent hover:scale-105'
                 }`}
                 style={{ boxShadow: `0 0 0 1px ${color === c ? 'transparent' : '#e7ddd0'} inset` }}

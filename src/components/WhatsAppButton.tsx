@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 
 const NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER;
@@ -7,6 +8,24 @@ const MESSAGE = encodeURIComponent('Hola, tengo una pregunta sobre un producto d
 
 export default function WhatsAppButton() {
   const pathname = usePathname();
+
+  // Product detail pages show a sticky mobile buy bar once the main
+  // "Agregar al carrito" button (#comprar) scrolls out of view — lift the
+  // WhatsApp button above it only then, so it never overlaps either button.
+  const isProductDetail = /^\/productos\/[^/]+$/.test(pathname);
+  const [aboveBuyBar, setAboveBuyBar] = useState(false);
+
+  useEffect(() => {
+    if (!isProductDetail) return;
+    const buyBox = document.getElementById('comprar');
+    if (!buyBox) return;
+    const observer = new IntersectionObserver(([entry]) => setAboveBuyBar(!entry.isIntersecting), {
+      rootMargin: '-96px 0px 0px 0px',
+    });
+    observer.observe(buyBox);
+    return () => observer.disconnect();
+  }, [isProductDetail]);
+
   if (
     !NUMBER ||
     pathname.startsWith('/admin') ||
@@ -15,18 +34,14 @@ export default function WhatsAppButton() {
   )
     return null;
 
-  // Product detail pages show a sticky mobile buy bar across the full
-  // bottom edge — lift the button above it there so they never overlap.
-  const isProductDetail = /^\/productos\/[^/]+$/.test(pathname);
-
   return (
     <a
       href={`https://wa.me/${NUMBER}?text=${MESSAGE}`}
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Escríbenos por WhatsApp"
-      className={`fixed right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg transition-transform hover:scale-105 active:scale-95 ${
-        isProductDetail
+      className={`fixed right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg transition-[transform,bottom] duration-300 hover:scale-105 active:scale-95 ${
+        isProductDetail && aboveBuyBar
           ? 'bottom-[calc(6rem+env(safe-area-inset-bottom))] md:bottom-6'
           : 'bottom-[calc(1.5rem+env(safe-area-inset-bottom))] md:bottom-6'
       }`}
