@@ -8,7 +8,7 @@ export const CONTENT_DEFAULTS = {
   'hero.eyebrow': 'Colección permanente',
   'hero.title_line1': 'Streetwear',
   'hero.title_line2': 'de élite.',
-  'hero.subtitle': 'Piezas originales de las marcas más exclusivas. Curado para quienes exigen lo mejor.',
+  'hero.subtitle': 'Piezas curadas de las marcas más exclusivas, con garantía y cambios sin complicaciones.',
   'hero.cta': 'Explorar colección',
   'hero.video_url': '',
   'hero.images': '[]',
@@ -21,7 +21,7 @@ export const CONTENT_DEFAULTS = {
   'trust.item1_title': 'Pago contra entrega',
   'trust.item1_body': 'Recibe tu pedido y paga en la puerta de tu casa. Sin adelantos, sin riesgos.',
   'trust.item2_title': 'Calidad garantizada',
-  'trust.item2_body': 'Cada pieza pasa por control de calidad antes de salir de bodega. 100% original.',
+  'trust.item2_body': 'Cada pieza pasa por control de calidad antes de salir de bodega, con garantía incluida.',
   'trust.item3_title': 'Materiales premium',
   'trust.item3_body': 'Algodón pesado, felpa francesa y acabados que resisten el uso diario por años.',
   'home.newsletter_title': 'Sé el primero en enterarte',
@@ -30,18 +30,18 @@ export const CONTENT_DEFAULTS = {
   'nosotros.title_line1': 'Streetwear que se gana',
   'nosotros.title_line2': 'su lugar en tu clóset.',
   'nosotros.intro':
-    'AFRA nació de una obsesión simple: reunir en un solo lugar las piezas de streetwear que de verdad valen la pena, sin relleno y sin réplicas. Curamos, no acumulamos.',
+    'AFRA nació de una obsesión simple: reunir en un solo lugar las piezas de streetwear que de verdad valen la pena, sin relleno. Curamos, no acumulamos.',
   'nosotros.value1_title': 'Curaduría exigente',
   'nosotros.value1_body':
     'No vendemos de todo. Cada marca y cada pieza pasa un filtro estricto de diseño, calidad y relevancia cultural antes de entrar al catálogo.',
-  'nosotros.value2_title': 'Autenticidad sin excepciones',
+  'nosotros.value2_title': 'Garantía sin excepciones',
   'nosotros.value2_body':
-    'Trabajamos directamente con distribuidores autorizados. Cada prenda es 100% original, verificable y respaldada.',
+    'Cada prenda que vendemos tiene garantía. Si algo sale mal, lo resolvemos con un cambio o una devolución, sin vueltas.',
   'nosotros.value3_title': 'Servicio de cerca',
   'nosotros.value3_body':
     'Pago contra entrega, seguimiento real de tu pedido y un equipo que responde — no un bot genérico.',
   'footer.tagline':
-    'Streetwear de élite. Piezas originales de las marcas más exclusivas, curadas para quienes exigen lo mejor.',
+    'Streetwear de élite. Piezas curadas de las marcas más exclusivas, con garantía y cambios sin complicaciones.',
   'footer.copyright_year': String(new Date().getFullYear()),
   'social.instagram_url': '',
   'social.tiktok_url': '',
@@ -66,8 +66,8 @@ export const CONTENT_DEFAULTS = {
       answer: 'Entre 2 y 5 días hábiles según tu ciudad. Recibes el número de guía para hacer seguimiento en tiempo real.',
     },
     {
-      question: '¿Los productos son originales?',
-      answer: 'Sí. Trabajamos con distribuidores autorizados y cada pieza pasa control de calidad antes de salir de bodega.',
+      question: '¿Qué pasa si mi pedido llega con un defecto?',
+      answer: 'Te lo cambiamos sin costo. Escríbenos por WhatsApp apenas lo recibas y coordinamos el cambio o la devolución.',
     },
     {
       question: '¿Puedo cambiar o devolver una prenda?',
@@ -103,7 +103,7 @@ export const CONTENT_DEFAULTS = {
   'quality.item2_title': 'Control de calidad',
   'quality.item2_body': 'Revisamos costuras, estampados y acabados antes de que tu pedido salga de bodega.',
   'quality.item3_title': 'Importación directa',
-  'quality.item3_body': 'Trabajamos con distribuidores autorizados, sin réplicas ni intermediarios sin verificar.',
+  'quality.item3_body': 'Trabajamos directo con los distribuidores, sin intermediarios de por medio.',
   'cta.eyebrow': 'Tu próxima pieza te espera',
   'cta.title': '¿Listo para vestir diferente?',
   'cta.body': 'Explora el catálogo completo y paga contra entrega en toda Colombia. Sin adelantos, sin riesgos.',

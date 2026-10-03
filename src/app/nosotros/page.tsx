@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 const STATS = [
   { value: '7', label: 'marcas curadas' },
-  { value: '100%', label: 'piezas originales' },
+  { value: '100%', label: 'garantía de cambio' },
   { value: '2024', label: 'año de fundación' },
 ];
 

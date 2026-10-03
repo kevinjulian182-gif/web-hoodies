@@ -498,7 +498,7 @@ export default function CheckoutPage() {
                 <TruckIcon /> Envíos a toda Colombia
               </li>
               <li className="flex items-center gap-2">
-                <CheckIcon /> Piezas 100% originales
+                <CheckIcon /> Garantía y cambios sin costo
               </li>
             </ul>
           </aside>

@@ -46,7 +46,7 @@ const REVIEWS: Record<string, { authorName: string; rating: number; comment: str
     { authorName: 'Juan Pablo Osorio', rating: 4, comment: 'Me quedó un poco grande en M, pero la calidad es excelente.' },
   ],
   'supreme-box-logo-hoodie': [
-    { authorName: 'Daniela Marulanda', rating: 5, comment: 'Original 100%, verifiqué las costuras y todo coincide con la tienda oficial.' },
+    { authorName: 'Daniela Marulanda', rating: 5, comment: 'La calidad es excelente y cuando tuve una duda con la talla me respondieron rapidísimo por WhatsApp.' },
     { authorName: 'Andrés Felipe Cano', rating: 5, comment: 'Pago contra entrega sin complicaciones, la pieza vale cada peso.' },
   ],
   'bape-shark-full-zip-hoodie': [
@@ -225,17 +225,17 @@ const PRODUCTS: Array<{
 
 const BLOG_POSTS: Array<{ title: string; slug: string; excerpt: string; content: string; coverSeed: string }> = [
   {
-    title: 'Cómo distinguir streetwear original de una réplica',
-    slug: 'como-distinguir-original-de-replica',
-    excerpt: 'Cinco detalles que casi nadie revisa antes de comprar, y que delatan una pieza falsa al instante.',
-    coverSeed: 'authenticity-check',
-    content: `La diferencia entre una pieza original y una réplica casi nunca está en el logo — está en los detalles que una fábrica no autorizada no puede replicar a bajo costo.
+    title: 'Cómo funciona nuestra garantía y política de cambios',
+    slug: 'garantia-y-politica-de-cambios',
+    excerpt: 'Qué cubre la garantía, cuánto tiempo tienes para pedir un cambio y cómo iniciar el proceso en minutos.',
+    coverSeed: 'warranty-guide',
+    content: `Toda prenda que compras en AFRA tiene garantía. Si algo sale mal — un defecto de fábrica, una talla que no calza, un color distinto al que esperabas — lo resolvemos sin que tengas que pelear por ello.
 
-Primero, revisa las costuras interiores. En una prenda original son parejas, sin hilos sueltos, y el refuerzo en axilas y bolsillos es visible. Segundo, el peso del algodón: el streetwear premium usa telas de gramaje alto (300-450 GSM); si se siente ligera y transparente al trasluz, desconfía.
+Tienes hasta 5 días hábiles desde que recibes tu pedido para solicitar un cambio o devolución, conforme al derecho de retracto del Estatuto del Consumidor. La prenda debe conservar sus etiquetas originales y no haber sido usada, para que podamos procesarla sin demoras.
 
-Tercero, las etiquetas de lavado y composición deben coincidir exactamente con las del sitio oficial de la marca — tipografía, espaciado, hasta el código de barras. Cuarto, el empaque: las marcas grandes cuidan obsesivamente sus bolsas y cajas; un empaque genérico es la primera señal de alerta.
+El proceso es simple: nos escribes por WhatsApp desde el botón flotante en cualquier página del sitio, nos cuentas qué pasó y coordinamos la recolección o el cambio de talla. No necesitas factura impresa ni formularios — con tu número de pedido basta.
 
-Por último, el precio. Si una pieza que normalmente cuesta el doble aparece "en oferta" muy por debajo del mercado, no es suerte: es una réplica. En AFRA trabajamos solo con distribuidores autorizados, así que cada prenda que ves en el catálogo ya pasó este filtro por ti.`,
+Si el defecto es de fábrica (costuras sueltas, estampado mal pegado, cierre que falla), cubrimos el cambio por una pieza nueva sin costo adicional, incluyendo el envío. Nuestro objetivo es que cada compra se sienta sin riesgo, desde el pago contra entrega hasta el día en que te pones la prenda.`,
   },
   {
     title: 'Guía de cuidado: cómo lavar tu hoodie premium sin arruinarlo',

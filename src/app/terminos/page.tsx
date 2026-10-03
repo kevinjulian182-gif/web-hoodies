@@ -60,10 +60,11 @@ export default function TerminosPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-medium text-coffee-900">6. Autenticidad</h2>
+          <h2 className="text-lg font-medium text-coffee-900">6. Garantía</h2>
           <p className="mt-2">
-            Todas las prendas que vendemos son piezas originales de las marcas que representamos. No
-            comercializamos réplicas.
+            Todas las prendas que vendemos cuentan con garantía. Si tu pedido llega con un defecto
+            de fábrica, lo cambiamos sin costo adicional: contáctanos por WhatsApp para gestionar
+            el cambio o la devolución.
           </p>
         </section>
 

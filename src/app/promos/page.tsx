@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Promos — AFRA',
-  description: 'Piezas originales de streetwear con descuento por tiempo limitado, pago contra entrega en toda Colombia.',
+  description: 'Piezas premium de streetwear con descuento por tiempo limitado, pago contra entrega y garantía en toda Colombia.',
 };
 
 export default async function PromosPage() {

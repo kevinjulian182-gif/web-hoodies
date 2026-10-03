@@ -13,11 +13,11 @@ export async function generateMetadata({
   return marca
     ? {
         title: `${marca} — Catálogo — AFRA`,
-        description: `Hoodies, sudaderas y chaquetas originales de ${marca}, disponibles en AFRA con pago contra entrega en toda Colombia.`,
+        description: `Hoodies, sudaderas y chaquetas premium de ${marca}, disponibles en AFRA con pago contra entrega en toda Colombia.`,
       }
     : {
         title: 'Catálogo — AFRA',
-        description: 'Explora el catálogo completo de streetwear original de AFRA: Nike, Adidas, Supreme y más, con envíos a toda Colombia.',
+        description: 'Explora el catálogo completo de streetwear premium de AFRA: Nike, Adidas, Supreme y más, con garantía y envíos a toda Colombia.',
       };
 }
 

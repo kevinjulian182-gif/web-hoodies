@@ -127,8 +127,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             <li className="flex items-start gap-3 text-sm text-coffee-700">
               <CheckIcon />
               <span>
-                <strong className="font-medium text-coffee-900">100% original:</strong> pieza verificada
-                de {product.brand}, sin réplicas.
+                <strong className="font-medium text-coffee-900">Garantía de cambio:</strong> si no te
+                queda bien, la cambias sin costo dentro de los primeros 5 días hábiles.
               </span>
             </li>
             <li className="flex items-start gap-3 text-sm text-coffee-700">

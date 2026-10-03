@@ -28,7 +28,7 @@ const COLUMNS = [
 
 const TRUST_BADGES = [
   { label: 'Pago contra entrega', icon: <TruckIcon /> },
-  { label: 'Piezas 100% originales', icon: <BadgeIcon /> },
+  { label: 'Garantía y cambios', icon: <BadgeIcon /> },
   { label: 'Envíos a toda Colombia', icon: <MapIcon /> },
 ];
 
