@@ -13,12 +13,35 @@ function databaseUrl() {
   return `${url}${url.includes('?') ? '&' : '?'}connection_limit=1`;
 }
 
-const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
+const globalForPrisma = globalThis as unknown as {
+  prisma?: ReturnType<typeof createDefaultClient>;
+  prismaInternal?: PrismaClient;
+};
 
-export const prisma =
-  globalForPrisma.prisma ??
+function createDefaultClient() {
+  // costCents is the product's purchase/manufacturing cost — internal-only
+  // data used for margin calculations. Every public-facing page (storefront,
+  // search, checkout) reads products through this client, which fetches rows
+  // via plain server-side Prisma calls and passes them straight through as
+  // page props, so omitting the field here (rather than per-query) is what
+  // actually keeps it out of the HTML/JSON sent to shoppers.
+  return new PrismaClient({
+    datasources: { db: { url: databaseUrl() } },
+    omit: { product: { costCents: true } },
+  });
+}
+
+export const prisma = globalForPrisma.prisma ?? createDefaultClient();
+
+// Full-field client for the few admin-only code paths that need to read
+// costCents back (inventory list, Excel export, product duplication).
+export const prismaInternal =
+  globalForPrisma.prismaInternal ??
   new PrismaClient({
     datasources: { db: { url: databaseUrl() } },
   });
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = prisma;
+  globalForPrisma.prismaInternal = prismaInternal;
+}

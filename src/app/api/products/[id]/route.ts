@@ -12,6 +12,7 @@ const updateSchema = z.object({
   careInstructions: z.string().optional().nullable(),
   priceCents: z.number().int().positive().optional(),
   compareAtPriceCents: z.number().int().positive().nullable().optional(),
+  costCents: z.number().int().min(0).nullable().optional(),
   images: z.array(z.string().url()).optional(),
   videos: z.array(z.string().url()).optional(),
   sizes: z.array(z.string()).optional(),

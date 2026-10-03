@@ -12,7 +12,9 @@ import { useCatalogSettings } from '@/lib/catalogSettings';
 import HeartButton from '@/components/HeartButton';
 import type { Product } from '@prisma/client';
 
-export default function ProductCard({ product, index = 0 }: { product: Product; index?: number }) {
+type PublicProduct = Omit<Product, 'costCents'>;
+
+export default function ProductCard({ product, index = 0 }: { product: PublicProduct; index?: number }) {
   const { addItem } = useCart();
   const { showColors, showSizes } = useCatalogSettings();
   const onSale = isOnSale(product.priceCents, product.compareAtPriceCents);

@@ -6,12 +6,14 @@ import { motion } from 'framer-motion';
 import { formatCOP } from '@/lib/format';
 import type { Product } from '@prisma/client';
 
+type PublicProduct = Omit<Product, 'costCents'>;
+
 function firstLine(text: string | null): string {
   if (!text) return '—';
   return text.split('\n')[0].trim() || '—';
 }
 
-export default function ComparisonTable({ current, others }: { current: Product; others: Product[] }) {
+export default function ComparisonTable({ current, others }: { current: PublicProduct; others: PublicProduct[] }) {
   if (others.length === 0) return null;
   const columns = [current, ...others];
 

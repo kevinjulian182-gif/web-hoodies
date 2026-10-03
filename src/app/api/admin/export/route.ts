@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import ExcelJS from 'exceljs';
-import { prisma } from '@/lib/prisma';
+import { prisma, prismaInternal } from '@/lib/prisma';
 import { getSession, requireRole } from '@/lib/auth';
 import { formatCOP } from '@/lib/format';
 
@@ -19,7 +19,7 @@ export async function GET() {
 
   const [orders, products] = await Promise.all([
     prisma.order.findMany({ orderBy: { createdAt: 'desc' }, include: { items: { include: { product: true } } } }),
-    prisma.product.findMany({ orderBy: { createdAt: 'desc' } }),
+    prismaInternal.product.findMany({ orderBy: { createdAt: 'desc' } }),
   ]);
 
   const workbook = new ExcelJS.Workbook();
@@ -64,6 +64,8 @@ export async function GET() {
     { header: 'Nombre', key: 'name', width: 28 },
     { header: 'Marca', key: 'brand', width: 18 },
     { header: 'Precio', key: 'price', width: 16 },
+    { header: 'Costo', key: 'cost', width: 16 },
+    { header: 'Margen', key: 'margin', width: 14 },
     { header: 'Stock', key: 'stock', width: 10 },
     { header: 'Tallas', key: 'sizes', width: 18 },
     { header: 'Colores', key: 'colors', width: 22 },
@@ -75,6 +77,11 @@ export async function GET() {
       name: product.name,
       brand: product.brand,
       price: formatCOP(product.priceCents),
+      cost: product.costCents != null ? formatCOP(product.costCents) : '',
+      margin:
+        product.costCents != null
+          ? `${Math.round(((product.priceCents - product.costCents) / product.priceCents) * 100)}%`
+          : '',
       stock: product.stock,
       sizes: product.sizes.join(', '),
       colors: product.colors.join(', '),

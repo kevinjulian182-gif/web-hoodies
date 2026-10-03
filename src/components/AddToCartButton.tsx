@@ -8,7 +8,9 @@ import type { Product } from '@prisma/client';
 
 const LOW_STOCK_THRESHOLD = 5;
 
-export default function AddToCartButton({ product }: { product: Product }) {
+type PublicProduct = Omit<Product, 'costCents'>;
+
+export default function AddToCartButton({ product }: { product: PublicProduct }) {
   const { addItem } = useCart();
   const [size, setSize] = useState(product.sizes[0] ?? '');
   const [color, setColor] = useState(product.colors[0] ?? '');

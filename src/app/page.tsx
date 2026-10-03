@@ -22,13 +22,15 @@ import {
 import type { Product } from '@prisma/client';
 import type { SiteContent } from '@/lib/content';
 
+type PublicProduct = Omit<Product, 'costCents'>;
+
 export const dynamic = 'force-dynamic';
 
 function renderSection(
   id: HomeSectionId,
   content: SiteContent,
-  products: Product[],
-  promoProducts: Product[],
+  products: PublicProduct[],
+  promoProducts: PublicProduct[],
   isFirst: boolean
 ) {
   switch (id) {

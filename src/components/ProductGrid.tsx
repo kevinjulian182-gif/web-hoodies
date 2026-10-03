@@ -5,11 +5,13 @@ import { motion } from 'framer-motion';
 import ProductCard from '@/components/ProductCard';
 import type { Product } from '@prisma/client';
 
+type PublicProduct = Omit<Product, 'costCents'>;
+
 export default function ProductGrid({
   products,
   initialBrand,
 }: {
-  products: Product[];
+  products: PublicProduct[];
   initialBrand?: string;
 }) {
   const brands = useMemo(() => Array.from(new Set(products.map((p) => p.brand))).sort(), [products]);

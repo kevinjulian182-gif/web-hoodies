@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { prisma } from '@/lib/prisma';
+import { prisma, prismaInternal } from '@/lib/prisma';
 import { getSession, requireRole } from '@/lib/auth';
 
 export async function GET() {
   const session = await getSession();
   const isStaff = requireRole(session, ['ADMIN', 'SUPER_ADMIN']);
-  const products = await prisma.product.findMany({
+  const products = await (isStaff ? prismaInternal : prisma).product.findMany({
     where: isStaff ? {} : { active: true },
     orderBy: { createdAt: 'desc' },
   });
@@ -23,6 +23,7 @@ const productSchema = z.object({
   careInstructions: z.string().optional().nullable(),
   priceCents: z.number().int().positive(),
   compareAtPriceCents: z.number().int().positive().nullable().optional(),
+  costCents: z.number().int().min(0).nullable().optional(),
   images: z.array(z.string().url()).min(1),
   videos: z.array(z.string().url()).optional(),
   sizes: z.array(z.string()).min(1),

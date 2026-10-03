@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["omitApi"]
 }
 
 datasource db {
@@ -52,6 +53,7 @@ model Product {
   careInstructions String?
   priceCents  Int
   compareAtPriceCents Int?
+  costCents   Int?
   images      String[]
   videos      String[]    @default([])
   sizes       String[]

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma, prismaInternal } from '@/lib/prisma';
 import { getSession, requireRole } from '@/lib/auth';
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -9,7 +9,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   }
 
   const { id } = await params;
-  const original = await prisma.product.findUnique({ where: { id } });
+  const original = await prismaInternal.product.findUnique({ where: { id } });
   if (!original) return NextResponse.json({ error: 'No encontrado' }, { status: 404 });
 
   let slug = `${original.slug}-copia`;
@@ -26,6 +26,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       brand: original.brand,
       description: original.description,
       priceCents: original.priceCents,
+      costCents: original.costCents,
       images: original.images,
       videos: original.videos,
       sizes: original.sizes,

@@ -20,6 +20,7 @@ type Product = {
   careInstructions: string | null;
   priceCents: number;
   compareAtPriceCents: number | null;
+  costCents: number | null;
   images: string[];
   videos: string[];
   sizes: string[];
@@ -41,6 +42,7 @@ type FormState = {
   careInstructions: string;
   price: string;
   compareAtPrice: string;
+  cost: string;
   stock: string;
   images: string[];
   videos: string[];
@@ -58,6 +60,7 @@ const emptyForm: FormState = {
   careInstructions: '',
   price: '',
   compareAtPrice: '',
+  cost: '',
   stock: '',
   images: [],
   videos: [],
@@ -79,6 +82,7 @@ function toForm(p: Product): FormState {
     careInstructions: p.careInstructions ?? '',
     price: String(p.priceCents / 100),
     compareAtPrice: p.compareAtPriceCents ? String(p.compareAtPriceCents / 100) : '',
+    cost: p.costCents != null ? String(p.costCents / 100) : '',
     stock: String(p.stock),
     images: p.images,
     videos: p.videos,
@@ -156,6 +160,7 @@ export default function AdminProductsPage() {
       careInstructions: form.careInstructions || null,
       priceCents: Math.round(Number(form.price) * 100),
       compareAtPriceCents: form.compareAtPrice ? Math.round(Number(form.compareAtPrice) * 100) : null,
+      costCents: form.cost ? Math.round(Number(form.cost) * 100) : null,
       stock: Number(form.stock),
       images: form.images,
       videos: form.videos,
@@ -272,7 +277,16 @@ export default function AdminProductsPage() {
                 )}
               </div>
             </FormField>
-            <FormField label="Stock" className="col-span-2">
+            <FormField label="Costo (COP) — solo interno">
+              <input type="number" min="0" step="1" placeholder="180000" value={form.cost} onChange={(e) => setForm({ ...form, cost: e.target.value })} className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm" />
+              {form.cost && form.price && Number(form.price) > 0 && (
+                <p className="mt-1 text-[11px] text-coffee-500">
+                  Margen: {formatCOP(Math.round((Number(form.price) - Number(form.cost)) * 100))} (
+                  {Math.round(((Number(form.price) - Number(form.cost)) / Number(form.price)) * 100)}%)
+                </p>
+              )}
+            </FormField>
+            <FormField label="Stock">
               <input type="number" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} required className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm" />
             </FormField>
           </div>
@@ -410,6 +424,15 @@ export default function AdminProductsPage() {
                     Stock: {p.stock}
                     {lowStock && ' (bajo)'}
                   </span>
+                  {p.costCents != null && (
+                    <>
+                      {' · '}
+                      <span className="text-coffee-400">
+                        Margen: {formatCOP(p.priceCents - p.costCents)} (
+                        {Math.round(((p.priceCents - p.costCents) / p.priceCents) * 100)}%)
+                      </span>
+                    </>
+                  )}
                 </p>
                 {p.colors.length > 0 && (
                   <div className="mt-1.5 flex items-center gap-1">

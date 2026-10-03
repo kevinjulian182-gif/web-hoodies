@@ -2,7 +2,7 @@ import { Resend } from 'resend';
 import { getConfigValue } from '@/lib/config';
 import type { Order, OrderItem, Product } from '@prisma/client';
 
-type OrderWithItems = Order & { items: (OrderItem & { product: Product })[] };
+type OrderWithItems = Order & { items: (OrderItem & { product: Omit<Product, 'costCents'> })[] };
 
 export async function sendOrderConfirmationEmail(order: OrderWithItems) {
   const apiKey = await getConfigValue('RESEND_API_KEY');
