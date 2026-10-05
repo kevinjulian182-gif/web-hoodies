@@ -1,5 +1,6 @@
 'use client';
 
+import { useLayoutEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
 
@@ -12,6 +13,20 @@ import { motion } from 'framer-motion';
 // keyed mount+animate has no such coordination step.
 export default function PageTransition({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+
+  // `usePathname()` updates the moment navigation starts, i.e. exactly when
+  // this component remounts with the route's loading.tsx fallback — which
+  // is much shorter than real page content. Without this, the browser
+  // clamps the still-deep scroll position to the fallback's smaller height
+  // (landing on the Footer, since that's always mounted below `children`),
+  // then jumps again once the real content streams in. Resetting here, in
+  // a layout effect so it runs before paint, fixes that — but behavior
+  // must be 'instant', not the default 'auto', which defers to the global
+  // smooth scroll-behavior CSS and visibly animates the reset instead of
+  // skipping it.
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [pathname]);
 
   return (
     <motion.div
