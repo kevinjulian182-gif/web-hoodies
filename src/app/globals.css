@@ -97,3 +97,17 @@ select:focus-visible,
     scroll-behavior: auto !important;
   }
 }
+
+/* Diagonal shine sliding across the free-shipping progress bar fill. */
+@keyframes shipping-bar-shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+
+.shipping-bar-shimmer {
+  animation: shipping-bar-shimmer 1.8s ease-in-out infinite;
+}

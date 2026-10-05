@@ -111,6 +111,7 @@ export const CONTENT_DEFAULTS = {
   'cta.button_href': '/productos',
   'catalog.show_colors_on_card': 'false',
   'catalog.show_sizes_on_card': 'false',
+  'shipping.free_threshold': '250000',
   'home.faq_title': 'Preguntas frecuentes',
   'pdp.faq_title': 'Preguntas frecuentes',
   'pdp.reviews_title': 'Lo que dicen nuestros clientes',
@@ -196,6 +197,15 @@ export function getFaqItems(content: SiteContent): FaqItem[] {
   }
 }
 
+// Admin enters this in whole pesos, same convention as every price field in
+// the product form — convert to cents here so it can be compared directly
+// against cart subtotalCents. 0 or an invalid value turns the progress bar
+// off rather than showing a false "free shipping at $0" state.
+export function getFreeShippingThresholdCents(content: SiteContent): number {
+  const pesos = Number(content['shipping.free_threshold']);
+  return Number.isFinite(pesos) && pesos > 0 ? Math.round(pesos * 100) : 0;
+}
+
 export type BrandItem = { name: string; logoUrl: string };
 export function getBrandItems(content: SiteContent): BrandItem[] {
   try {
@@ -217,7 +227,7 @@ export const CONTENT_FIELDS: Array<{
   label: string;
   section: string;
   multiline?: boolean;
-  type?: 'text' | 'video' | 'image' | 'images' | 'boolean' | 'color';
+  type?: 'text' | 'video' | 'image' | 'images' | 'boolean' | 'color' | 'number';
 }> = [
   {
     key: 'theme.coffee_color',
@@ -286,6 +296,12 @@ export const CONTENT_FIELDS: Array<{
     label: 'Mostrar selector de talla en las tarjetas de producto',
     section: 'Catálogo',
     type: 'boolean',
+  },
+  {
+    key: 'shipping.free_threshold',
+    label: 'Monto mínimo en el carrito para envío gratis (COP)',
+    section: 'Envío gratis',
+    type: 'number',
   },
   { key: 'footer.tagline', label: 'Descripción de la marca', section: 'Pie de página', multiline: true },
   { key: 'footer.copyright_year', label: 'Año del copyright', section: 'Pie de página' },

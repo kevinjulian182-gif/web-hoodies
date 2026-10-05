@@ -9,7 +9,7 @@ import PageTransition from '@/components/PageTransition';
 import CartDrawer from '@/components/CartDrawer';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import CustomCursor from '@/components/CustomCursor';
-import { getSiteContent, getHomeSectionOrder, getHeroImages } from '@/lib/content';
+import { getSiteContent, getHomeSectionOrder, getHeroImages, getFreeShippingThresholdCents } from '@/lib/content';
 import { generateThemeVars, themeVarsToCss } from '@/lib/theme';
 
 // The footer pulls its tagline from the editable SiteContent table on every
@@ -88,7 +88,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   xUrl: content['social.x_url'] || undefined,
                 }}
               />
-              <CartDrawer />
+              <CartDrawer freeShippingThresholdCents={getFreeShippingThresholdCents(content)} />
               <WhatsAppButton />
               <CustomCursor />
             </CatalogSettingsProvider>

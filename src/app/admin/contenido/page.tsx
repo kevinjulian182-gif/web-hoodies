@@ -15,6 +15,7 @@ const SECTION_PREVIEW_PATH: Record<string, string> = {
   'Sección editorial': '/',
   'Sección de confianza': '/',
   'Catálogo': '/productos',
+  'Envío gratis': '/',
   'Cómo trabajamos': '/',
   'Envíos seguros': '/',
   'Materiales y calidad': '/',
@@ -32,6 +33,7 @@ const SECTION_HINTS: Record<string, string> = {
   'Sección editorial': 'El bloque de storytelling debajo de la portada.',
   'Sección de confianza': 'Los tres argumentos de venta que aparecen en el inicio y en Sobre nosotros.',
   'Catálogo': 'Controla qué se muestra en las tarjetas de producto (inicio, catálogo, promos, favoritos).',
+  'Envío gratis': 'El monto que el cliente debe superar en el carrito para desbloquear envío gratis. La barra de progreso aparece en el carrito. Pon 0 para desactivarla.',
   'Cómo trabajamos': 'Los 4 pasos del proceso de compra, en el inicio.',
   'Envíos seguros': 'Argumentos de confianza sobre el envío, en el inicio.',
   'Materiales y calidad': 'Argumentos sobre la calidad de las prendas y la importación, en el inicio.',
@@ -67,7 +69,7 @@ const NAV_GROUPS: { label: string; tabs: string[] }[] = [
       'Newsletter (inicio)',
     ],
   },
-  { label: 'Catálogo', tabs: ['Catálogo'] },
+  { label: 'Catálogo', tabs: ['Catálogo', 'Envío gratis'] },
   { label: 'Páginas', tabs: ['Sobre nosotros'] },
   { label: 'Blog', tabs: [BLOG_TAB] },
 ];
@@ -320,6 +322,16 @@ export default function AdminContentPage() {
                             : 'Usa una imagen cuadrada (idealmente 512×512px). Se aplica en la pestaña del navegador.'}
                         </p>
                       </div>
+                    ) : field.type === 'number' ? (
+                      <input
+                        type="number"
+                        min="0"
+                        step="1000"
+                        value={values[field.key]}
+                        onChange={(e) => handleChange(field.key, e.target.value)}
+                        placeholder={CONTENT_DEFAULTS[field.key]}
+                        className="w-full rounded-lg border border-cream-200 px-3 py-2 text-sm focus:outline-none focus:border-coffee-600"
+                      />
                     ) : field.multiline ? (
                       <textarea
                         value={values[field.key]}

@@ -8,7 +8,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useCart, type CartItem } from '@/lib/cart';
 import { formatCOP } from '@/lib/format';
 
-export default function CartDrawer() {
+export default function CartDrawer({ freeShippingThresholdCents = 0 }: { freeShippingThresholdCents?: number }) {
   const { items, isOpen, closeCart, updateQuantity, removeItem, subtotalCents } = useCart();
   const pathname = usePathname();
 
@@ -89,6 +89,9 @@ export default function CartDrawer() {
               </div>
             ) : (
               <>
+                {freeShippingThresholdCents > 0 && (
+                  <FreeShippingBar subtotalCents={subtotalCents} thresholdCents={freeShippingThresholdCents} />
+                )}
                 <ul className="flex-1 overflow-y-auto overscroll-contain px-6 py-4">
                   <AnimatePresence initial={false}>
                     {items.map((item) => (
@@ -122,6 +125,78 @@ export default function CartDrawer() {
         </>
       )}
     </AnimatePresence>
+  );
+}
+
+function FreeShippingBar({ subtotalCents, thresholdCents }: { subtotalCents: number; thresholdCents: number }) {
+  const unlocked = subtotalCents >= thresholdCents;
+  const pct = Math.min(100, Math.round((subtotalCents / thresholdCents) * 100));
+  const remainingCents = Math.max(0, thresholdCents - subtotalCents);
+
+  return (
+    <div className="shrink-0 border-b border-cream-200 px-6 py-4">
+      <AnimatePresence mode="wait">
+        <motion.p
+          key={unlocked ? 'unlocked' : 'locked'}
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+          className={`mb-2 flex items-center gap-1.5 text-sm font-medium ${
+            unlocked ? 'text-green-700' : 'text-coffee-800'
+          }`}
+        >
+          {unlocked ? (
+            <>
+              <CheckCircleIcon /> ¡Envío gratis desbloqueado!
+            </>
+          ) : (
+            <>
+              <TruckIcon /> Te faltan <span className="font-semibold">{formatCOP(remainingCents)}</span> para
+              envío gratis
+            </>
+          )}
+        </motion.p>
+      </AnimatePresence>
+
+      <motion.div
+        animate={unlocked ? { scale: [1, 1.015, 1] } : { scale: 1 }}
+        transition={{ duration: 0.4 }}
+        className="relative h-2.5 w-full overflow-hidden rounded-full bg-cream-200"
+      >
+        <motion.div
+          initial={false}
+          animate={{ width: `${pct}%` }}
+          transition={{ type: 'spring', stiffness: 120, damping: 20 }}
+          className={`relative h-full overflow-hidden rounded-full ${
+            unlocked
+              ? 'bg-gradient-to-r from-green-600 to-green-500'
+              : 'bg-gradient-to-r from-coffee-700 to-coffee-900'
+          }`}
+        >
+          <span className="shipping-bar-shimmer absolute inset-y-0 left-0 w-1/3 skew-x-[-20deg] bg-gradient-to-r from-transparent via-cream-50/40 to-transparent" />
+        </motion.div>
+      </motion.div>
+    </div>
+  );
+}
+
+function TruckIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="shrink-0">
+      <path d="M2 8h11v8H2z" strokeLinejoin="round" />
+      <path d="M13 11h4l3 3v2h-7z" strokeLinejoin="round" />
+      <circle cx="6.5" cy="18" r="1.6" />
+      <circle cx="16.5" cy="18" r="1.6" />
+    </svg>
+  );
+}
+
+function CheckCircleIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="shrink-0">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M8.5 12.2l2.4 2.4 4.6-5.2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 
