@@ -29,6 +29,7 @@ export default function NewsletterForm() {
         <input
           type="email"
           required
+          autoComplete="email"
           placeholder="Tu correo"
           value={email}
           onChange={(e) => setEmail(e.target.value)}

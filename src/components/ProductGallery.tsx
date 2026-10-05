@@ -22,6 +22,18 @@ export default function ProductGallery({
   const [active, setActive] = useState(0);
   const current = media[active];
 
+  // Swipe support for the main image on mobile — the thumbnail strip is the
+  // only way to change photos otherwise, and tapping tiny thumbnails isn't
+  // how anyone actually browses a product's photos on a phone.
+  const SWIPE_THRESHOLD = 50;
+  const handleDragEnd = (_: unknown, info: { offset: { x: number }; velocity: { x: number } }) => {
+    if (media.length < 2) return;
+    const swipedLeft = info.offset.x < -SWIPE_THRESHOLD || info.velocity.x < -500;
+    const swipedRight = info.offset.x > SWIPE_THRESHOLD || info.velocity.x > 500;
+    if (swipedLeft && active < media.length - 1) setActive(active + 1);
+    else if (swipedRight && active > 0) setActive(active - 1);
+  };
+
   return (
     // flex-col-reverse + md:flex-row (no reverse) puts the thumbnails strip
     // wherever it reads first in the DOM: below the main image on mobile,
@@ -55,7 +67,7 @@ export default function ProductGallery({
         </div>
       )}
 
-      <div className="relative aspect-square flex-1 overflow-hidden rounded-2xl bg-cream-50">
+      <div className="relative aspect-square flex-1 overflow-hidden rounded-2xl bg-cream-50 touch-pan-y">
         <AnimatePresence mode="wait">
           <motion.div
             key={active}
@@ -63,10 +75,21 @@ export default function ProductGallery({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            drag={media.length > 1 && current?.type === 'image' ? 'x' : false}
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.5}
+            onDragEnd={handleDragEnd}
             className="absolute inset-0"
           >
             {current?.type === 'image' && (
-              <Image src={current.src} alt={name} fill className="object-contain" priority sizes="(max-width: 768px) 100vw, 50vw" />
+              <Image
+                src={current.src}
+                alt={name}
+                fill
+                className="pointer-events-none object-contain"
+                priority
+                sizes="(max-width: 768px) 100vw, 50vw"
+              />
             )}
             {current?.type === 'video' && (
               <video

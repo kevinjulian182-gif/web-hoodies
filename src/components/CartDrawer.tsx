@@ -239,11 +239,11 @@ function CartRow({
           </button>
         </div>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 rounded-full border border-cream-200">
+          <div className="flex items-center gap-1 rounded-full border border-cream-200">
             <button
               aria-label="Reducir cantidad"
               onClick={() => onUpdateQuantity(item.quantity - 1)}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-coffee-700 transition-colors hover:bg-cream-100 hover:text-coffee-900"
+              className="flex h-11 w-11 items-center justify-center rounded-full text-coffee-700 transition-colors hover:bg-cream-100 hover:text-coffee-900 active:scale-90"
             >
               −
             </button>
@@ -251,7 +251,7 @@ function CartRow({
             <button
               aria-label="Aumentar cantidad"
               onClick={() => onUpdateQuantity(item.quantity + 1)}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-coffee-700 transition-colors hover:bg-cream-100 hover:text-coffee-900"
+              className="flex h-11 w-11 items-center justify-center rounded-full text-coffee-700 transition-colors hover:bg-cream-100 hover:text-coffee-900 active:scale-90"
             >
               +
             </button>

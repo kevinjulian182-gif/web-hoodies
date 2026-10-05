@@ -32,6 +32,7 @@ export default function LoginPage() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <input
           type="email"
+          autoComplete="email"
           placeholder="Correo"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -40,6 +41,7 @@ export default function LoginPage() {
         />
         <input
           type="password"
+          autoComplete="current-password"
           placeholder="Contraseña"
           value={password}
           onChange={(e) => setPassword(e.target.value)}

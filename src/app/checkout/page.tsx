@@ -153,6 +153,7 @@ export default function CheckoutPage() {
                   <Field label="Nombre completo">
                     <input
                       required
+                      autoComplete="name"
                       placeholder="Como aparece en tu documento"
                       value={form.customerName}
                       onChange={(e) => setForm({ ...form, customerName: e.target.value })}
@@ -163,6 +164,7 @@ export default function CheckoutPage() {
                     <input
                       required
                       type="email"
+                      autoComplete="email"
                       placeholder="tucorreo@ejemplo.com"
                       value={form.customerEmail}
                       onChange={(e) => setForm({ ...form, customerEmail: e.target.value })}
@@ -173,6 +175,7 @@ export default function CheckoutPage() {
                     <input
                       required
                       inputMode="numeric"
+                      autoComplete="off"
                       placeholder="1023456789"
                       value={form.customerDocument}
                       onChange={(e) => setForm({ ...form, customerDocument: e.target.value })}
@@ -203,6 +206,7 @@ export default function CheckoutPage() {
                   <Field label="Dirección">
                     <input
                       required
+                      autoComplete="address-line1"
                       placeholder="Calle, número"
                       value={form.shippingAddress}
                       onChange={(e) => setForm({ ...form, shippingAddress: e.target.value })}
@@ -211,6 +215,7 @@ export default function CheckoutPage() {
                   </Field>
                   <Field label="Apartamento, torre, complemento (opcional)">
                     <input
+                      autoComplete="address-line2"
                       placeholder="Apto 501, torre 2, portería…"
                       value={form.shippingAddressComplement}
                       onChange={(e) => setForm({ ...form, shippingAddressComplement: e.target.value })}
@@ -221,6 +226,7 @@ export default function CheckoutPage() {
                     <Field label="Departamento" className="w-1/2">
                       <select
                         required
+                        autoComplete="address-level1"
                         value={form.shippingDepartment}
                         onChange={(e) => setForm({ ...form, shippingDepartment: e.target.value })}
                         className="w-full border border-cream-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-coffee-600 bg-white"
@@ -238,6 +244,7 @@ export default function CheckoutPage() {
                     <Field label="Ciudad" className="w-1/2">
                       <input
                         required
+                        autoComplete="address-level2"
                         placeholder="Bogotá"
                         value={form.shippingCity}
                         onChange={(e) => setForm({ ...form, shippingCity: e.target.value })}
@@ -249,6 +256,8 @@ export default function CheckoutPage() {
                     <input
                       required
                       type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
                       minLength={7}
                       placeholder="300 123 4567"
                       value={form.shippingPhone}
