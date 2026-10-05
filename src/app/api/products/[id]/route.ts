@@ -19,6 +19,7 @@ const updateSchema = z.object({
   colors: z.array(z.string()).optional(),
   stock: z.number().int().min(0).optional(),
   active: z.boolean().optional(),
+  isPromo: z.boolean().optional(),
 });
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

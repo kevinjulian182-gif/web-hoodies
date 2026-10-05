@@ -10,13 +10,10 @@ export const metadata: Metadata = {
 };
 
 export default async function PromosPage() {
-  const allActive = await prisma.product.findMany({
-    where: { active: true },
+  const products = await prisma.product.findMany({
+    where: { active: true, isPromo: true },
     orderBy: { createdAt: 'desc' },
   });
-  const products = allActive.filter(
-    (p) => typeof p.compareAtPriceCents === 'number' && p.compareAtPriceCents > p.priceCents
-  );
 
   return (
     <div className="pt-8">

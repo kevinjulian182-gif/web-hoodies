@@ -29,6 +29,7 @@ const productSchema = z.object({
   sizes: z.array(z.string()).min(1),
   colors: z.array(z.string()).optional(),
   stock: z.number().int().min(0),
+  isPromo: z.boolean().optional(),
 });
 
 export async function POST(req: NextRequest) {

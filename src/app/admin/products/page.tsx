@@ -27,6 +27,7 @@ type Product = {
   colors: string[];
   stock: number;
   active: boolean;
+  isPromo: boolean;
 };
 
 const COMMON_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
@@ -48,6 +49,7 @@ type FormState = {
   videos: string[];
   sizes: string[];
   colors: string[];
+  isPromo: boolean;
 };
 
 const emptyForm: FormState = {
@@ -66,6 +68,7 @@ const emptyForm: FormState = {
   videos: [],
   sizes: [],
   colors: [],
+  isPromo: false,
 };
 
 // The form works in whole pesos (what an admin actually types and reads);
@@ -88,6 +91,7 @@ function toForm(p: Product): FormState {
     videos: p.videos,
     sizes: p.sizes,
     colors: p.colors,
+    isPromo: p.isPromo,
   };
 }
 
@@ -166,6 +170,7 @@ export default function AdminProductsPage() {
       videos: form.videos,
       sizes: form.sizes,
       colors: form.colors,
+      isPromo: form.isPromo,
     };
     const res =
       editingId === 'new'
@@ -193,6 +198,15 @@ export default function AdminProductsPage() {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ active: !p.active }),
+    });
+    load();
+  };
+
+  const togglePromo = async (p: Product) => {
+    await fetch(`/api/products/${p.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isPromo: !p.isPromo }),
     });
     load();
   };
@@ -304,6 +318,19 @@ export default function AdminProductsPage() {
               <input type="number" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} required className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm" />
             </FormField>
           </div>
+
+          <label className="flex items-center gap-2.5 rounded-lg border border-cream-200 px-3 py-2.5 text-sm text-coffee-800">
+            <input
+              type="checkbox"
+              checked={form.isPromo}
+              onChange={(e) => setForm({ ...form, isPromo: e.target.checked })}
+              className="h-4 w-4 accent-coffee-900"
+            />
+            Mostrar en Promos
+            <span className="text-xs text-coffee-500">
+              — aparece en /promos y en la sección de promociones del inicio, independiente del descuento
+            </span>
+          </label>
 
           <FormField label="Descripción">
             <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} required className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm" rows={2} />
@@ -431,6 +458,11 @@ export default function AdminProductsPage() {
                       -{discountPercent(p.priceCents, p.compareAtPriceCents as number)}%
                     </span>
                   )}
+                  {p.isPromo && (
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800">
+                      Promo
+                    </span>
+                  )}
                 </div>
                 <p className="mt-0.5 text-sm text-coffee-600">
                   {p.brand} · {formatCOP(p.priceCents)} ·{' '}
@@ -468,6 +500,9 @@ export default function AdminProductsPage() {
                 </button>
                 <button onClick={() => duplicate(p)} className="text-sm text-coffee-700 hover:text-coffee-900">
                   Duplicar
+                </button>
+                <button onClick={() => togglePromo(p)} className={`text-sm ${p.isPromo ? 'text-amber-800' : 'text-coffee-700 hover:text-coffee-900'}`}>
+                  {p.isPromo ? 'Quitar de Promos' : 'Agregar a Promos'}
                 </button>
                 <button onClick={() => toggleActive(p)} className={`text-sm ${p.active ? 'text-red-600' : 'text-green-700'}`}>
                   {p.active ? 'Desactivar' : 'Reactivar'}

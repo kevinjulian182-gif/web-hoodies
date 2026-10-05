@@ -60,6 +60,7 @@ model Product {
   colors      String[]    @default([])
   stock       Int         @default(0)
   active      Boolean     @default(true)
+  isPromo     Boolean     @default(false)
   orderItems  OrderItem[]
   reviews     Review[]
   createdAt   DateTime    @default(now())

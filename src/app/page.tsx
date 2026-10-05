@@ -10,7 +10,6 @@ import FaqSection from '@/components/FaqSection';
 import BrandsSection from '@/components/BrandsSection';
 import FinalCta from '@/components/FinalCta';
 import { prisma } from '@/lib/prisma';
-import { isOnSale } from '@/lib/discount';
 import {
   getSiteContent,
   getHomeSectionOrder,
@@ -211,7 +210,7 @@ export default async function HomePage() {
     getSiteContent(),
   ]);
 
-  const promoProducts = allActive.filter((p) => isOnSale(p.priceCents, p.compareAtPriceCents)).slice(0, 4);
+  const promoProducts = allActive.filter((p) => p.isPromo).slice(0, 4);
   const order = getHomeSectionOrder(content);
 
   return <>{order.map((id, index) => renderSection(id, content, products, promoProducts, index === 0))}</>;
