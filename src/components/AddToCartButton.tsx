@@ -108,9 +108,17 @@ export default function AddToCartButton({
                 key={s}
                 aria-disabled="true"
                 title="No disponible en esta talla"
-                className="flex h-11 w-11 items-center justify-center rounded-full border border-cream-200 text-sm font-medium text-coffee-300 line-through"
+                className="relative flex h-11 w-11 shrink-0 cursor-not-allowed items-center justify-center rounded-full border border-dashed border-cream-300 bg-cream-100/80 text-sm font-medium text-coffee-300"
               >
                 {s}
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 rounded-full text-coffee-400"
+                  style={{
+                    background:
+                      'linear-gradient(to top right, transparent calc(50% - 1px), currentColor calc(50% - 1px), currentColor calc(50% + 1px), transparent calc(50% + 1px))',
+                  }}
+                />
               </span>
             );
           }
