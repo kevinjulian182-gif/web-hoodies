@@ -70,18 +70,21 @@ export default function MediaUploader({
     setError('');
     setRemovingBg((prev) => new Set(prev).add(url));
     try {
-      const res = await fetch('/api/admin/remove-background', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageUrl: url }),
-      });
+      // Runs entirely in the browser (WASM model, no API key, no cost) —
+      // loaded on demand so it doesn't add weight to the editor's initial
+      // bundle for admins who never use this button.
+      const { removeBackground: stripBackground } = await import('@imgly/background-removal');
+      const result = await stripBackground(url);
+      const form = new FormData();
+      form.append('file', new File([result], 'sin-fondo.png', { type: 'image/png' }));
+      const res = await fetch('/api/admin/upload', { method: 'POST', body: form });
       let data: { url?: string; error?: string };
       try {
         data = await res.json();
       } catch {
-        throw new Error('No se pudo quitar el fondo. Intenta de nuevo.');
+        throw new Error('No se pudo subir la imagen sin fondo. Intenta de nuevo.');
       }
-      if (!res.ok || !data.url) throw new Error(data.error ?? 'No se pudo quitar el fondo');
+      if (!res.ok || !data.url) throw new Error(data.error ?? 'No se pudo subir la imagen sin fondo');
       onChange(items.map((i) => (i === url ? data.url! : i)));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo quitar el fondo');
