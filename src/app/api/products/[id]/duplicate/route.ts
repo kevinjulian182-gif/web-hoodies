@@ -24,6 +24,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       name: `${original.name} (copia)`,
       slug,
       brand: original.brand,
+      category: original.category,
       description: original.description,
       materials: original.materials,
       details: original.details,

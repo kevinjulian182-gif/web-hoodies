@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { formatCOP } from '@/lib/format';
-import { colorToHex } from '@/lib/colors';
+import { colorToHex, parseColorImages } from '@/lib/colors';
 import { isOnSale, discountPercent } from '@/lib/discount';
 import { useCart } from '@/lib/cart';
 import { useCatalogSettings } from '@/lib/catalogSettings';
@@ -22,6 +22,11 @@ export default function ProductCard({ product, index = 0 }: { product: PublicPro
   const [color, setColor] = useState(product.colors[0] ?? '');
   const [added, setAdded] = useState(false);
 
+  // Swap the card's photos to the selected color's set, when the admin
+  // added one — otherwise keep showing the product's default images.
+  const colorImages = parseColorImages(product.colorImages);
+  const displayImages = (color && colorImages[color]?.length ? colorImages[color] : product.images);
+
   const handleAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -29,7 +34,7 @@ export default function ProductCard({ product, index = 0 }: { product: PublicPro
       productId: product.id,
       name: product.name,
       slug: product.slug,
-      image: product.images[0] ?? '',
+      image: displayImages[0] ?? '',
       size,
       color: color || undefined,
       priceCents: product.priceCents,
@@ -47,20 +52,20 @@ export default function ProductCard({ product, index = 0 }: { product: PublicPro
     >
       <Link href={`/productos/${product.slug}`} className="group block">
         <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-cream-50 transition-shadow duration-300 group-hover:shadow-[0_18px_40px_-16px_rgba(54,37,25,0.35)]">
-          {product.images[0] && (
+          {displayImages[0] && (
             <Image
-              src={product.images[0]}
+              src={displayImages[0]}
               alt={`${product.brand} ${product.name}`}
               fill
               className={`object-cover transition-transform duration-700 ease-out group-hover:scale-105 ${
-                product.images[1] ? 'group-hover:opacity-0' : ''
+                displayImages[1] ? 'group-hover:opacity-0' : ''
               }`}
               sizes="(max-width: 768px) 50vw, 25vw"
             />
           )}
-          {product.images[1] && (
+          {displayImages[1] && (
             <Image
-              src={product.images[1]}
+              src={displayImages[1]}
               alt={`${product.brand} ${product.name}`}
               fill
               className="object-cover opacity-0 transition-opacity duration-500 ease-out group-hover:opacity-100"

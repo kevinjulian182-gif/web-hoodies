@@ -47,6 +47,10 @@ model Product {
   name        String
   slug        String      @unique
   brand       String
+  // Garment type (hoodie, chaqueta, ...) — optional since products created
+  // before this field existed have none yet; managed the same way as
+  // brand, via the separate Category list.
+  category    String?
   description String
   materials   String?
   details     String?
@@ -77,6 +81,14 @@ model Product {
 // deleted once nothing references it — deletion is blocked in the API
 // while any Product still carries that name.
 model Brand {
+  id   String @id @default(cuid())
+  name String @unique
+}
+
+// Managed list of garment types (hoodie, chaqueta, ...), same pattern as
+// Brand: a name can be added ahead of any product using it, and deleted
+// once no Product carries it.
+model Category {
   id   String @id @default(cuid())
   name String @unique
 }

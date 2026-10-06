@@ -18,6 +18,7 @@ const productSchema = z.object({
   name: z.string().min(1),
   slug: z.string().min(1),
   brand: z.string().min(1),
+  category: z.string().optional().nullable(),
   description: z.string().min(1),
   materials: z.string().optional().nullable(),
   details: z.string().optional().nullable(),

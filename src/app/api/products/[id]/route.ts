@@ -6,6 +6,7 @@ import { getSession, requireRole } from '@/lib/auth';
 const updateSchema = z.object({
   name: z.string().min(1).optional(),
   brand: z.string().min(1).optional(),
+  category: z.string().optional().nullable(),
   description: z.string().min(1).optional(),
   materials: z.string().optional().nullable(),
   details: z.string().optional().nullable(),

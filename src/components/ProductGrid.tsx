@@ -18,8 +18,15 @@ export default function ProductGrid({
   const [activeBrand, setActiveBrand] = useState<string | null>(
     initialBrand && brands.includes(initialBrand) ? initialBrand : null
   );
+  const categories = useMemo(
+    () => Array.from(new Set(products.map((p) => p.category).filter((c): c is string => !!c))).sort(),
+    [products]
+  );
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
-  const filtered = activeBrand ? products.filter((p) => p.brand === activeBrand) : products;
+  const filtered = products.filter(
+    (p) => (!activeBrand || p.brand === activeBrand) && (!activeCategory || p.category === activeCategory)
+  );
 
   if (products.length === 0) {
     return <p className="text-center text-coffee-600 py-24">Pronto nuevas piezas.</p>;
@@ -27,17 +34,34 @@ export default function ProductGrid({
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-20">
-      {brands.length > 1 && (
-        <div className="mb-12 flex flex-wrap gap-2">
-          <FilterChip label="Todas" active={activeBrand === null} onClick={() => setActiveBrand(null)} />
-          {brands.map((brand) => (
-            <FilterChip
-              key={brand}
-              label={brand}
-              active={activeBrand === brand}
-              onClick={() => setActiveBrand(brand)}
-            />
-          ))}
+      {(brands.length > 1 || categories.length > 0) && (
+        <div className="mb-12 space-y-3">
+          {brands.length > 1 && (
+            <div className="flex flex-wrap gap-2">
+              <FilterChip label="Todas" active={activeBrand === null} onClick={() => setActiveBrand(null)} />
+              {brands.map((brand) => (
+                <FilterChip
+                  key={brand}
+                  label={brand}
+                  active={activeBrand === brand}
+                  onClick={() => setActiveBrand(brand)}
+                />
+              ))}
+            </div>
+          )}
+          {categories.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              <FilterChip label="Todos los tipos" active={activeCategory === null} onClick={() => setActiveCategory(null)} />
+              {categories.map((category) => (
+                <FilterChip
+                  key={category}
+                  label={category}
+                  active={activeCategory === category}
+                  onClick={() => setActiveCategory(category)}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
 

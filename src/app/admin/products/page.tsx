@@ -15,6 +15,7 @@ type Product = {
   name: string;
   slug: string;
   brand: string;
+  category: string | null;
   description: string;
   materials: string | null;
   details: string | null;
@@ -34,6 +35,7 @@ type Product = {
 };
 
 type BrandEntry = { id: string; name: string; productCount: number };
+type CategoryEntry = { id: string; name: string; productCount: number };
 
 const COMMON_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 const LOW_STOCK_THRESHOLD = 5;
@@ -58,6 +60,7 @@ type FormState = {
   name: string;
   slug: string;
   brand: string;
+  category: string;
   description: string;
   materials: string;
   details: string;
@@ -78,6 +81,7 @@ const emptyForm: FormState = {
   name: '',
   slug: '',
   brand: '',
+  category: '',
   description: '',
   materials: '',
   details: '',
@@ -102,6 +106,7 @@ function toForm(p: Product): FormState {
     name: p.name,
     slug: autoSlug(p.name, p.colors),
     brand: p.brand,
+    category: p.category ?? '',
     description: p.description,
     materials: p.materials ?? '',
     details: p.details ?? '',
@@ -126,12 +131,15 @@ export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [brandList, setBrandList] = useState<BrandEntry[]>([]);
   const [showBrandManager, setShowBrandManager] = useState(false);
+  const [categoryList, setCategoryList] = useState<CategoryEntry[]>([]);
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [editingId, setEditingId] = useState<string | 'new' | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState('');
   const [brandFilter, setBrandFilter] = useState<string | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{
     updated: number;
@@ -149,9 +157,15 @@ export default function AdminProductsPage() {
     if (res.ok) setBrandList(await res.json());
   };
 
+  const loadCategories = async () => {
+    const res = await fetch('/api/admin/categories');
+    if (res.ok) setCategoryList(await res.json());
+  };
+
   useEffect(() => {
     load();
     loadBrands();
+    loadCategories();
   }, []);
 
   const deleteBrand = async (b: BrandEntry) => {
@@ -165,7 +179,22 @@ export default function AdminProductsPage() {
     loadBrands();
   };
 
+  const deleteCategory = async (c: CategoryEntry) => {
+    if (!confirm(`¿Eliminar la categoría "${c.name}"?`)) return;
+    const res = await fetch(`/api/admin/categories/${c.id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      alert(body?.error ?? 'No se pudo eliminar la categoría');
+      return;
+    }
+    loadCategories();
+  };
+
   const brands = useMemo(() => Array.from(new Set(products.map((p) => p.brand))).sort(), [products]);
+  const categories = useMemo(
+    () => Array.from(new Set(products.map((p) => p.category).filter((c): c is string => !!c))).sort(),
+    [products]
+  );
 
   const totalFormStock = useMemo(
     () =>
@@ -180,10 +209,11 @@ export default function AdminProductsPage() {
     const q = query.trim().toLowerCase();
     return products.filter((p) => {
       if (brandFilter && p.brand !== brandFilter) return false;
+      if (categoryFilter && p.category !== categoryFilter) return false;
       if (q && !p.name.toLowerCase().includes(q) && !p.brand.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [products, query, brandFilter]);
+  }, [products, query, brandFilter, categoryFilter]);
 
   const startCreate = () => {
     setEditingId('new');
@@ -225,6 +255,7 @@ export default function AdminProductsPage() {
       name: form.name,
       slug,
       brand: form.brand,
+      category: form.category || null,
       description: form.description,
       materials: form.materials || null,
       details: form.details || null,
@@ -268,17 +299,25 @@ export default function AdminProductsPage() {
       setError('No se pudo guardar el producto');
       return;
     }
-    // Register the brand even if it's new, so it stays in the managed list
-    // (and shows up as a suggestion) even after this product is later
-    // deleted or reassigned to a different brand.
+    // Register the brand (and category, if set) even if new, so each stays
+    // in its managed list even after this product is later deleted or
+    // reassigned.
     await fetch('/api/admin/brands', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: form.brand }),
     });
+    if (form.category) {
+      await fetch('/api/admin/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: form.category }),
+      });
+    }
     cancelEdit();
     load();
     loadBrands();
+    loadCategories();
   };
 
   const toggleActive = async (p: Product) => {
@@ -368,6 +407,12 @@ export default function AdminProductsPage() {
           >
             Gestionar marcas
           </button>
+          <button
+            onClick={() => setShowCategoryManager((v) => !v)}
+            className="rounded-full border border-cream-300 px-4 py-2 text-sm text-coffee-700 hover:border-coffee-600"
+          >
+            Gestionar categorías
+          </button>
           {editingId === null && (
             <button
               onClick={startCreate}
@@ -401,6 +446,39 @@ export default function AdminProductsPage() {
                     disabled={b.productCount > 0}
                     title={b.productCount > 0 ? 'En uso: no se puede eliminar' : 'Eliminar marca'}
                     aria-label={`Eliminar marca ${b.name}`}
+                    className="flex h-5 w-5 items-center justify-center rounded-full text-coffee-400 hover:bg-cream-100 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-coffee-400"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {showCategoryManager && (
+        <div className="mb-6 rounded-xl border border-cream-200 p-4">
+          <p className="mb-3 text-sm font-medium text-coffee-900">
+            Categorías ({categoryList.length})
+          </p>
+          {categoryList.length === 0 ? (
+            <p className="text-sm text-coffee-500">Aún no hay categorías registradas.</p>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {categoryList.map((c) => (
+                <span
+                  key={c.id}
+                  className="flex items-center gap-1.5 rounded-full border border-cream-200 py-1.5 pl-3 pr-1.5 text-xs text-coffee-700"
+                >
+                  {c.name}
+                  <span className="text-coffee-400">({c.productCount})</span>
+                  <button
+                    type="button"
+                    onClick={() => deleteCategory(c)}
+                    disabled={c.productCount > 0}
+                    title={c.productCount > 0 ? 'En uso: no se puede eliminar' : 'Eliminar categoría'}
+                    aria-label={`Eliminar categoría ${c.name}`}
                     className="flex h-5 w-5 items-center justify-center rounded-full text-coffee-400 hover:bg-cream-100 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-coffee-400"
                   >
                     ×
@@ -478,6 +556,20 @@ export default function AdminProductsPage() {
               <datalist id="brand-options">
                 {brandList.map((b) => (
                   <option key={b.id} value={b.name} />
+                ))}
+              </datalist>
+            </FormField>
+            <FormField label="Tipo de prenda">
+              <input
+                value={form.category}
+                onChange={(e) => setForm({ ...form, category: e.target.value })}
+                list="category-options"
+                placeholder="Elige una existente o escribe una nueva (opcional)"
+                className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm"
+              />
+              <datalist id="category-options">
+                {categoryList.map((c) => (
+                  <option key={c.id} value={c.name} />
                 ))}
               </datalist>
             </FormField>
@@ -718,6 +810,29 @@ export default function AdminProductsPage() {
                 }`}
               >
                 {b}
+              </button>
+            ))}
+          </div>
+        )}
+        {categories.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              onClick={() => setCategoryFilter(null)}
+              className={`rounded-full border px-3 py-1.5 text-xs font-medium uppercase tracking-wide transition-colors ${
+                categoryFilter === null ? 'border-coffee-900 bg-coffee-900 text-cream-50' : 'border-cream-200 text-coffee-600 hover:border-coffee-600'
+              }`}
+            >
+              Todos los tipos
+            </button>
+            {categories.map((c) => (
+              <button
+                key={c}
+                onClick={() => setCategoryFilter(c)}
+                className={`rounded-full border px-3 py-1.5 text-xs font-medium uppercase tracking-wide transition-colors ${
+                  categoryFilter === c ? 'border-coffee-900 bg-coffee-900 text-cream-50' : 'border-cream-200 text-coffee-600 hover:border-coffee-600'
+                }`}
+              >
+                {c}
               </button>
             ))}
           </div>
