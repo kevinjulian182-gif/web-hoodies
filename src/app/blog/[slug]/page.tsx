@@ -22,7 +22,12 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const post = await prisma.blogPost.findUnique({ where: { slug } });
   if (!post) notFound();
 
-  const paragraphs = post.content.split('\n\n');
+  // Posts written before the rich-text editor stored plain text with blank
+  // lines between paragraphs; posts written since store real HTML. Detect
+  // which this is rather than migrating old rows, since both need to keep
+  // rendering correctly forever.
+  const isHtml = /<[a-z][\s\S]*>/i.test(post.content);
+  const paragraphs = isHtml ? [] : post.content.split('\n\n');
 
   return (
     <article className="mx-auto max-w-3xl px-6 py-20">
@@ -45,13 +50,17 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         <Image src={post.coverImage} alt={post.title} fill className="object-cover" sizes="768px" priority />
       </div>
 
-      <div className="mt-10 space-y-6">
-        {paragraphs.map((paragraph, i) => (
-          <p key={i} className="text-coffee-700 leading-relaxed">
-            {paragraph}
-          </p>
-        ))}
-      </div>
+      {isHtml ? (
+        <div className="blog-content mt-10 text-coffee-700" dangerouslySetInnerHTML={{ __html: post.content }} />
+      ) : (
+        <div className="mt-10 space-y-6">
+          {paragraphs.map((paragraph, i) => (
+            <p key={i} className="text-coffee-700 leading-relaxed">
+              {paragraph}
+            </p>
+          ))}
+        </div>
+      )}
     </article>
   );
 }

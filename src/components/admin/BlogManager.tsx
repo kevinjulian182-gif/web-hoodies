@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import MediaUploader from '@/components/admin/MediaUploader';
+import RichTextEditor from '@/components/admin/RichTextEditor';
 
 type Post = {
   id: string;
@@ -77,6 +78,10 @@ export default function BlogManager() {
       setError('Sube una imagen de portada');
       return;
     }
+    if (!form.content.replace(/<[^>]*>/g, '').trim()) {
+      setError('El contenido no puede estar vacío');
+      return;
+    }
     setSaving(true);
     const res =
       editingId === 'new'
@@ -149,14 +154,10 @@ export default function BlogManager() {
             rows={2}
             className="w-full rounded-lg border border-cream-200 px-3 py-2 text-sm focus:outline-none focus:border-coffee-600"
           />
-          <textarea
-            placeholder="Contenido (separa párrafos con una línea en blanco)"
-            value={form.content}
-            onChange={(e) => setForm({ ...form, content: e.target.value })}
-            required
-            rows={10}
-            className="w-full rounded-lg border border-cream-200 px-3 py-2 text-sm focus:outline-none focus:border-coffee-600"
-          />
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-coffee-600">Contenido</label>
+            <RichTextEditor value={form.content} onChange={(content) => setForm({ ...form, content })} />
+          </div>
 
           <MediaUploader
             label="Imagen de portada"

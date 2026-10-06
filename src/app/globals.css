@@ -111,3 +111,59 @@ select:focus-visible,
 .shipping-bar-shimmer {
   animation: shipping-bar-shimmer 1.8s ease-in-out infinite;
 }
+
+/* Shared rendering for rich text from the blog's Tiptap editor — the admin
+   toolbar (.prose-editor) and the public post page (.blog-content) use the
+   same tag styling so what you see while writing is what ships. */
+.prose-editor,
+.blog-content {
+  line-height: 1.75;
+}
+.prose-editor p,
+.blog-content p {
+  margin-top: 1.1em;
+}
+.prose-editor p:first-child,
+.blog-content p:first-child {
+  margin-top: 0;
+}
+.prose-editor h2,
+.blog-content h2 {
+  @apply text-xl font-semibold tracking-tightest text-coffee-900;
+  margin-top: 1.4em;
+  margin-bottom: 0.4em;
+}
+.prose-editor h3,
+.blog-content h3 {
+  @apply text-lg font-semibold tracking-tightest text-coffee-900;
+  margin-top: 1.2em;
+  margin-bottom: 0.4em;
+}
+.prose-editor ul,
+.blog-content ul {
+  list-style: disc;
+  margin-top: 1em;
+  padding-left: 1.4em;
+}
+.prose-editor ol,
+.blog-content ol {
+  list-style: decimal;
+  margin-top: 1em;
+  padding-left: 1.4em;
+}
+.prose-editor li,
+.blog-content li {
+  margin-top: 0.35em;
+}
+.prose-editor blockquote,
+.blog-content blockquote {
+  @apply border-cream-300 text-coffee-600;
+  border-left-width: 3px;
+  padding-left: 1em;
+  margin: 1.2em 0;
+  font-style: italic;
+}
+.prose-editor strong,
+.blog-content strong {
+  @apply text-coffee-900 font-semibold;
+}
