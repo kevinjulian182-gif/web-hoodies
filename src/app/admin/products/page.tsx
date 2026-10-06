@@ -35,7 +35,7 @@ type Product = {
   isPromo: boolean;
 };
 
-type BrandEntry = { id: string; name: string; productCount: number };
+type BrandEntry = { id: string; name: string; logoUrl: string | null; productCount: number };
 type CategoryEntry = { id: string; name: string; productCount: number };
 
 const COMMON_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
@@ -194,6 +194,43 @@ export default function AdminProductsPage() {
     loadBrands();
   };
 
+  const [uploadingLogoFor, setUploadingLogoFor] = useState<string | null>(null);
+
+  const uploadBrandLogo = async (b: BrandEntry, file: File) => {
+    setUploadingLogoFor(b.id);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const uploadRes = await fetch('/api/admin/upload', { method: 'POST', body: form });
+      const uploadData = await uploadRes.json().catch(() => null);
+      if (!uploadRes.ok || !uploadData?.url) {
+        alert(uploadData?.error ?? 'No se pudo subir el logo');
+        return;
+      }
+      const patchRes = await fetch(`/api/admin/brands/${b.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ logoUrl: uploadData.url }),
+      });
+      if (!patchRes.ok) {
+        alert('No se pudo guardar el logo');
+        return;
+      }
+      loadBrands();
+    } finally {
+      setUploadingLogoFor(null);
+    }
+  };
+
+  const removeBrandLogo = async (b: BrandEntry) => {
+    await fetch(`/api/admin/brands/${b.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ logoUrl: null }),
+    });
+    loadBrands();
+  };
+
   const deleteCategory = async (c: CategoryEntry) => {
     if (!confirm(`¿Eliminar la categoría "${c.name}"?`)) return;
     const res = await fetch(`/api/admin/categories/${c.id}`, { method: 'DELETE' });
@@ -207,6 +244,36 @@ export default function AdminProductsPage() {
 
   const brands = useMemo(() => dedupeLabels(products.map((p) => p.brand)), [products]);
   const categories = useMemo(() => dedupeLabels(products.map((p) => p.category)), [products]);
+
+  // Managed Brand rows saved before the case-insensitive upsert existed can
+  // still collide once displayed uppercase (e.g. "Fear of God" and "FEAR OF
+  // GOD" read identically as chips) — group those so the UI can offer a
+  // one-click fix instead of leaving two rows that look like one.
+  const duplicateBrandGroups = useMemo(() => {
+    const groups = new Map<string, BrandEntry[]>();
+    for (const b of brandList) {
+      const key = b.name.trim().toLowerCase();
+      groups.set(key, [...(groups.get(key) ?? []), b]);
+    }
+    return Array.from(groups.values()).filter((g) => g.length > 1);
+  }, [brandList]);
+
+  const mergeBrandGroup = async (group: BrandEntry[]) => {
+    const survivor = [...group].sort((a, b) => b.productCount - a.productCount)[0];
+    const mergeIds = group.filter((b) => b.id !== survivor.id).map((b) => b.id);
+    const res = await fetch('/api/admin/brands/merge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ keepId: survivor.id, mergeIds }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      alert(body?.error ?? 'No se pudo unificar la marca');
+      return;
+    }
+    loadBrands();
+    load();
+  };
 
   const totalFormStock = useMemo(
     () =>
@@ -452,28 +519,84 @@ export default function AdminProductsPage() {
           <p className="mb-3 text-sm font-medium text-coffee-900">
             Marcas ({brandList.length})
           </p>
+
+          {duplicateBrandGroups.length > 0 && (
+            <div className="mb-4 space-y-2 rounded-lg border border-amber-300 bg-amber-50 p-3">
+              <p className="text-xs font-medium text-amber-900">
+                Hay marcas que parecen duplicadas (mismo nombre, distinta mayúscula/espacio):
+              </p>
+              {duplicateBrandGroups.map((group) => (
+                <div key={group.map((b) => b.id).join('-')} className="flex flex-wrap items-center gap-2 text-xs text-amber-800">
+                  <span>
+                    {group.map((b) => `"${b.name}" (${b.productCount})`).join('  +  ')}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => mergeBrandGroup(group)}
+                    className="rounded-full bg-amber-900 px-3 py-1 text-[11px] font-medium text-cream-50 hover:bg-amber-800"
+                  >
+                    Unificar
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           {brandList.length === 0 ? (
             <p className="text-sm text-coffee-500">Aún no hay marcas registradas.</p>
           ) : (
-            <div className="flex flex-wrap gap-1.5">
+            <div className="space-y-2">
               {brandList.map((b) => (
-                <span
-                  key={b.id}
-                  className="flex items-center gap-1.5 rounded-full border border-cream-200 py-1.5 pl-3 pr-1.5 text-xs text-coffee-700"
-                >
-                  {b.name}
-                  <span className="text-coffee-400">({b.productCount})</span>
+                <div key={b.id} className="flex items-center gap-3 rounded-lg border border-cream-200 p-2.5">
+                  <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md border border-cream-200 bg-cream-50">
+                    {b.logoUrl ? (
+                      <Image src={b.logoUrl} alt={b.name} fill className="object-contain p-1" sizes="40px" />
+                    ) : (
+                      <span className="flex h-full w-full items-center justify-center text-[9px] text-coffee-300">
+                        Sin logo
+                      </span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-coffee-900">{b.name}</p>
+                    <p className="text-xs text-coffee-400">
+                      {b.productCount} producto{b.productCount === 1 ? '' : 's'}
+                    </p>
+                  </div>
+                  <label className="shrink-0 cursor-pointer text-xs font-medium text-coffee-600 underline decoration-cream-300 underline-offset-2 hover:text-coffee-900">
+                    {uploadingLogoFor === b.id ? 'Subiendo…' : b.logoUrl ? 'Cambiar logo' : 'Subir logo'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={uploadingLogoFor === b.id}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = '';
+                        if (file) uploadBrandLogo(b, file);
+                      }}
+                    />
+                  </label>
+                  {b.logoUrl && (
+                    <button
+                      type="button"
+                      onClick={() => removeBrandLogo(b)}
+                      className="shrink-0 text-xs text-coffee-400 hover:text-red-600"
+                    >
+                      Quitar
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => deleteBrand(b)}
                     disabled={b.productCount > 0}
                     title={b.productCount > 0 ? 'En uso: no se puede eliminar' : 'Eliminar marca'}
                     aria-label={`Eliminar marca ${b.name}`}
-                    className="flex h-5 w-5 items-center justify-center rounded-full text-coffee-400 hover:bg-cream-100 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-coffee-400"
+                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-coffee-400 hover:bg-cream-100 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-coffee-400"
                   >
                     ×
                   </button>
-                </span>
+                </div>
               ))}
             </div>
           )}

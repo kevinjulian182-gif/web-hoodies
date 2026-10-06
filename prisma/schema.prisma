@@ -81,8 +81,9 @@ model Product {
 // deleted once nothing references it — deletion is blocked in the API
 // while any Product still carries that name.
 model Brand {
-  id   String @id @default(cuid())
-  name String @unique
+  id      String  @id @default(cuid())
+  name    String  @unique
+  logoUrl String?
 }
 
 // Managed list of garment types (hoodie, chaqueta, ...), same pattern as

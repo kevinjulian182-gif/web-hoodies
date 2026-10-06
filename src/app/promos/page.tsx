@@ -10,10 +10,13 @@ export const metadata: Metadata = {
 };
 
 export default async function PromosPage() {
-  const products = await prisma.product.findMany({
-    where: { active: true, isPromo: true },
-    orderBy: { createdAt: 'desc' },
-  });
+  const [products, brandLogos] = await Promise.all([
+    prisma.product.findMany({
+      where: { active: true, isPromo: true },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.brand.findMany({ where: { logoUrl: { not: null } }, select: { name: true, logoUrl: true } }),
+  ]);
 
   return (
     <div className="pt-8">
@@ -25,7 +28,7 @@ export default async function PromosPage() {
           No hay promociones activas en este momento.
         </p>
       ) : (
-        <ProductGrid products={products} />
+        <ProductGrid products={products} brandLogos={brandLogos} />
       )}
     </div>
   );

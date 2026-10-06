@@ -85,24 +85,22 @@ export default function ProductCard({ product, index = 0 }: { product: PublicPro
           )}
         </div>
 
-        <div className="mt-5 flex items-baseline justify-between gap-3">
-          <div>
-            <p className="text-xs uppercase tracking-[0.15em] text-coffee-500">{product.brand}</p>
-            <h3 className="mt-1 min-h-[2.5rem] text-base font-medium leading-5 text-coffee-900 line-clamp-2">
-              {product.name}
-            </h3>
-          </div>
-          <div className="shrink-0 text-right">
-            {onSale && (
-              <p className="text-xs text-coffee-400 line-through">{formatCOP(product.compareAtPriceCents as number)}</p>
-            )}
+        <div className="mt-4">
+          <p className="truncate text-[11px] uppercase tracking-[0.15em] text-coffee-500">{product.brand}</p>
+          <h3 className="mt-1 text-sm font-medium leading-snug text-coffee-900 line-clamp-2 md:text-base">
+            {product.name}
+          </h3>
+          <div className="mt-1.5 flex items-center gap-2">
             <p className={`text-sm font-semibold ${onSale ? 'text-red-700' : 'text-coffee-800'}`}>
               {formatCOP(product.priceCents)}
             </p>
+            {onSale && (
+              <p className="text-xs text-coffee-400 line-through">{formatCOP(product.compareAtPriceCents as number)}</p>
+            )}
           </div>
         </div>
 
-        <div className="mt-5">
+        <div className="mt-4">
           {/* Color/size pickers only render when the admin has them turned on
               (Admin > Contenido > Catálogo) — off by default for a cleaner,
               more exclusive-feeling card; picking a variant then happens on
@@ -155,7 +153,7 @@ export default function ProductCard({ product, index = 0 }: { product: PublicPro
           )}
           <button
             onClick={handleAdd}
-            className="mt-2.5 w-full rounded-full bg-coffee-900 py-2.5 text-[11px] font-medium uppercase tracking-[0.15em] text-cream-50 transition-colors transition-transform hover:bg-coffee-800 active:scale-[0.97]"
+            className="mt-3 w-full rounded-full bg-coffee-900 py-2.5 text-[11px] font-medium uppercase tracking-[0.15em] text-cream-50 transition-colors transition-transform hover:bg-coffee-800 active:scale-[0.97]"
           >
             {added ? 'Agregado ✓' : 'Agregar al carrito'}
           </button>

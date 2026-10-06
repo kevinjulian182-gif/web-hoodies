@@ -6,6 +6,7 @@ import ProductCard from '@/components/ProductCard';
 import type { Product } from '@prisma/client';
 
 type PublicProduct = Omit<Product, 'costCents'>;
+type BrandLogo = { name: string; logoUrl: string | null };
 
 // Groups near-duplicate labels that only differ in case or stray whitespace
 // (e.g. an admin typing "Fear of God" on one product and "FEAR OF GOD" on
@@ -25,11 +26,20 @@ function dedupeLabels(values: (string | null)[]): string[] {
 export default function ProductGrid({
   products,
   initialBrand,
+  brandLogos = [],
 }: {
   products: PublicProduct[];
   initialBrand?: string;
+  brandLogos?: BrandLogo[];
 }) {
   const brands = useMemo(() => dedupeLabels(products.map((p) => p.brand)), [products]);
+  const logoByBrand = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const b of brandLogos) {
+      if (b.logoUrl) map.set(b.name.trim().toLowerCase(), b.logoUrl);
+    }
+    return map;
+  }, [brandLogos]);
   const [activeBrand, setActiveBrand] = useState<string | null>(
     initialBrand && brands.some((b) => b.toLowerCase() === initialBrand.toLowerCase()) ? initialBrand : null
   );
@@ -59,6 +69,7 @@ export default function ProductGrid({
                   <FilterChip
                     key={brand}
                     label={brand}
+                    logo={logoByBrand.get(brand.toLowerCase())}
                     active={activeBrand?.toLowerCase() === brand.toLowerCase()}
                     onClick={() => setActiveBrand(brand)}
                   />
@@ -94,11 +105,36 @@ export default function ProductGrid({
   );
 }
 
-function FilterChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+function FilterChip({
+  label,
+  logo,
+  active,
+  onClick,
+}: {
+  label: string;
+  logo?: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  if (logo) {
+    return (
+      <button
+        onClick={onClick}
+        title={label}
+        aria-label={label}
+        className={`flex h-9 items-center rounded-full border bg-white px-3 transition-all duration-200 ${
+          active ? 'border-coffee-900 ring-1 ring-coffee-900' : 'border-cream-300/80 hover:border-coffee-400'
+        }`}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={logo} alt={label} className="h-5 max-w-[88px] object-contain" />
+      </button>
+    );
+  }
   return (
     <button
       onClick={onClick}
-      className={`rounded-full border px-3.5 py-[7px] text-[11px] uppercase tracking-[0.1em] transition-all duration-200 ${
+      className={`flex h-9 items-center rounded-full border px-3.5 text-[11px] uppercase tracking-[0.1em] transition-all duration-200 ${
         active
           ? 'border-coffee-900 bg-coffee-900 font-medium text-cream-50'
           : 'border-cream-300/80 font-normal text-coffee-600 hover:border-coffee-400 hover:text-coffee-900'

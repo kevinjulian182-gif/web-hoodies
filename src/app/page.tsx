@@ -30,6 +30,7 @@ function renderSection(
   content: SiteContent,
   products: PublicProduct[],
   promoProducts: PublicProduct[],
+  brandLogos: { name: string; logoUrl: string | null }[],
   isFirst: boolean
 ) {
   switch (id) {
@@ -63,7 +64,7 @@ function renderSection(
         />
       );
     case 'products':
-      return <ProductGrid key={id} products={products} />;
+      return <ProductGrid key={id} products={products} brandLogos={brandLogos} />;
     case 'promos':
       if (promoProducts.length === 0) return null;
       return (
@@ -77,7 +78,7 @@ function renderSection(
               Ver todas →
             </Link>
           </div>
-          <ProductGrid products={promoProducts} />
+          <ProductGrid products={promoProducts} brandLogos={brandLogos} />
         </div>
       );
     case 'trust':
@@ -200,7 +201,7 @@ function ShieldIcon() {
 }
 
 export default async function HomePage() {
-  const [products, allActive, content] = await Promise.all([
+  const [products, allActive, content, brandLogos] = await Promise.all([
     prisma.product.findMany({
       where: { active: true },
       orderBy: { createdAt: 'desc' },
@@ -208,10 +209,11 @@ export default async function HomePage() {
     }),
     prisma.product.findMany({ where: { active: true } }),
     getSiteContent(),
+    prisma.brand.findMany({ where: { logoUrl: { not: null } }, select: { name: true, logoUrl: true } }),
   ]);
 
   const promoProducts = allActive.filter((p) => p.isPromo).slice(0, 4);
   const order = getHomeSectionOrder(content);
 
-  return <>{order.map((id, index) => renderSection(id, content, products, promoProducts, index === 0))}</>;
+  return <>{order.map((id, index) => renderSection(id, content, products, promoProducts, brandLogos, index === 0))}</>;
 }
