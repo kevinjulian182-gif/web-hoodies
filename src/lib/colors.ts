@@ -28,3 +28,19 @@ export function colorToHex(name: string): string {
 }
 
 export const COMMON_COLORS = Object.keys(COLOR_HEX);
+
+export type ColorImages = Record<string, string[]>;
+
+/** Product.colorImages comes back from Prisma as `Prisma.JsonValue | null` —
+ * narrow it to the shape the UI actually uses, discarding anything malformed
+ * instead of throwing (e.g. a product saved before this field existed). */
+export function parseColorImages(value: unknown): ColorImages {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const result: ColorImages = {};
+  for (const [color, urls] of Object.entries(value as Record<string, unknown>)) {
+    if (Array.isArray(urls) && urls.every((u) => typeof u === 'string')) {
+      result[color] = urls;
+    }
+  }
+  return result;
+}

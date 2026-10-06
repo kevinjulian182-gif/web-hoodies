@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '@/lib/cart';
-import { colorToHex } from '@/lib/colors';
+import { colorToHex, parseColorImages } from '@/lib/colors';
+import { useProductColor } from '@/lib/productColor';
 import type { Product } from '@prisma/client';
 
 const LOW_STOCK_THRESHOLD = 5;
@@ -13,7 +14,9 @@ type PublicProduct = Omit<Product, 'costCents'>;
 export default function AddToCartButton({ product }: { product: PublicProduct }) {
   const { addItem } = useCart();
   const [size, setSize] = useState(product.sizes[0] ?? '');
-  const [color, setColor] = useState(product.colors[0] ?? '');
+  // Shared with ProductGallery (both live under the page's
+  // ProductColorProvider) so picking a color here swaps the photos too.
+  const { selectedColor: color, setSelectedColor: setColor } = useProductColor();
   const [added, setAdded] = useState(false);
 
   const outOfStock = product.stock <= 0;
@@ -21,11 +24,12 @@ export default function AddToCartButton({ product }: { product: PublicProduct })
 
   const handleAdd = () => {
     if (outOfStock) return;
+    const colorImage = parseColorImages(product.colorImages)[color]?.[0];
     addItem({
       productId: product.id,
       name: product.name,
       slug: product.slug,
-      image: product.images[0] ?? '',
+      image: colorImage ?? product.images[0] ?? '',
       size,
       color: color || undefined,
       priceCents: product.priceCents,

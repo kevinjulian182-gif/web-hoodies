@@ -25,6 +25,7 @@ const productSchema = z.object({
   compareAtPriceCents: z.number().int().positive().nullable().optional(),
   costCents: z.number().int().min(0).nullable().optional(),
   images: z.array(z.string().url()).min(1),
+  colorImages: z.record(z.string(), z.array(z.string().url())).optional(),
   videos: z.array(z.string().url()).optional(),
   sizes: z.array(z.string()).min(1),
   colors: z.array(z.string()).optional(),

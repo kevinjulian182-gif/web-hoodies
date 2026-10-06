@@ -55,6 +55,7 @@ model Product {
   compareAtPriceCents Int?
   costCents   Int?
   images      String[]
+  colorImages Json?
   videos      String[]    @default([])
   sizes       String[]
   colors      String[]    @default([])

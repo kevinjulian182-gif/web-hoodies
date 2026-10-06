@@ -28,6 +28,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       priceCents: original.priceCents,
       costCents: original.costCents,
       images: original.images,
+      colorImages: original.colorImages ?? undefined,
       videos: original.videos,
       sizes: original.sizes,
       colors: original.colors,

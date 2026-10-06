@@ -13,6 +13,8 @@ import ReviewsSection from '@/components/ReviewsSection';
 import ComparisonTable from '@/components/ComparisonTable';
 import FaqSection from '@/components/FaqSection';
 import { getSiteContent, getFaqItems } from '@/lib/content';
+import { parseColorImages } from '@/lib/colors';
+import { ProductColorProvider } from '@/lib/productColor';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,8 +83,14 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         </ol>
       </nav>
 
+      <ProductColorProvider defaultColor={product.colors[0] ?? ''}>
       <div className="mx-auto max-w-6xl px-6 pb-16 pt-6 grid md:grid-cols-2 gap-16">
-        <ProductGallery images={product.images} videos={product.videos} name={`${product.brand} ${product.name}`} />
+        <ProductGallery
+          images={product.images}
+          colorImages={parseColorImages(product.colorImages)}
+          videos={product.videos}
+          name={`${product.brand} ${product.name}`}
+        />
 
         <div id="comprar" className="md:sticky md:top-24 md:self-start max-w-md scroll-mt-24">
           <div className="flex items-start justify-between gap-4">
@@ -172,6 +180,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           </ul>
         </div>
       </div>
+      </ProductColorProvider>
 
       <ReviewsSection title={content['pdp.reviews_title']} reviews={reviews} />
       <ComparisonTable current={product} others={related.slice(0, 3)} />

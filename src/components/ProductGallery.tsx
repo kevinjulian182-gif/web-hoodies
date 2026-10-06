@@ -1,26 +1,42 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useProductColor } from '@/lib/productColor';
 
 type Media = { type: 'image' | 'video'; src: string };
 
 export default function ProductGallery({
   images,
+  colorImages = {},
   videos = [],
   name,
 }: {
   images: string[];
+  colorImages?: Record<string, string[]>;
   videos?: string[];
   name: string;
 }) {
+  const { selectedColor } = useProductColor();
+  // A color only overrides the gallery if someone actually uploaded photos
+  // for it — colors without their own set keep showing the product's
+  // default images rather than an empty gallery.
+  const effectiveImages = colorImages[selectedColor]?.length ? colorImages[selectedColor] : images;
+
   const media: Media[] = [
-    ...images.map((src) => ({ type: 'image' as const, src })),
+    ...effectiveImages.map((src) => ({ type: 'image' as const, src })),
     ...videos.map((src) => ({ type: 'video' as const, src })),
   ];
   const [active, setActive] = useState(0);
   const current = media[active];
+
+  // Jump back to the first photo whenever the color switch actually swaps
+  // the image set, so you don't land on an out-of-range index or on photo
+  // #3 of a different colorway.
+  useEffect(() => {
+    setActive(0);
+  }, [selectedColor]);
 
   // Swipe support for the main image on mobile — the thumbnail strip is the
   // only way to change photos otherwise, and tapping tiny thumbnails isn't

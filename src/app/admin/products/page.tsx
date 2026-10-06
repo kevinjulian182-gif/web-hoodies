@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { formatCOP } from '@/lib/format';
-import { colorToHex, COMMON_COLORS } from '@/lib/colors';
+import { colorToHex, COMMON_COLORS, parseColorImages, type ColorImages } from '@/lib/colors';
 import { isOnSale, discountPercent } from '@/lib/discount';
 import ChipListEditor from '@/components/admin/ChipListEditor';
 import MediaUploader from '@/components/admin/MediaUploader';
@@ -22,6 +22,7 @@ type Product = {
   compareAtPriceCents: number | null;
   costCents: number | null;
   images: string[];
+  colorImages: ColorImages | null;
   videos: string[];
   sizes: string[];
   colors: string[];
@@ -46,6 +47,7 @@ type FormState = {
   cost: string;
   stock: string;
   images: string[];
+  colorImages: ColorImages;
   videos: string[];
   sizes: string[];
   colors: string[];
@@ -65,6 +67,7 @@ const emptyForm: FormState = {
   cost: '',
   stock: '',
   images: [],
+  colorImages: {},
   videos: [],
   sizes: [],
   colors: [],
@@ -88,6 +91,7 @@ function toForm(p: Product): FormState {
     cost: p.costCents != null ? String(p.costCents / 100) : '',
     stock: String(p.stock),
     images: p.images,
+    colorImages: parseColorImages(p.colorImages),
     videos: p.videos,
     sizes: p.sizes,
     colors: p.colors,
@@ -173,6 +177,11 @@ export default function AdminProductsPage() {
       costCents: form.cost ? Math.round(Number(form.cost) * 100) : null,
       stock: Number(form.stock),
       images: form.images,
+      // Drop any leftover entry for a color that's since been removed from
+      // the chip list, so deleting a color also clears its photo set.
+      colorImages: Object.fromEntries(
+        Object.entries(form.colorImages).filter(([color, urls]) => form.colors.includes(color) && urls.length > 0)
+      ),
       videos: form.videos,
       sizes: form.sizes,
       colors: form.colors,
@@ -434,6 +443,38 @@ export default function AdminProductsPage() {
           <ChipListEditor label="Colores" items={form.colors} onChange={(colors) => setForm({ ...form, colors })} suggestions={COMMON_COLORS} swatch={colorToHex} />
 
           <MediaUploader label="Imágenes" kind="image" items={form.images} onChange={(images) => setForm({ ...form, images })} />
+
+          {form.colors.length > 1 && (
+            <div>
+              <p className="mb-1.5 text-xs font-medium text-coffee-600">Fotos por color (opcional)</p>
+              <p className="mb-3 text-[11px] text-coffee-500">
+                Si subes fotos para un color, la ficha del producto cambia a esas fotos cuando el cliente lo
+                elige. Un color sin fotos propias sigue mostrando las imágenes de arriba.
+              </p>
+              <div className="space-y-4 rounded-lg border border-cream-200 p-3">
+                {form.colors.map((color) => (
+                  <div key={color}>
+                    <div className="mb-1.5 flex items-center gap-2">
+                      <span
+                        className="h-3.5 w-3.5 shrink-0 rounded-full border border-cream-300"
+                        style={{ backgroundColor: colorToHex(color) }}
+                      />
+                      <span className="text-xs font-medium text-coffee-700">{color}</span>
+                    </div>
+                    <MediaUploader
+                      label=""
+                      kind="image"
+                      items={form.colorImages[color] ?? []}
+                      onChange={(urls) =>
+                        setForm({ ...form, colorImages: { ...form.colorImages, [color]: urls } })
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <MediaUploader label="Videos" kind="video" items={form.videos} onChange={(videos) => setForm({ ...form, videos })} />
 
           {editingId !== 'new' && editingId !== null && <ReviewsManager productId={editingId} />}
