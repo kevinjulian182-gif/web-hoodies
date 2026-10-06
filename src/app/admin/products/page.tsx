@@ -387,7 +387,19 @@ export default function AdminProductsPage() {
               <input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} required className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm" />
             </FormField>
             <FormField label="Marca">
-              <input value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} required className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm" />
+              <input
+                value={form.brand}
+                onChange={(e) => setForm({ ...form, brand: e.target.value })}
+                required
+                list="brand-options"
+                placeholder="Elige una marca existente o escribe una nueva"
+                className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm"
+              />
+              <datalist id="brand-options">
+                {brands.map((b) => (
+                  <option key={b} value={b} />
+                ))}
+              </datalist>
             </FormField>
             <FormField label="Precio (COP)">
               <input type="number" min="0" step="1" placeholder="450000" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm" />
