@@ -8,12 +8,17 @@ export default function ChipListEditor({
   onChange,
   suggestions = [],
   swatch,
+  onSwatchChange,
 }: {
   label: string;
   items: string[];
   onChange: (items: string[]) => void;
   suggestions?: string[];
   swatch?: (value: string) => string;
+  /** When set alongside `swatch`, the static color dot becomes a native
+   * color input (with the browser's eyedropper) so the admin can pick an
+   * exact hex per color instead of relying on the name-based guess. */
+  onSwatchChange?: (value: string, hex: string) => void;
 }) {
   const [draft, setDraft] = useState('');
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -75,11 +80,23 @@ export default function ChipListEditor({
               dragIndex === index ? 'opacity-40' : ''
             } ${overIndex === index && dragIndex !== null && dragIndex !== index ? 'ring-2 ring-coffee-600' : ''}`}
           >
-            {swatch && (
-              <span
-                className="h-3 w-3 rounded-full border border-cream-300"
-                style={{ backgroundColor: swatch(item) }}
+            {swatch && onSwatchChange ? (
+              <input
+                type="color"
+                value={swatch(item)}
+                onChange={(e) => onSwatchChange(item, e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                draggable={false}
+                title="Elegir color exacto (incluye cuentagotas)"
+                className="h-3.5 w-3.5 shrink-0 cursor-pointer rounded-full border border-cream-300 p-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-none [&::-webkit-color-swatch-wrapper]:p-0"
               />
+            ) : (
+              swatch && (
+                <span
+                  className="h-3 w-3 rounded-full border border-cream-300"
+                  style={{ backgroundColor: swatch(item) }}
+                />
+              )
             )}
             {item}
             <button

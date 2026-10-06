@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { formatCOP } from '@/lib/format';
-import { colorToHex, COMMON_COLORS, parseColorImages, type ColorImages } from '@/lib/colors';
+import { colorToHex, COMMON_COLORS, parseColorImages, parseColorHex, type ColorImages } from '@/lib/colors';
 import { isOnSale, discountPercent } from '@/lib/discount';
 import ChipListEditor from '@/components/admin/ChipListEditor';
 import MediaUploader from '@/components/admin/MediaUploader';
@@ -26,6 +26,7 @@ type Product = {
   costCents: number | null;
   images: string[];
   colorImages: ColorImages | null;
+  colorHex: Record<string, string> | null;
   videos: string[];
   sizes: string[];
   colors: string[];
@@ -85,6 +86,7 @@ type FormState = {
   variantStock: Record<string, number>;
   images: string[];
   colorImages: ColorImages;
+  colorHex: Record<string, string>;
   videos: string[];
   sizes: string[];
   colors: string[];
@@ -106,6 +108,7 @@ const emptyForm: FormState = {
   variantStock: {},
   images: [],
   colorImages: {},
+  colorHex: {},
   videos: [],
   sizes: [],
   colors: [],
@@ -134,6 +137,7 @@ function toForm(p: Product): FormState {
         : evenSplitStock(p.stock, p.sizes, p.colors),
     images: p.images,
     colorImages: parseColorImages(p.colorImages),
+    colorHex: parseColorHex(p.colorHex),
     videos: p.videos,
     sizes: p.sizes,
     colors: p.colors,
@@ -365,6 +369,11 @@ export default function AdminProductsPage() {
       // the chip list, so deleting a color also clears its photo set.
       colorImages: Object.fromEntries(
         Object.entries(form.colorImages).filter(([color, urls]) => form.colors.includes(color) && urls.length > 0)
+      ),
+      // Same cleanup as colorImages: drop overrides for colors no longer
+      // on the product, so the stored map never outlives the chip it tints.
+      colorHex: Object.fromEntries(
+        Object.entries(form.colorHex).filter(([color]) => form.colors.includes(color))
       ),
       videos: form.videos,
       sizes: form.sizes,
@@ -828,7 +837,8 @@ export default function AdminProductsPage() {
               setForm((f) => ({ ...f, colors, slug: autoSlug(f.name, colors) }))
             }
             suggestions={COMMON_COLORS}
-            swatch={colorToHex}
+            swatch={(c) => colorToHex(c, form.colorHex)}
+            onSwatchChange={(c, hex) => setForm((f) => ({ ...f, colorHex: { ...f.colorHex, [c]: hex } }))}
           />
 
           <div>
@@ -904,7 +914,7 @@ export default function AdminProductsPage() {
                     <div className="mb-1.5 flex items-center gap-2">
                       <span
                         className="h-3.5 w-3.5 shrink-0 rounded-full border border-cream-300"
-                        style={{ backgroundColor: colorToHex(color) }}
+                        style={{ backgroundColor: colorToHex(color, form.colorHex) }}
                       />
                       <span className="text-xs font-medium text-coffee-700">{color}</span>
                     </div>
@@ -1062,7 +1072,7 @@ export default function AdminProductsPage() {
                         key={c}
                         title={c}
                         className="h-3.5 w-3.5 rounded-full border border-cream-300"
-                        style={{ backgroundColor: colorToHex(c) }}
+                        style={{ backgroundColor: colorToHex(c, parseColorHex(p.colorHex)) }}
                       />
                     ))}
                   </div>

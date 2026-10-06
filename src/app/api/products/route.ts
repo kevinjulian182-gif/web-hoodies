@@ -28,6 +28,7 @@ const productSchema = z.object({
   costCents: z.number().int().min(0).nullable().optional(),
   images: z.array(z.string().url()).min(1),
   colorImages: z.record(z.string(), z.array(z.string().url())).optional(),
+  colorHex: z.record(z.string(), z.string().regex(/^#[0-9a-fA-F]{6}$/)).optional(),
   videos: z.array(z.string().url()).optional(),
   sizes: z.array(z.string()).min(1),
   colors: z.array(z.string()).optional(),

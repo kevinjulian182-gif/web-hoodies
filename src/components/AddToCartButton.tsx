@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '@/lib/cart';
-import { colorToHex, parseColorImages } from '@/lib/colors';
+import { colorToHex, parseColorImages, parseColorHex } from '@/lib/colors';
 import { useProductColor } from '@/lib/productColor';
 import { variantKey, COMMON_SIZES, type VariantStock } from '@/lib/variants';
 import { buildWhatsAppLink } from '@/lib/whatsapp';
@@ -34,6 +34,7 @@ export default function AddToCartButton({
   // existed) falls back to the old product-wide total so it keeps selling
   // normally until someone edits it in the new admin stock matrix.
   const colorImages = parseColorImages(product.colorImages);
+  const colorHex = parseColorHex(product.colorHex);
   const selectedVariant = product.variants.find((v) => variantKey(v.size, v.color) === variantKey(size, color || null));
   const availableStock = product.variants.length > 0 ? selectedVariant?.stock ?? 0 : product.stock;
   const outOfStock = availableStock <= 0;
@@ -86,7 +87,7 @@ export default function AddToCartButton({
                   {thumb ? (
                     <Image src={thumb} alt={c} fill className="object-cover" sizes="56px" />
                   ) : (
-                    <span className="block h-full w-full" style={{ backgroundColor: colorToHex(c) }} />
+                    <span className="block h-full w-full" style={{ backgroundColor: colorToHex(c, colorHex) }} />
                   )}
                 </button>
               );

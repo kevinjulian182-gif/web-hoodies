@@ -23,8 +23,11 @@ const COLOR_HEX: Record<string, string> = {
   plateado: '#b7b7b2',
 };
 
-export function colorToHex(name: string): string {
-  return COLOR_HEX[name.trim().toLowerCase()] ?? '#a39c8f';
+/** Resolves a color name to a swatch hex: an admin-picked override for this
+ * product takes priority, then the shared name-based guess, then a neutral
+ * gray for anything unrecognized and unset. */
+export function colorToHex(name: string, overrides?: Record<string, string>): string {
+  return overrides?.[name] || COLOR_HEX[name.trim().toLowerCase()] || '#a39c8f';
 }
 
 export const COMMON_COLORS = Object.keys(COLOR_HEX);
@@ -40,6 +43,23 @@ export function parseColorImages(value: unknown): ColorImages {
   for (const [color, urls] of Object.entries(value as Record<string, unknown>)) {
     if (Array.isArray(urls) && urls.every((u) => typeof u === 'string')) {
       result[color] = urls;
+    }
+  }
+  return result;
+}
+
+const HEX_RE = /^#[0-9a-f]{6}$/i;
+
+/** Product.colorHex comes back from Prisma as `Prisma.JsonValue | null` —
+ * narrow it to a color name -> hex map, dropping anything that isn't a
+ * valid 6-digit hex (e.g. hand-edited JSON or a product saved before this
+ * field existed). */
+export function parseColorHex(value: unknown): Record<string, string> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const result: Record<string, string> = {};
+  for (const [color, hex] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof hex === 'string' && HEX_RE.test(hex)) {
+      result[color] = hex;
     }
   }
   return result;

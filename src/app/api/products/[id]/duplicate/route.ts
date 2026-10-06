@@ -34,6 +34,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       costCents: original.costCents,
       images: original.images,
       colorImages: original.colorImages ?? undefined,
+      colorHex: original.colorHex ?? undefined,
       videos: original.videos,
       sizes: original.sizes,
       colors: original.colors,
