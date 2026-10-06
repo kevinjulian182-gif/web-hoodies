@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '@/lib/cart';
 import { colorToHex, parseColorImages } from '@/lib/colors';
@@ -25,6 +26,7 @@ export default function AddToCartButton({ product }: { product: PublicProduct })
   // product with no variant rows yet (saved before per-variant stock
   // existed) falls back to the old product-wide total so it keeps selling
   // normally until someone edits it in the new admin stock matrix.
+  const colorImages = parseColorImages(product.colorImages);
   const selectedVariant = product.variants.find((v) => variantKey(v.size, v.color) === variantKey(size, color || null));
   const availableStock = product.variants.length > 0 ? selectedVariant?.stock ?? 0 : product.stock;
   const outOfStock = availableStock <= 0;
@@ -32,7 +34,7 @@ export default function AddToCartButton({ product }: { product: PublicProduct })
 
   const handleAdd = () => {
     if (outOfStock) return;
-    const colorImage = parseColorImages(product.colorImages)[color]?.[0];
+    const colorImage = colorImages[color]?.[0];
     addItem({
       productId: product.id,
       name: product.name,
@@ -54,24 +56,27 @@ export default function AddToCartButton({ product }: { product: PublicProduct })
           <p className="mb-2 text-xs uppercase tracking-wide text-coffee-500">
             Color{color && `: ${color}`}
           </p>
-          <div className="flex gap-2">
-            {product.colors.map((c) => (
-              <button
-                key={c}
-                aria-label={c}
-                title={c}
-                onClick={() => setColor(c)}
-                className={`h-11 w-11 rounded-full border-2 transition-all ${
-                  color === c ? 'border-coffee-900 scale-110' : 'border-transparent hover:scale-105'
-                }`}
-                style={{ boxShadow: `0 0 0 1px ${color === c ? 'transparent' : '#e7ddd0'} inset` }}
-              >
-                <span
-                  className="block h-full w-full rounded-full"
-                  style={{ backgroundColor: colorToHex(c) }}
-                />
-              </button>
-            ))}
+          <div className="flex flex-wrap gap-2.5">
+            {product.colors.map((c) => {
+              const thumb = colorImages[c]?.[0];
+              return (
+                <button
+                  key={c}
+                  aria-label={c}
+                  title={c}
+                  onClick={() => setColor(c)}
+                  className={`relative h-16 w-14 shrink-0 overflow-hidden rounded-lg border bg-cream-50 transition-colors ${
+                    color === c ? 'border-coffee-900' : 'border-cream-200 hover:border-coffee-400'
+                  }`}
+                >
+                  {thumb ? (
+                    <Image src={thumb} alt={c} fill className="object-cover" sizes="56px" />
+                  ) : (
+                    <span className="block h-full w-full" style={{ backgroundColor: colorToHex(c) }} />
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

@@ -33,10 +33,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const category = await prismaInternal.category.upsert({
-    where: { name: parsed.data.name },
-    update: {},
-    create: { name: parsed.data.name },
+  // Case-insensitive match first, same reasoning as the Brand route: the
+  // DB's unique constraint is case-sensitive, so this is what actually
+  // stops "Hoodie" and "HOODIE" from becoming two separate rows.
+  const existing = await prismaInternal.category.findFirst({
+    where: { name: { equals: parsed.data.name, mode: 'insensitive' } },
   });
+  const category = existing ?? (await prismaInternal.category.create({ data: { name: parsed.data.name } }));
   return NextResponse.json(category, { status: 201 });
 }

@@ -33,10 +33,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const brand = await prismaInternal.brand.upsert({
-    where: { name: parsed.data.name },
-    update: {},
-    create: { name: parsed.data.name },
+  // Case-insensitive match first: Postgres' unique constraint is
+  // case-sensitive, so without this an admin typing "Essentials" after
+  // "ESSENTIALS" already exists would silently create a second,
+  // differently-cased row instead of reusing it.
+  const existing = await prismaInternal.brand.findFirst({
+    where: { name: { equals: parsed.data.name, mode: 'insensitive' } },
   });
+  const brand = existing ?? (await prismaInternal.brand.create({ data: { name: parsed.data.name } }));
   return NextResponse.json(brand, { status: 201 });
 }

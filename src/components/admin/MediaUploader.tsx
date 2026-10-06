@@ -66,26 +66,37 @@ export default function MediaUploader({
     onChange(next);
   };
 
+  const [removingAll, setRemovingAll] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 });
+
+  // Runs entirely in the browser (WASM model, no API key, no cost) — the
+  // import is dynamic so it doesn't add weight to the editor's initial
+  // bundle for admins who never use this button. Returns the new, uploaded
+  // URL instead of touching `items` directly, so the bulk action below can
+  // batch several of these without each call racing the others over the
+  // same `items` closure.
+  const stripOneBackground = async (url: string): Promise<string> => {
+    const { removeBackground: stripBackground } = await import('@imgly/background-removal');
+    const result = await stripBackground(url);
+    const form = new FormData();
+    form.append('file', new File([result], 'sin-fondo.png', { type: 'image/png' }));
+    const res = await fetch('/api/admin/upload', { method: 'POST', body: form });
+    let data: { url?: string; error?: string };
+    try {
+      data = await res.json();
+    } catch {
+      throw new Error('No se pudo subir la imagen sin fondo. Intenta de nuevo.');
+    }
+    if (!res.ok || !data.url) throw new Error(data.error ?? 'No se pudo subir la imagen sin fondo');
+    return data.url;
+  };
+
   const removeBackground = async (url: string) => {
     setError('');
     setRemovingBg((prev) => new Set(prev).add(url));
     try {
-      // Runs entirely in the browser (WASM model, no API key, no cost) —
-      // loaded on demand so it doesn't add weight to the editor's initial
-      // bundle for admins who never use this button.
-      const { removeBackground: stripBackground } = await import('@imgly/background-removal');
-      const result = await stripBackground(url);
-      const form = new FormData();
-      form.append('file', new File([result], 'sin-fondo.png', { type: 'image/png' }));
-      const res = await fetch('/api/admin/upload', { method: 'POST', body: form });
-      let data: { url?: string; error?: string };
-      try {
-        data = await res.json();
-      } catch {
-        throw new Error('No se pudo subir la imagen sin fondo. Intenta de nuevo.');
-      }
-      if (!res.ok || !data.url) throw new Error(data.error ?? 'No se pudo subir la imagen sin fondo');
-      onChange(items.map((i) => (i === url ? data.url! : i)));
+      const newUrl = await stripOneBackground(url);
+      onChange(items.map((i) => (i === url ? newUrl : i)));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo quitar el fondo');
     } finally {
@@ -95,6 +106,43 @@ export default function MediaUploader({
         return next;
       });
     }
+  };
+
+  // Processes one photo at a time (not in parallel) so the WASM model isn't
+  // asked to run several inferences at once on a single admin's browser,
+  // and saves after every photo so a failure partway through doesn't lose
+  // the ones that already succeeded.
+  const removeBackgroundFromAll = async () => {
+    setError('');
+    setRemovingAll(true);
+    const targets = items.filter((url) => !url.endsWith('.svg'));
+    setBulkProgress({ done: 0, total: targets.length });
+    // Build on this local copy (not the `items` prop, which stays frozen at
+    // its value from when this call started) so each iteration's onChange
+    // includes every photo already swapped earlier in the same run.
+    let working = [...items];
+    let failures = 0;
+    for (const url of targets) {
+      setRemovingBg((prev) => new Set(prev).add(url));
+      try {
+        const newUrl = await stripOneBackground(url);
+        working = working.map((i) => (i === url ? newUrl : i));
+        onChange(working);
+      } catch {
+        failures += 1;
+      } finally {
+        setRemovingBg((prev) => {
+          const next = new Set(prev);
+          next.delete(url);
+          return next;
+        });
+        setBulkProgress((prev) => ({ ...prev, done: prev.done + 1 }));
+      }
+    }
+    if (failures > 0) {
+      setError(`No se pudo quitar el fondo de ${failures} de ${targets.length} foto${targets.length === 1 ? '' : 's'}.`);
+    }
+    setRemovingAll(false);
   };
 
   const uploadFiles = async (files: FileList | File[]) => {
@@ -144,12 +192,24 @@ export default function MediaUploader({
 
   return (
     <div>
-      <p className="mb-1.5 text-xs text-coffee-600">
-        {label}
+      <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs text-coffee-600">
+          {label}
+          {kind === 'image' && items.length > 1 && (
+            <span className="ml-1.5 text-coffee-400">— arrastra para reordenar, la primera es la principal</span>
+          )}
+        </p>
         {kind === 'image' && items.length > 1 && (
-          <span className="ml-1.5 text-coffee-400">— arrastra para reordenar, la primera es la principal</span>
+          <button
+            type="button"
+            onClick={removeBackgroundFromAll}
+            disabled={removingAll}
+            className="shrink-0 text-xs font-medium text-coffee-700 underline decoration-cream-300 underline-offset-2 hover:text-coffee-900 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {removingAll ? `Quitando fondo… (${bulkProgress.done}/${bulkProgress.total})` : 'Quitar fondo a todas'}
+          </button>
         )}
-      </p>
+      </div>
       <div
         tabIndex={0}
         onPaste={handlePaste}

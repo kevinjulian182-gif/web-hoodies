@@ -7,6 +7,21 @@ import type { Product } from '@prisma/client';
 
 type PublicProduct = Omit<Product, 'costCents'>;
 
+// Groups near-duplicate labels that only differ in case or stray whitespace
+// (e.g. an admin typing "Fear of God" on one product and "FEAR OF GOD" on
+// another) so the filter row shows one chip instead of two that read
+// identically once the UI uppercases them for display.
+function dedupeLabels(values: (string | null)[]): string[] {
+  const seen = new Map<string, string>();
+  for (const raw of values) {
+    const trimmed = raw?.trim();
+    if (!trimmed) continue;
+    const key = trimmed.toLowerCase();
+    if (!seen.has(key)) seen.set(key, trimmed);
+  }
+  return Array.from(seen.values()).sort((a, b) => a.localeCompare(b));
+}
+
 export default function ProductGrid({
   products,
   initialBrand,
@@ -14,18 +29,17 @@ export default function ProductGrid({
   products: PublicProduct[];
   initialBrand?: string;
 }) {
-  const brands = useMemo(() => Array.from(new Set(products.map((p) => p.brand))).sort(), [products]);
+  const brands = useMemo(() => dedupeLabels(products.map((p) => p.brand)), [products]);
   const [activeBrand, setActiveBrand] = useState<string | null>(
-    initialBrand && brands.includes(initialBrand) ? initialBrand : null
+    initialBrand && brands.some((b) => b.toLowerCase() === initialBrand.toLowerCase()) ? initialBrand : null
   );
-  const categories = useMemo(
-    () => Array.from(new Set(products.map((p) => p.category).filter((c): c is string => !!c))).sort(),
-    [products]
-  );
+  const categories = useMemo(() => dedupeLabels(products.map((p) => p.category)), [products]);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
   const filtered = products.filter(
-    (p) => (!activeBrand || p.brand === activeBrand) && (!activeCategory || p.category === activeCategory)
+    (p) =>
+      (!activeBrand || p.brand.trim().toLowerCase() === activeBrand.toLowerCase()) &&
+      (!activeCategory || p.category?.trim().toLowerCase() === activeCategory.toLowerCase())
   );
 
   if (products.length === 0) {
@@ -35,31 +49,37 @@ export default function ProductGrid({
   return (
     <div className="mx-auto max-w-7xl px-6 py-20">
       {(brands.length > 1 || categories.length > 0) && (
-        <div className="mb-12 space-y-3">
+        <div className="mb-14 space-y-4 border-b border-cream-200 pb-8">
           {brands.length > 1 && (
-            <div className="flex flex-wrap gap-2">
-              <FilterChip label="Todas" active={activeBrand === null} onClick={() => setActiveBrand(null)} />
-              {brands.map((brand) => (
-                <FilterChip
-                  key={brand}
-                  label={brand}
-                  active={activeBrand === brand}
-                  onClick={() => setActiveBrand(brand)}
-                />
-              ))}
+            <div>
+              <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.2em] text-coffee-400">Marca</p>
+              <div className="flex flex-wrap gap-2">
+                <FilterChip label="Todas" active={activeBrand === null} onClick={() => setActiveBrand(null)} />
+                {brands.map((brand) => (
+                  <FilterChip
+                    key={brand}
+                    label={brand}
+                    active={activeBrand?.toLowerCase() === brand.toLowerCase()}
+                    onClick={() => setActiveBrand(brand)}
+                  />
+                ))}
+              </div>
             </div>
           )}
           {categories.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              <FilterChip label="Todos los tipos" active={activeCategory === null} onClick={() => setActiveCategory(null)} />
-              {categories.map((category) => (
-                <FilterChip
-                  key={category}
-                  label={category}
-                  active={activeCategory === category}
-                  onClick={() => setActiveCategory(category)}
-                />
-              ))}
+            <div>
+              <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.2em] text-coffee-400">Tipo de prenda</p>
+              <div className="flex flex-wrap gap-2">
+                <FilterChip label="Todos" active={activeCategory === null} onClick={() => setActiveCategory(null)} />
+                {categories.map((category) => (
+                  <FilterChip
+                    key={category}
+                    label={category}
+                    active={activeCategory?.toLowerCase() === category.toLowerCase()}
+                    onClick={() => setActiveCategory(category)}
+                  />
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -78,10 +98,10 @@ function FilterChip({ label, active, onClick }: { label: string; active: boolean
   return (
     <button
       onClick={onClick}
-      className={`rounded-full border px-4 py-2 text-xs font-medium uppercase tracking-wide transition-colors ${
+      className={`rounded-full border px-3.5 py-[7px] text-[11px] uppercase tracking-[0.1em] transition-all duration-200 ${
         active
-          ? 'border-coffee-900 bg-coffee-900 text-cream-50'
-          : 'border-cream-200 text-coffee-700 hover:border-coffee-600'
+          ? 'border-coffee-900 bg-coffee-900 font-medium text-cream-50'
+          : 'border-cream-300/80 font-normal text-coffee-600 hover:border-coffee-400 hover:text-coffee-900'
       }`}
     >
       {label}

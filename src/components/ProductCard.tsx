@@ -51,13 +51,13 @@ export default function ProductCard({ product, index = 0 }: { product: PublicPro
       transition={{ duration: 0.6, delay: (index % 4) * 0.08, ease: [0.16, 1, 0.3, 1] }}
     >
       <Link href={`/productos/${product.slug}`} className="group block">
-        <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-cream-50 transition-shadow duration-300 group-hover:shadow-[0_18px_40px_-16px_rgba(54,37,25,0.35)]">
+        <div className="relative aspect-[4/5] overflow-hidden rounded-2xl border border-cream-200/70 bg-cream-50 transition-shadow duration-300 group-hover:shadow-[0_18px_40px_-16px_rgba(54,37,25,0.35)]">
           {displayImages[0] && (
             <Image
               src={displayImages[0]}
               alt={`${product.brand} ${product.name}`}
               fill
-              className={`object-cover transition-transform duration-700 ease-out group-hover:scale-105 ${
+              className={`object-contain transition-transform duration-700 ease-out group-hover:scale-105 ${
                 displayImages[1] ? 'group-hover:opacity-0' : ''
               }`}
               sizes="(max-width: 768px) 50vw, 25vw"
@@ -68,7 +68,7 @@ export default function ProductCard({ product, index = 0 }: { product: PublicPro
               src={displayImages[1]}
               alt={`${product.brand} ${product.name}`}
               fill
-              className="object-cover opacity-0 transition-opacity duration-500 ease-out group-hover:opacity-100"
+              className="object-contain opacity-0 transition-opacity duration-500 ease-out group-hover:opacity-100"
               sizes="(max-width: 768px) 50vw, 25vw"
             />
           )}
@@ -79,7 +79,7 @@ export default function ProductCard({ product, index = 0 }: { product: PublicPro
             className="absolute right-2.5 top-2.5 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-cream-50/90 text-coffee-900 backdrop-blur-sm transition-transform hover:scale-110"
           />
           {onSale && (
-            <span className="absolute left-2.5 top-2.5 z-10 rounded-full bg-red-700 px-2.5 py-1 text-[11px] font-semibold text-cream-50">
+            <span className="absolute left-2.5 top-2.5 z-10 rounded-full bg-red-800 px-2.5 py-[3px] text-[10px] font-medium tracking-wide text-cream-50">
               -{discountPercent(product.priceCents, product.compareAtPriceCents as number)}%
             </span>
           )}

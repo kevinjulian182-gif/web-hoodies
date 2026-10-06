@@ -56,6 +56,20 @@ function autoSlug(name: string, colors: string[]) {
   return slugify(colors[0] ? `${name} ${colors[0]}` : name);
 }
 
+// Groups near-duplicate labels that only differ in case or stray whitespace
+// (e.g. one product saved with "Fear of God" and another with "FEAR OF
+// GOD") so the filter chips show one entry instead of two.
+function dedupeLabels(values: (string | null)[]): string[] {
+  const seen = new Map<string, string>();
+  for (const raw of values) {
+    const trimmed = raw?.trim();
+    if (!trimmed) continue;
+    const key = trimmed.toLowerCase();
+    if (!seen.has(key)) seen.set(key, trimmed);
+  }
+  return Array.from(seen.values()).sort((a, b) => a.localeCompare(b));
+}
+
 type FormState = {
   name: string;
   slug: string;
@@ -190,11 +204,8 @@ export default function AdminProductsPage() {
     loadCategories();
   };
 
-  const brands = useMemo(() => Array.from(new Set(products.map((p) => p.brand))).sort(), [products]);
-  const categories = useMemo(
-    () => Array.from(new Set(products.map((p) => p.category).filter((c): c is string => !!c))).sort(),
-    [products]
-  );
+  const brands = useMemo(() => dedupeLabels(products.map((p) => p.brand)), [products]);
+  const categories = useMemo(() => dedupeLabels(products.map((p) => p.category)), [products]);
 
   const totalFormStock = useMemo(
     () =>
@@ -208,8 +219,8 @@ export default function AdminProductsPage() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return products.filter((p) => {
-      if (brandFilter && p.brand !== brandFilter) return false;
-      if (categoryFilter && p.category !== categoryFilter) return false;
+      if (brandFilter && p.brand.trim().toLowerCase() !== brandFilter.toLowerCase()) return false;
+      if (categoryFilter && p.category?.trim().toLowerCase() !== categoryFilter.toLowerCase()) return false;
       if (q && !p.name.toLowerCase().includes(q) && !p.brand.toLowerCase().includes(q)) return false;
       return true;
     });
