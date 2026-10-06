@@ -1,4 +1,5 @@
 import { formatCOP } from '@/lib/format';
+import type { SiteContent } from '@/lib/content';
 
 /** Builds a wa.me deep link pre-addressed to a Colombian customer with a
  * ready-to-send message. Opening it starts a chat FROM whoever clicks it —
@@ -8,6 +9,14 @@ export function buildWhatsAppLink(phone: string, message: string): string {
   const digits = phone.replace(/\D/g, '');
   const withCountryCode = digits.length <= 10 ? `57${digits}` : digits;
   return `https://wa.me/${withCountryCode}?text=${encodeURIComponent(message)}`;
+}
+
+/** The store's own WhatsApp contact number (not a customer's). Prefers the
+ * admin-editable site content field so it can be changed without a
+ * redeploy; falls back to the env var for sites that set it the old way
+ * and haven't filled the new admin field yet. */
+export function getStoreWhatsAppNumber(content: Pick<SiteContent, 'site.whatsapp_number'>): string {
+  return content['site.whatsapp_number'] || process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '';
 }
 
 export function buildOrderConfirmationMessage(order: {

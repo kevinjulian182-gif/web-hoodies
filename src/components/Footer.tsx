@@ -43,10 +43,12 @@ export default function Footer({
   tagline,
   copyrightYear,
   social,
+  whatsappNumber,
 }: {
   tagline: string;
   copyrightYear: string;
   social: SocialLinks;
+  whatsappNumber?: string;
 }) {
   const pathname = usePathname();
   if (
@@ -98,6 +100,17 @@ export default function Footer({
                 </a>
               ))}
             </div>
+          )}
+          {whatsappNumber && (
+            <a
+              href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hola, tengo una pregunta sobre un producto de AFRA.')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-cream-100/80 transition-colors hover:text-cream-50"
+            >
+              <WhatsAppIcon />
+              ¿Dudas? Escríbenos por WhatsApp
+            </a>
           )}
         </div>
 
@@ -196,6 +209,15 @@ function XIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
       <path d="M4 3h4.2l4 5.5L16.8 3H21l-6.6 8.4L21 21h-4.2l-4.3-5.9L7.2 21H3l6.9-8.8L4 3Z" />
+    </svg>
+  );
+}
+
+function WhatsAppIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M17.5 14.4c-.3-.1-1.7-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.8 1-.9 1.1-.2.2-.3.2-.6.1-.3-.1-1.2-.5-2.3-1.5-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.1-.1.2-.3.2-.4.1-.2 0-.3 0-.5-.1-.1-.7-1.6-.9-2.2-.2-.5-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 .9-1 2.3s1 2.7 1.2 2.9c.1.2 2 3.1 5 4.3.7.3 1.2.5 1.7.6.7.2 1.3.2 1.8.1.5-.1 1.7-.7 1.9-1.3.2-.7.2-1.2.2-1.3-.1-.1-.3-.2-.5-.3Z" />
+      <path d="M12 2C6.5 2 2 6.5 2 12c0 1.8.5 3.5 1.3 5L2 22l5.2-1.4c1.4.8 3.1 1.2 4.8 1.2 5.5 0 10-4.5 10-10S17.5 2 12 2Zm0 18.2c-1.6 0-3.1-.4-4.4-1.2l-.3-.2-3.1.8.8-3-.2-.3C4.1 14.9 3.7 13.5 3.7 12c0-4.6 3.7-8.3 8.3-8.3s8.3 3.7 8.3 8.3-3.7 8.2-8.3 8.2Z" />
     </svg>
   );
 }

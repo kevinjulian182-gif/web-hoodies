@@ -15,6 +15,7 @@ import FaqSection from '@/components/FaqSection';
 import { getSiteContent, getFaqItems } from '@/lib/content';
 import { parseColorImages } from '@/lib/colors';
 import { ProductColorProvider } from '@/lib/productColor';
+import { getStoreWhatsAppNumber } from '@/lib/whatsapp';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,6 +52,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const details = product.details
     ? product.details.split('\n').map((line) => line.trim()).filter(Boolean)
     : [];
+  const whatsappNumber = getStoreWhatsAppNumber(content);
 
   return (
     <div>
@@ -119,9 +121,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               </>
             )}
           </div>
-          <p className="mt-6 text-coffee-700 leading-relaxed">{product.description}</p>
-          <div className="mt-10">
-            <AddToCartButton product={product} />
+          <div className="mt-8">
+            <AddToCartButton product={product} whatsappNumber={whatsappNumber} />
           </div>
 
           <ul className="mt-8 space-y-3 border-t border-cream-200 pt-6">
@@ -178,6 +179,13 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               </span>
             </li>
           </ul>
+
+          {product.description && (
+            <div className="mt-6 border-t border-cream-200 pt-6">
+              <h2 className="text-sm font-medium text-coffee-900">Descripción</h2>
+              <p className="mt-2 text-sm leading-relaxed text-coffee-600">{product.description}</p>
+            </div>
+          )}
         </div>
       </div>
       </ProductColorProvider>

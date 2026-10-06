@@ -49,6 +49,7 @@ export const CONTENT_DEFAULTS = {
   'social.x_url': '',
   'site.favicon_url': '',
   'site.logo_url': '',
+  'site.whatsapp_number': '',
   'brands.items': JSON.stringify([
     { name: 'Nike', logoUrl: '' },
     { name: 'Supreme', logoUrl: '' },
@@ -255,6 +256,11 @@ export const CONTENT_FIELDS: Array<{
     type: 'image',
   },
   { key: 'site.favicon_url', label: 'Favicon', section: 'General del sitio', type: 'image' },
+  {
+    key: 'site.whatsapp_number',
+    label: 'Número de WhatsApp de contacto (con indicativo, ej: 573001234567)',
+    section: 'General del sitio',
+  },
   { key: 'hero.eyebrow', label: 'Texto superior', section: 'Portada (Hero)' },
   { key: 'hero.title_line1', label: 'Título — línea 1', section: 'Portada (Hero)' },
   { key: 'hero.title_line2', label: 'Título — línea 2', section: 'Portada (Hero)' },

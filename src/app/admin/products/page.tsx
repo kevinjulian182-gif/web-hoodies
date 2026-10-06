@@ -8,7 +8,7 @@ import { isOnSale, discountPercent } from '@/lib/discount';
 import ChipListEditor from '@/components/admin/ChipListEditor';
 import MediaUploader from '@/components/admin/MediaUploader';
 import ReviewsManager from '@/components/admin/ReviewsManager';
-import { variantKey, variantCombos, evenSplitStock, type VariantStock } from '@/lib/variants';
+import { variantKey, variantCombos, evenSplitStock, COMMON_SIZES, type VariantStock } from '@/lib/variants';
 import { autoBulletize, pasteBulletedText } from '@/lib/textareaBullets';
 
 type Product = {
@@ -38,7 +38,6 @@ type Product = {
 type BrandEntry = { id: string; name: string; logoUrl: string | null; productCount: number };
 type CategoryEntry = { id: string; name: string; productCount: number };
 
-const COMMON_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 const LOW_STOCK_THRESHOLD = 5;
 
 function slugify(text: string) {

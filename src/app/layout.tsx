@@ -11,6 +11,7 @@ import WhatsAppButton from '@/components/WhatsAppButton';
 import CustomCursor from '@/components/CustomCursor';
 import { getSiteContent, getHomeSectionOrder, getHeroImages, getFreeShippingThresholdCents } from '@/lib/content';
 import { generateThemeVars, themeVarsToCss } from '@/lib/theme';
+import { getStoreWhatsAppNumber } from '@/lib/whatsapp';
 
 // The footer pulls its tagline from the editable SiteContent table on every
 // request; without this, Next would bake it into the static HTML at build
@@ -55,6 +56,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     getHomeSectionOrder(content)[0] === 'hero' &&
     (Boolean(content['hero.video_url']) || getHeroImages(content).length > 0);
   const themeCss = themeVarsToCss(generateThemeVars(content['theme.coffee_color'], content['theme.cream_color']));
+  const whatsappNumber = getStoreWhatsAppNumber(content);
 
   return (
     <html lang="es">
@@ -69,6 +71,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <Navbar
                 logoUrl={content['site.logo_url'] || undefined}
                 transparentOverHero={heroIsFirstAndDark}
+                whatsappNumber={whatsappNumber}
                 social={{
                   instagramUrl: content['social.instagram_url'] || undefined,
                   tiktokUrl: content['social.tiktok_url'] || undefined,
@@ -82,6 +85,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <Footer
                 tagline={content['footer.tagline']}
                 copyrightYear={content['footer.copyright_year']}
+                whatsappNumber={whatsappNumber}
                 social={{
                   instagramUrl: content['social.instagram_url'] || undefined,
                   tiktokUrl: content['social.tiktok_url'] || undefined,
@@ -89,8 +93,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   xUrl: content['social.x_url'] || undefined,
                 }}
               />
-              <CartDrawer freeShippingThresholdCents={getFreeShippingThresholdCents(content)} />
-              <WhatsAppButton />
+              <CartDrawer
+                freeShippingThresholdCents={getFreeShippingThresholdCents(content)}
+                whatsappNumber={whatsappNumber}
+              />
+              <WhatsAppButton number={whatsappNumber} />
               <CustomCursor />
             </CatalogSettingsProvider>
           </WishlistProvider>

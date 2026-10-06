@@ -3,10 +3,9 @@
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 
-const NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER;
 const MESSAGE = encodeURIComponent('Hola, tengo una pregunta sobre un producto de AFRA.');
 
-export default function WhatsAppButton() {
+export default function WhatsAppButton({ number }: { number: string }) {
   const pathname = usePathname();
 
   // Product detail pages show a sticky mobile buy bar once the main
@@ -27,7 +26,7 @@ export default function WhatsAppButton() {
   }, [isProductDetail]);
 
   if (
-    !NUMBER ||
+    !number ||
     pathname.startsWith('/admin') ||
     pathname.startsWith('/checkout') ||
     pathname.startsWith('/voucher')
@@ -36,7 +35,7 @@ export default function WhatsAppButton() {
 
   return (
     <a
-      href={`https://wa.me/${NUMBER}?text=${MESSAGE}`}
+      href={`https://wa.me/${number}?text=${MESSAGE}`}
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Escríbenos por WhatsApp"

@@ -1,5 +1,10 @@
 export type VariantStock = { size: string; color: string | null; stock: number };
 
+/** Canonical size scale, used both as admin suggestions when tagging a
+ * product and as the full row shown on the product page (with sizes the
+ * product doesn't carry grayed out instead of just omitted). */
+export const COMMON_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+
 /** Stable key for a size+color combination, used as a map key in forms and
  * for matching a cart/order line item to its ProductVariant row. `color`
  * is null for products with no color options. */

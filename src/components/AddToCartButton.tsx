@@ -6,14 +6,21 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '@/lib/cart';
 import { colorToHex, parseColorImages } from '@/lib/colors';
 import { useProductColor } from '@/lib/productColor';
-import { variantKey, type VariantStock } from '@/lib/variants';
+import { variantKey, COMMON_SIZES, type VariantStock } from '@/lib/variants';
+import { buildWhatsAppLink } from '@/lib/whatsapp';
 import type { Product } from '@prisma/client';
 
 const LOW_STOCK_THRESHOLD = 5;
 
 type PublicProduct = Omit<Product, 'costCents'> & { variants: VariantStock[] };
 
-export default function AddToCartButton({ product }: { product: PublicProduct }) {
+export default function AddToCartButton({
+  product,
+  whatsappNumber,
+}: {
+  product: PublicProduct;
+  whatsappNumber?: string;
+}) {
   const { addItem } = useCart();
   const [size, setSize] = useState(product.sizes[0] ?? '');
   // Shared with ProductGallery (both live under the page's
@@ -31,6 +38,13 @@ export default function AddToCartButton({ product }: { product: PublicProduct })
   const availableStock = product.variants.length > 0 ? selectedVariant?.stock ?? 0 : product.stock;
   const outOfStock = availableStock <= 0;
   const lowStock = !outOfStock && availableStock <= LOW_STOCK_THRESHOLD;
+
+  // Show the full size scale, not just what this product carries, so
+  // shoppers see "L is a thing, just not in this one" instead of wondering
+  // whether the scale even goes that high — grayed-out sizes are a real
+  // answer, a missing row is ambiguous. Any size the admin added outside
+  // the canonical scale (e.g. "Única") still gets appended, enabled.
+  const sizesToShow = [...COMMON_SIZES, ...product.sizes.filter((s) => !COMMON_SIZES.includes(s))];
 
   const handleAdd = () => {
     if (outOfStock) return;
@@ -81,22 +95,41 @@ export default function AddToCartButton({ product }: { product: PublicProduct })
         </div>
       )}
 
+      {product.sizes.length > 0 && (
+      <>
       <div className="mb-2 text-xs uppercase tracking-wide text-coffee-500">Talla</div>
-      <div className="flex gap-2 mb-6">
-        {product.sizes.map((s) => (
-          <button
-            key={s}
-            onClick={() => setSize(s)}
-            className={`h-11 w-11 rounded-full text-sm font-medium border transition-colors ${
-              size === s
-                ? 'bg-coffee-900 text-cream-50 border-coffee-900'
-                : 'border-cream-200 text-coffee-700 hover:border-coffee-600'
-            }`}
-          >
-            {s}
-          </button>
-        ))}
+      <div className="flex flex-wrap gap-2 mb-6">
+        {sizesToShow.map((s) => {
+          const isAvailable = product.sizes.includes(s);
+          if (!isAvailable) {
+            return (
+              <span
+                key={s}
+                aria-disabled="true"
+                title="No disponible en esta talla"
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-cream-200 text-sm font-medium text-coffee-300 line-through"
+              >
+                {s}
+              </span>
+            );
+          }
+          return (
+            <button
+              key={s}
+              onClick={() => setSize(s)}
+              className={`h-11 w-11 rounded-full text-sm font-medium border transition-colors ${
+                size === s
+                  ? 'bg-coffee-900 text-cream-50 border-coffee-900'
+                  : 'border-cream-200 text-coffee-700 hover:border-coffee-600'
+              }`}
+            >
+              {s}
+            </button>
+          );
+        })}
       </div>
+      </>
+      )}
 
       {lowStock && (
         <p className="mb-3 flex items-center gap-2 text-sm font-medium text-red-700">
@@ -148,6 +181,22 @@ export default function AddToCartButton({ product }: { product: PublicProduct })
           )}
         </AnimatePresence>
       </motion.button>
+
+      {whatsappNumber && (
+        <a
+          href={buildWhatsAppLink(
+            whatsappNumber,
+            outOfStock
+              ? `Hola, quiero preguntar por disponibilidad de "${product.name}" (talla ${size}${color ? `, color ${color}` : ''}), la veo agotada en la web.`
+              : `Hola, tengo una duda sobre "${product.name}" (talla ${size}${color ? `, color ${color}` : ''}).`
+          )}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-coffee-300 py-3.5 text-sm font-medium text-coffee-800 transition-colors hover:border-coffee-600 hover:bg-cream-100"
+        >
+          ¿Sin stock o tienes dudas? Escríbenos
+        </a>
+      )}
     </div>
   );
 }

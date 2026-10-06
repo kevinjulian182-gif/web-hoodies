@@ -23,8 +23,6 @@ function Wordmark({ logoUrl, className }: { logoUrl?: string; className: string 
   return <span className={className}>AFRA°</span>;
 }
 
-const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER;
-
 type SocialLinks = {
   instagramUrl?: string;
   tiktokUrl?: string;
@@ -35,10 +33,12 @@ type SocialLinks = {
 export default function Navbar({
   logoUrl,
   transparentOverHero,
+  whatsappNumber,
   social,
 }: {
   logoUrl?: string;
   transparentOverHero?: boolean;
+  whatsappNumber?: string;
   social?: SocialLinks;
 }) {
   const pathname = usePathname();
@@ -252,12 +252,12 @@ export default function Navbar({
                   </div>
                 </motion.div>
 
-                {WHATSAPP_NUMBER && (
+                {whatsappNumber && (
                   <motion.a
                     initial={{ y: 16, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.18, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                    href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent('Hola, tengo una pregunta sobre un producto de AFRA.')}`}
+                    href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hola, tengo una pregunta sobre un producto de AFRA.')}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="mt-8 flex items-center justify-center gap-2 rounded-full bg-coffee-900 py-3.5 text-sm font-medium text-cream-50 transition-colors active:scale-[0.98] hover:bg-coffee-800"
