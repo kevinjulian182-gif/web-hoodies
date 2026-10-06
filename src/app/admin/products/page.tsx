@@ -36,6 +36,22 @@ type Product = {
 const COMMON_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 const LOW_STOCK_THRESHOLD = 5;
 
+function slugify(text: string) {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+}
+
+// Only the first color goes into the slug — a product can carry several
+// colors, but the slug just needs to disambiguate it from another product
+// with the same name, not enumerate every variant.
+function autoSlug(name: string, colors: string[]) {
+  return slugify(colors[0] ? `${name} ${colors[0]}` : name);
+}
+
 type FormState = {
   name: string;
   slug: string;
@@ -357,7 +373,15 @@ export default function AdminProductsPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <FormField label="Nombre">
-              <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm" />
+              <input
+                value={form.name}
+                onChange={(e) => {
+                  const name = e.target.value;
+                  setForm((f) => ({ ...f, name, slug: editingId === 'new' ? autoSlug(name, f.colors) : f.slug }));
+                }}
+                required
+                className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm"
+              />
             </FormField>
             <FormField label="Slug (url)">
               <input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} required className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm" />
@@ -458,7 +482,15 @@ export default function AdminProductsPage() {
           </div>
 
           <ChipListEditor label="Tallas" items={form.sizes} onChange={(sizes) => setForm({ ...form, sizes })} suggestions={COMMON_SIZES} />
-          <ChipListEditor label="Colores" items={form.colors} onChange={(colors) => setForm({ ...form, colors })} suggestions={COMMON_COLORS} swatch={colorToHex} />
+          <ChipListEditor
+            label="Colores"
+            items={form.colors}
+            onChange={(colors) =>
+              setForm((f) => ({ ...f, colors, slug: editingId === 'new' ? autoSlug(f.name, colors) : f.slug }))
+            }
+            suggestions={COMMON_COLORS}
+            swatch={colorToHex}
+          />
 
           <div>
             <div className="mb-1.5 flex items-center justify-between">
