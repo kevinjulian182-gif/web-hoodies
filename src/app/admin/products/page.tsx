@@ -33,6 +33,8 @@ type Product = {
   isPromo: boolean;
 };
 
+type BrandEntry = { id: string; name: string; productCount: number };
+
 const COMMON_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 const LOW_STOCK_THRESHOLD = 5;
 
@@ -98,7 +100,7 @@ const emptyForm: FormState = {
 function toForm(p: Product): FormState {
   return {
     name: p.name,
-    slug: p.slug,
+    slug: autoSlug(p.name, p.colors),
     brand: p.brand,
     description: p.description,
     materials: p.materials ?? '',
@@ -122,6 +124,8 @@ function toForm(p: Product): FormState {
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [brandList, setBrandList] = useState<BrandEntry[]>([]);
+  const [showBrandManager, setShowBrandManager] = useState(false);
   const [editingId, setEditingId] = useState<string | 'new' | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [error, setError] = useState('');
@@ -140,9 +144,26 @@ export default function AdminProductsPage() {
     if (res.ok) setProducts(await res.json());
   };
 
+  const loadBrands = async () => {
+    const res = await fetch('/api/admin/brands');
+    if (res.ok) setBrandList(await res.json());
+  };
+
   useEffect(() => {
     load();
+    loadBrands();
   }, []);
+
+  const deleteBrand = async (b: BrandEntry) => {
+    if (!confirm(`¿Eliminar la marca "${b.name}"?`)) return;
+    const res = await fetch(`/api/admin/brands/${b.id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      alert(body?.error ?? 'No se pudo eliminar la marca');
+      return;
+    }
+    loadBrands();
+  };
 
   const brands = useMemo(() => Array.from(new Set(products.map((p) => p.brand))).sort(), [products]);
 
@@ -194,9 +215,15 @@ export default function AdminProductsPage() {
       return;
     }
     setSaving(true);
+    // The slug is always auto-generated now, so two products that land on
+    // the same name+color need a disambiguating suffix instead of a 500
+    // from the DB's unique constraint.
+    const takenSlugs = new Set(products.filter((p) => p.id !== editingId).map((p) => p.slug));
+    let slug = form.slug;
+    for (let n = 2; takenSlugs.has(slug); n++) slug = `${form.slug}-${n}`;
     const payload = {
       name: form.name,
-      slug: form.slug,
+      slug,
       brand: form.brand,
       description: form.description,
       materials: form.materials || null,
@@ -241,8 +268,17 @@ export default function AdminProductsPage() {
       setError('No se pudo guardar el producto');
       return;
     }
+    // Register the brand even if it's new, so it stays in the managed list
+    // (and shows up as a suggestion) even after this product is later
+    // deleted or reassigned to a different brand.
+    await fetch('/api/admin/brands', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: form.brand }),
+    });
     cancelEdit();
     load();
+    loadBrands();
   };
 
   const toggleActive = async (p: Product) => {
@@ -326,6 +362,12 @@ export default function AdminProductsPage() {
               className="hidden"
             />
           </label>
+          <button
+            onClick={() => setShowBrandManager((v) => !v)}
+            className="rounded-full border border-cream-300 px-4 py-2 text-sm text-coffee-700 hover:border-coffee-600"
+          >
+            Gestionar marcas
+          </button>
           {editingId === null && (
             <button
               onClick={startCreate}
@@ -336,6 +378,39 @@ export default function AdminProductsPage() {
           )}
         </div>
       </div>
+
+      {showBrandManager && (
+        <div className="mb-6 rounded-xl border border-cream-200 p-4">
+          <p className="mb-3 text-sm font-medium text-coffee-900">
+            Marcas ({brandList.length})
+          </p>
+          {brandList.length === 0 ? (
+            <p className="text-sm text-coffee-500">Aún no hay marcas registradas.</p>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {brandList.map((b) => (
+                <span
+                  key={b.id}
+                  className="flex items-center gap-1.5 rounded-full border border-cream-200 py-1.5 pl-3 pr-1.5 text-xs text-coffee-700"
+                >
+                  {b.name}
+                  <span className="text-coffee-400">({b.productCount})</span>
+                  <button
+                    type="button"
+                    onClick={() => deleteBrand(b)}
+                    disabled={b.productCount > 0}
+                    title={b.productCount > 0 ? 'En uso: no se puede eliminar' : 'Eliminar marca'}
+                    aria-label={`Eliminar marca ${b.name}`}
+                    className="flex h-5 w-5 items-center justify-center rounded-full text-coffee-400 hover:bg-cream-100 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-coffee-400"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {importResult && (
         <div className="mb-6 rounded-xl border border-cream-200 p-4 text-sm">
@@ -377,14 +452,19 @@ export default function AdminProductsPage() {
                 value={form.name}
                 onChange={(e) => {
                   const name = e.target.value;
-                  setForm((f) => ({ ...f, name, slug: editingId === 'new' ? autoSlug(name, f.colors) : f.slug }));
+                  setForm((f) => ({ ...f, name, slug: autoSlug(name, f.colors) }));
                 }}
                 required
                 className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm"
               />
             </FormField>
             <FormField label="Slug (url)">
-              <input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} required className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm" />
+              <input
+                value={form.slug}
+                readOnly
+                title="Se genera solo a partir del nombre y el color"
+                className="w-full cursor-not-allowed rounded-lg border border-cream-200 bg-cream-50 px-3 py-2 text-sm text-coffee-500"
+              />
             </FormField>
             <FormField label="Marca">
               <input
@@ -396,8 +476,8 @@ export default function AdminProductsPage() {
                 className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm"
               />
               <datalist id="brand-options">
-                {brands.map((b) => (
-                  <option key={b} value={b} />
+                {brandList.map((b) => (
+                  <option key={b.id} value={b.name} />
                 ))}
               </datalist>
             </FormField>
@@ -498,7 +578,7 @@ export default function AdminProductsPage() {
             label="Colores"
             items={form.colors}
             onChange={(colors) =>
-              setForm((f) => ({ ...f, colors, slug: editingId === 'new' ? autoSlug(f.name, colors) : f.slug }))
+              setForm((f) => ({ ...f, colors, slug: autoSlug(f.name, colors) }))
             }
             suggestions={COMMON_COLORS}
             swatch={colorToHex}

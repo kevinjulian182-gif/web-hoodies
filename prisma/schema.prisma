@@ -72,6 +72,15 @@ model Product {
   updatedAt   DateTime    @updatedAt
 }
 
+// A managed list of brand names, separate from Product.brand (a plain
+// string) so a brand can be created ahead of any product using it, and
+// deleted once nothing references it — deletion is blocked in the API
+// while any Product still carries that name.
+model Brand {
+  id   String @id @default(cuid())
+  name String @unique
+}
+
 // Stock belongs to a specific size+color combination, not the product as a
 // whole — a shirt can be out of Black/M while Black/L and White/M are fine.
 // color is null for products with no color options (sizes-only stock).
