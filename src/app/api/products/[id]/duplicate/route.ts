@@ -9,7 +9,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   }
 
   const { id } = await params;
-  const original = await prismaInternal.product.findUnique({ where: { id } });
+  const original = await prismaInternal.product.findUnique({ where: { id }, include: { variants: true } });
   if (!original) return NextResponse.json({ error: 'No encontrado' }, { status: 404 });
 
   let slug = `${original.slug}-copia`;
@@ -25,7 +25,11 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       slug,
       brand: original.brand,
       description: original.description,
+      materials: original.materials,
+      details: original.details,
+      careInstructions: original.careInstructions,
       priceCents: original.priceCents,
+      compareAtPriceCents: original.compareAtPriceCents,
       costCents: original.costCents,
       images: original.images,
       colorImages: original.colorImages ?? undefined,
@@ -34,6 +38,10 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       colors: original.colors,
       stock: original.stock,
       active: false,
+      isPromo: false,
+      variants: {
+        create: original.variants.map((v) => ({ size: v.size, color: v.color, stock: v.stock })),
+      },
     },
   });
 

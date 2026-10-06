@@ -8,6 +8,7 @@ import { isOnSale, discountPercent } from '@/lib/discount';
 import ChipListEditor from '@/components/admin/ChipListEditor';
 import MediaUploader from '@/components/admin/MediaUploader';
 import ReviewsManager from '@/components/admin/ReviewsManager';
+import { variantKey, variantCombos, evenSplitStock, type VariantStock } from '@/lib/variants';
 
 type Product = {
   id: string;
@@ -27,6 +28,7 @@ type Product = {
   sizes: string[];
   colors: string[];
   stock: number;
+  variants: VariantStock[];
   active: boolean;
   isPromo: boolean;
 };
@@ -45,7 +47,7 @@ type FormState = {
   price: string;
   compareAtPrice: string;
   cost: string;
-  stock: string;
+  variantStock: Record<string, number>;
   images: string[];
   colorImages: ColorImages;
   videos: string[];
@@ -65,7 +67,7 @@ const emptyForm: FormState = {
   price: '',
   compareAtPrice: '',
   cost: '',
-  stock: '',
+  variantStock: {},
   images: [],
   colorImages: {},
   videos: [],
@@ -89,7 +91,10 @@ function toForm(p: Product): FormState {
     price: String(p.priceCents / 100),
     compareAtPrice: p.compareAtPriceCents ? String(p.compareAtPriceCents / 100) : '',
     cost: p.costCents != null ? String(p.costCents / 100) : '',
-    stock: String(p.stock),
+    variantStock:
+      p.variants.length > 0
+        ? Object.fromEntries(p.variants.map((v) => [variantKey(v.size, v.color), v.stock]))
+        : evenSplitStock(p.stock, p.sizes, p.colors),
     images: p.images,
     colorImages: parseColorImages(p.colorImages),
     videos: p.videos,
@@ -124,6 +129,15 @@ export default function AdminProductsPage() {
   }, []);
 
   const brands = useMemo(() => Array.from(new Set(products.map((p) => p.brand))).sort(), [products]);
+
+  const totalFormStock = useMemo(
+    () =>
+      variantCombos(form.sizes, form.colors).reduce(
+        (sum, { size, color }) => sum + (form.variantStock[variantKey(size, color)] ?? 0),
+        0
+      ),
+    [form.sizes, form.colors, form.variantStock]
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -175,7 +189,14 @@ export default function AdminProductsPage() {
       priceCents: Math.round(Number(form.price) * 100),
       compareAtPriceCents: form.compareAtPrice ? Math.round(Number(form.compareAtPrice) * 100) : null,
       costCents: form.cost ? Math.round(Number(form.cost) * 100) : null,
-      stock: Number(form.stock),
+      // Stock lives per size+color combo now — send the full matrix for
+      // the product's current sizes/colors; the API sums it into the
+      // product's cached total stock.
+      variants: variantCombos(form.sizes, form.colors).map(({ size, color }) => ({
+        size,
+        color,
+        stock: form.variantStock[variantKey(size, color)] ?? 0,
+      })),
       images: form.images,
       // Drop any leftover entry for a color that's since been removed from
       // the chip list, so deleting a color also clears its photo set.
@@ -387,9 +408,6 @@ export default function AdminProductsPage() {
                 </p>
               )}
             </FormField>
-            <FormField label="Stock">
-              <input type="number" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} required className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm" />
-            </FormField>
           </div>
 
           <label className="flex items-center gap-2.5 rounded-lg border border-cream-200 px-3 py-2.5 text-sm text-coffee-800">
@@ -441,6 +459,64 @@ export default function AdminProductsPage() {
 
           <ChipListEditor label="Tallas" items={form.sizes} onChange={(sizes) => setForm({ ...form, sizes })} suggestions={COMMON_SIZES} />
           <ChipListEditor label="Colores" items={form.colors} onChange={(colors) => setForm({ ...form, colors })} suggestions={COMMON_COLORS} swatch={colorToHex} />
+
+          <div>
+            <div className="mb-1.5 flex items-center justify-between">
+              <p className="text-xs font-medium text-coffee-600">
+                Stock por talla{form.colors.length > 0 ? ' y color' : ''}
+              </p>
+              <p className="text-xs text-coffee-500">
+                Total: <span className="font-semibold text-coffee-800">{totalFormStock}</span>
+              </p>
+            </div>
+            {form.sizes.length === 0 ? (
+              <p className="text-xs text-coffee-400">Agrega al menos una talla para definir el stock.</p>
+            ) : (
+              <div className="overflow-x-auto rounded-lg border border-cream-200">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-cream-200 bg-cream-50">
+                      <th className="px-3 py-2 text-left text-xs font-medium text-coffee-600">Talla</th>
+                      {(form.colors.length > 0 ? form.colors : ['Stock']).map((color) => (
+                        <th key={color} className="px-3 py-2 text-left text-xs font-medium text-coffee-600">
+                          {color}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {form.sizes.map((size) => (
+                      <tr key={size} className="border-b border-cream-100 last:border-0">
+                        <td className="px-3 py-2 text-xs font-medium text-coffee-700">{size}</td>
+                        {(form.colors.length > 0 ? form.colors : [null]).map((color) => {
+                          const key = variantKey(size, color);
+                          return (
+                            <td key={key} className="px-2 py-1.5">
+                              <input
+                                type="number"
+                                min="0"
+                                value={form.variantStock[key] ?? 0}
+                                onChange={(e) =>
+                                  setForm({
+                                    ...form,
+                                    variantStock: {
+                                      ...form.variantStock,
+                                      [key]: Math.max(0, Number(e.target.value)),
+                                    },
+                                  })
+                                }
+                                className="w-20 rounded-md border border-cream-200 px-2 py-1 text-sm focus:outline-none focus:border-coffee-600"
+                              />
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
 
           <MediaUploader label="Imágenes" kind="image" items={form.images} onChange={(images) => setForm({ ...form, images })} />
 

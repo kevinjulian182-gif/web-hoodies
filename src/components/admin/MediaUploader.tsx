@@ -54,7 +54,17 @@ export default function MediaUploader({
   const [error, setError] = useState('');
   const [dragOver, setDragOver] = useState(false);
   const [removingBg, setRemovingBg] = useState<Set<string>>(new Set());
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [overIndex, setOverIndex] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const reorder = (from: number, to: number) => {
+    if (from === to) return;
+    const next = [...items];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    onChange(next);
+  };
 
   const removeBackground = async (url: string) => {
     setError('');
@@ -131,7 +141,12 @@ export default function MediaUploader({
 
   return (
     <div>
-      <p className="mb-1.5 text-xs text-coffee-600">{label}</p>
+      <p className="mb-1.5 text-xs text-coffee-600">
+        {label}
+        {kind === 'image' && items.length > 1 && (
+          <span className="ml-1.5 text-coffee-400">— arrastra para reordenar, la primera es la principal</span>
+        )}
+      </p>
       <div
         tabIndex={0}
         onPaste={handlePaste}
@@ -169,13 +184,48 @@ export default function MediaUploader({
 
       {items.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
-          {items.map((url) => (
-            <div key={url} className="relative">
+          {items.map((url, index) => (
+            <div
+              key={url}
+              draggable
+              onDragStart={(e) => {
+                e.stopPropagation();
+                setDragIndex(index);
+              }}
+              onDragEnter={(e) => {
+                e.stopPropagation();
+                if (dragIndex !== null) setOverIndex(index);
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (dragIndex !== null) reorder(dragIndex, index);
+                setDragIndex(null);
+                setOverIndex(null);
+              }}
+              onDragEnd={(e) => {
+                e.stopPropagation();
+                setDragIndex(null);
+                setOverIndex(null);
+              }}
+              className={`relative cursor-move transition-opacity ${
+                dragIndex === index ? 'opacity-40' : ''
+              } ${overIndex === index && dragIndex !== null && dragIndex !== index ? 'ring-2 ring-coffee-600 rounded-lg' : ''}`}
+            >
               {kind === 'image' ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={url} alt="" className="h-20 w-16 rounded-lg object-cover border border-cream-200" />
+                <img src={url} alt="" className="h-20 w-16 rounded-lg object-cover border border-cream-200" draggable={false} />
               ) : (
                 <video src={url} className="h-20 w-28 rounded-lg object-cover border border-cream-200" muted />
+              )}
+              {index === 0 && (
+                <span className="absolute left-1 top-1 rounded bg-coffee-900/80 px-1 py-0.5 text-[8px] font-medium leading-none text-cream-50">
+                  Principal
+                </span>
               )}
               <button
                 type="button"

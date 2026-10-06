@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { buildWompiSignature, generateOrderReference, getWompiPublicKey } from '@/lib/wompi';
 import { sendOrderConfirmationEmail } from '@/lib/email';
+import { checkStock, buildStockDecrementOps } from '@/lib/stock';
 
 const schema = z.object({
   customerEmail: z.string().email(),
@@ -37,17 +38,16 @@ export async function POST(req: NextRequest) {
 
   const products = await prisma.product.findMany({
     where: { id: { in: items.map((i) => i.productId) }, active: true },
+    include: { variants: true },
   });
   if (products.length !== new Set(items.map((i) => i.productId)).size) {
     return NextResponse.json({ error: 'Uno o más productos ya no están disponibles' }, { status: 400 });
   }
 
   const productMap = new Map(products.map((p) => [p.id, p]));
-  for (const item of items) {
-    const product = productMap.get(item.productId)!;
-    if (product.stock < item.quantity) {
-      return NextResponse.json({ error: `Stock insuficiente para ${product.name}` }, { status: 400 });
-    }
+  const stockError = checkStock(productMap, items);
+  if (stockError) {
+    return NextResponse.json({ error: stockError }, { status: 400 });
   }
 
   const subtotalCents = items.reduce((sum, i) => sum + productMap.get(i.productId)!.priceCents * i.quantity, 0);
@@ -92,11 +92,7 @@ export async function POST(req: NextRequest) {
   // pedido queda comprometido de una vez (se descuenta stock y se avisa al
   // cliente) apenas se crea, en vez de esperar un webhook que nunca llega.
   if (paymentMethod === 'COD') {
-    await prisma.$transaction(
-      order.items.map((item) =>
-        prisma.product.update({ where: { id: item.productId }, data: { stock: { decrement: item.quantity } } })
-      )
-    );
+    await prisma.$transaction(buildStockDecrementOps(productMap, items));
     await sendOrderConfirmationEmail(order);
     return NextResponse.json({
       orderId: order.id,

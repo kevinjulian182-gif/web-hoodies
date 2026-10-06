@@ -5,11 +5,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '@/lib/cart';
 import { colorToHex, parseColorImages } from '@/lib/colors';
 import { useProductColor } from '@/lib/productColor';
+import { variantKey, type VariantStock } from '@/lib/variants';
 import type { Product } from '@prisma/client';
 
 const LOW_STOCK_THRESHOLD = 5;
 
-type PublicProduct = Omit<Product, 'costCents'>;
+type PublicProduct = Omit<Product, 'costCents'> & { variants: VariantStock[] };
 
 export default function AddToCartButton({ product }: { product: PublicProduct }) {
   const { addItem } = useCart();
@@ -19,8 +20,15 @@ export default function AddToCartButton({ product }: { product: PublicProduct })
   const { selectedColor: color, setSelectedColor: setColor } = useProductColor();
   const [added, setAdded] = useState(false);
 
-  const outOfStock = product.stock <= 0;
-  const lowStock = !outOfStock && product.stock <= LOW_STOCK_THRESHOLD;
+  // Stock belongs to the specific size+color combo, not the product as a
+  // whole — Black/M can be sold out while White/M still has plenty. A
+  // product with no variant rows yet (saved before per-variant stock
+  // existed) falls back to the old product-wide total so it keeps selling
+  // normally until someone edits it in the new admin stock matrix.
+  const selectedVariant = product.variants.find((v) => variantKey(v.size, v.color) === variantKey(size, color || null));
+  const availableStock = product.variants.length > 0 ? selectedVariant?.stock ?? 0 : product.stock;
+  const outOfStock = availableStock <= 0;
+  const lowStock = !outOfStock && availableStock <= LOW_STOCK_THRESHOLD;
 
   const handleAdd = () => {
     if (outOfStock) return;
@@ -91,7 +99,7 @@ export default function AddToCartButton({ product }: { product: PublicProduct })
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-red-600" />
           </span>
-          ¡Solo quedan {product.stock} unidades!
+          ¡Solo quedan {availableStock} unidades!
         </p>
       )}
 

@@ -18,7 +18,9 @@ const updateSchema = z.object({
   videos: z.array(z.string().url()).optional(),
   sizes: z.array(z.string()).optional(),
   colors: z.array(z.string()).optional(),
-  stock: z.number().int().min(0).optional(),
+  variants: z
+    .array(z.object({ size: z.string(), color: z.string().nullable(), stock: z.number().int().min(0) }))
+    .optional(),
   active: z.boolean().optional(),
   isPromo: z.boolean().optional(),
 });
@@ -35,7 +37,23 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   const { id } = await params;
-  const product = await prisma.product.update({ where: { id }, data: parsed.data });
+  const { variants, ...data } = parsed.data;
+
+  // Toggles like `active`/`isPromo` PATCH without ever sending `variants` —
+  // only touch stock and replace the variant rows when the form actually
+  // submitted a matrix (full product edit), not on a quick list-row toggle.
+  const product =
+    variants === undefined
+      ? await prisma.product.update({ where: { id }, data })
+      : await prisma.$transaction(async (tx) => {
+          await tx.productVariant.deleteMany({ where: { productId: id } });
+          const stock = variants.reduce((sum, v) => sum + v.stock, 0);
+          return tx.product.update({
+            where: { id },
+            data: { ...data, stock, variants: { create: variants } },
+            include: { variants: true },
+          });
+        });
   return NextResponse.json(product);
 }
 

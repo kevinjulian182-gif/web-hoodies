@@ -59,13 +59,31 @@ model Product {
   videos      String[]    @default([])
   sizes       String[]
   colors      String[]    @default([])
+  // Cached sum of variants[].stock — kept in sync on every write that
+  // touches variants (admin save, checkout decrement) so every existing
+  // read of "total stock for this product" keeps working unchanged.
   stock       Int         @default(0)
   active      Boolean     @default(true)
   isPromo     Boolean     @default(false)
   orderItems  OrderItem[]
   reviews     Review[]
+  variants    ProductVariant[]
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
+}
+
+// Stock belongs to a specific size+color combination, not the product as a
+// whole — a shirt can be out of Black/M while Black/L and White/M are fine.
+// color is null for products with no color options (sizes-only stock).
+model ProductVariant {
+  id        String  @id @default(cuid())
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+  size      String
+  color     String?
+  stock     Int     @default(0)
+
+  @@unique([productId, size, color])
 }
 
 model Review {

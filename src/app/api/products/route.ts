@@ -9,6 +9,7 @@ export async function GET() {
   const products = await (isStaff ? prismaInternal : prisma).product.findMany({
     where: isStaff ? {} : { active: true },
     orderBy: { createdAt: 'desc' },
+    include: { variants: true },
   });
   return NextResponse.json(products);
 }
@@ -29,7 +30,9 @@ const productSchema = z.object({
   videos: z.array(z.string().url()).optional(),
   sizes: z.array(z.string()).min(1),
   colors: z.array(z.string()).optional(),
-  stock: z.number().int().min(0),
+  variants: z
+    .array(z.object({ size: z.string(), color: z.string().nullable(), stock: z.number().int().min(0) }))
+    .min(1),
   isPromo: z.boolean().optional(),
 });
 
@@ -44,6 +47,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const product = await prisma.product.create({ data: parsed.data });
+  const { variants, ...data } = parsed.data;
+  const stock = variants.reduce((sum, v) => sum + v.stock, 0);
+
+  const product = await prisma.product.create({
+    data: { ...data, stock, variants: { create: variants } },
+    include: { variants: true },
+  });
   return NextResponse.json(product, { status: 201 });
 }

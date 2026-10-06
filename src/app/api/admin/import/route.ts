@@ -11,7 +11,10 @@ type RowError = { row: number; name: string; message: string };
 // those fields (not a partial patch) — that matches how someone actually
 // edits a spreadsheet: a blank Costo or Precio antes de descuento cell
 // means "no cost" / "no discount", not "leave whatever was there".
-const REQUIRED_HEADERS = ['Nombre', 'Precio', 'Stock', 'Estado'];
+// Stock is intentionally NOT imported: it's split per size+color in the
+// admin product form now, and overwriting the cached total from a single
+// spreadsheet cell would silently desync it from the real variant rows.
+const REQUIRED_HEADERS = ['Nombre', 'Precio', 'Estado'];
 
 function parseMoney(raw: unknown): number | null {
   if (raw == null || raw === '') return null;
@@ -92,13 +95,6 @@ export async function POST(req: NextRequest) {
       continue;
     }
 
-    const stockRaw = cell(row, 'Stock');
-    const stock = Number(stockRaw);
-    if (!Number.isFinite(stock) || stock < 0) {
-      errors.push({ row: r, name: product.name, message: 'Stock inválido o vacío' });
-      continue;
-    }
-
     const estadoRaw = String(cell(row, 'Estado') ?? '').trim().toLowerCase();
     if (estadoRaw !== 'activo' && estadoRaw !== 'inactivo') {
       errors.push({ row: r, name: product.name, message: 'Estado debe ser "Activo" o "Inactivo"' });
@@ -114,7 +110,6 @@ export async function POST(req: NextRequest) {
         priceCents,
         compareAtPriceCents: compareAtPrice != null ? Math.round(compareAtPrice * 100) : null,
         costCents: cost != null ? Math.round(cost * 100) : null,
-        stock: Math.round(stock),
         active: estadoRaw === 'activo',
         isPromo: parseBoolFlag(cell(row, 'Promo'), ['sí', 'si', 'yes', 'true']),
       },
