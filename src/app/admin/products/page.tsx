@@ -248,8 +248,19 @@ export default function AdminProductsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (form.images.length === 0) {
-      setError('Sube al menos una imagen');
+    // With colors, there's no general gallery to edit anymore — the
+    // product's main `images` (used wherever there's no color context yet,
+    // e.g. the cart line, search results, the admin list) is derived from
+    // the first color's photos, falling back to any other color's if the
+    // first one hasn't gotten its photos yet.
+    const effectiveImages =
+      form.colors.length > 0
+        ? form.colorImages[form.colors[0]]?.length
+          ? form.colorImages[form.colors[0]]
+          : form.colors.flatMap((c) => form.colorImages[c] ?? [])
+        : form.images;
+    if (effectiveImages.length === 0) {
+      setError(form.colors.length > 0 ? 'Sube al menos una foto para alguno de los colores' : 'Sube al menos una imagen');
       return;
     }
     if (form.sizes.length === 0) {
@@ -283,7 +294,7 @@ export default function AdminProductsPage() {
         color,
         stock: form.variantStock[variantKey(size, color)] ?? 0,
       })),
-      images: form.images,
+      images: effectiveImages,
       // Drop any leftover entry for a color that's since been removed from
       // the chip list, so deleting a color also clears its photo set.
       colorImages: Object.fromEntries(
@@ -756,14 +767,14 @@ export default function AdminProductsPage() {
             )}
           </div>
 
-          <MediaUploader label="Imágenes" kind="image" items={form.images} onChange={(images) => setForm({ ...form, images })} />
-
-          {form.colors.length > 1 && (
+          {form.colors.length === 0 ? (
+            <MediaUploader label="Imágenes" kind="image" items={form.images} onChange={(images) => setForm({ ...form, images })} />
+          ) : (
             <div>
-              <p className="mb-1.5 text-xs font-medium text-coffee-600">Fotos por color (opcional)</p>
+              <p className="mb-1.5 text-xs font-medium text-coffee-600">Fotos por color</p>
               <p className="mb-3 text-[11px] text-coffee-500">
-                Si subes fotos para un color, la ficha del producto cambia a esas fotos cuando el cliente lo
-                elige. Un color sin fotos propias sigue mostrando las imágenes de arriba.
+                Cada color tiene sus propias fotos — no hay una galería general. Un color sin fotos propias
+                muestra temporalmente las del primer color mientras le subes las suyas.
               </p>
               <div className="space-y-4 rounded-lg border border-cream-200 p-3">
                 {form.colors.map((color) => (
