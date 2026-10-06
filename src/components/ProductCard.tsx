@@ -107,10 +107,10 @@ export default function ProductCard({ product, index = 0 }: { product: PublicPro
               more exclusive-feeling card; picking a variant then happens on
               the product page instead. */}
           {(showColors || showSizes) && (
-            <div>
+            <div className="mb-4">
               {showColors && product.colors.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <div className="flex flex-wrap items-center gap-1">
+                <div>
+                  <div className="flex flex-wrap gap-2">
                     {product.colors.map((c) => (
                       <button
                         key={c}
@@ -121,12 +121,12 @@ export default function ProductCard({ product, index = 0 }: { product: PublicPro
                           e.stopPropagation();
                           setColor(c);
                         }}
-                        className="group/swatch relative flex h-7 w-7 shrink-0 items-center justify-center"
+                        className="group/swatch relative flex h-8 w-8 shrink-0 items-center justify-center transition-transform duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-90"
                       >
                         <span
-                          className={`h-4 w-4 rounded-full border border-coffee-900/10 shadow-sm transition-all duration-200 ease-out ${
+                          className={`h-[18px] w-[18px] rounded-full border border-coffee-900/10 shadow-sm transition-[transform,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] ${
                             color === c
-                              ? 'scale-110 ring-2 ring-coffee-900 ring-offset-2 ring-offset-cream-50'
+                              ? 'scale-110 ring-[1.5px] ring-coffee-900 ring-offset-2 ring-offset-cream-50'
                               : 'group-hover/swatch:scale-110 group-hover/swatch:ring-1 group-hover/swatch:ring-coffee-300 group-hover/swatch:ring-offset-2 group-hover/swatch:ring-offset-cream-50'
                           }`}
                           style={{ backgroundColor: colorToHex(c) }}
@@ -135,12 +135,12 @@ export default function ProductCard({ product, index = 0 }: { product: PublicPro
                     ))}
                   </div>
                   {color && (
-                    <span className="truncate text-[11px] text-coffee-400">{color}</span>
+                    <p className="mt-1.5 truncate text-[11px] text-coffee-400">{color}</p>
                   )}
                 </div>
               )}
               {showSizes && product.sizes.length > 0 && (
-                <div className="mt-2.5 flex flex-wrap gap-1.5">
+                <div className={`flex flex-wrap gap-1.5 ${showColors && product.colors.length > 0 ? 'mt-3' : ''}`}>
                   {product.sizes.map((s) => (
                     <button
                       key={s}
