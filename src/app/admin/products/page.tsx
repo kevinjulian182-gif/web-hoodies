@@ -103,6 +103,12 @@ export default function AdminProductsPage() {
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState('');
   const [brandFilter, setBrandFilter] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{
+    updated: number;
+    notFound: string[];
+    errors: { row: number; name: string; message: string }[];
+  } | null>(null);
 
   const load = async () => {
     const res = await fetch('/api/products');
@@ -211,6 +217,22 @@ export default function AdminProductsPage() {
     load();
   };
 
+  const handleImportFile = async (file: File) => {
+    setImporting(true);
+    setImportResult(null);
+    const body = new FormData();
+    body.append('file', file);
+    const res = await fetch('/api/admin/import', { method: 'POST', body });
+    setImporting(false);
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      alert(err?.error ?? 'No se pudo importar el archivo');
+      return;
+    }
+    setImportResult(await res.json());
+    load();
+  };
+
   const duplicate = async (p: Product) => {
     const res = await fetch(`/api/products/${p.id}/duplicate`, { method: 'POST' });
     if (!res.ok) return;
@@ -244,6 +266,20 @@ export default function AdminProductsPage() {
           >
             Exportar Excel
           </a>
+          <label className="cursor-pointer rounded-full border border-cream-300 px-4 py-2 text-sm text-coffee-700 hover:border-coffee-600">
+            {importing ? 'Importando…' : 'Importar Excel'}
+            <input
+              type="file"
+              accept=".xlsx"
+              disabled={importing}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = '';
+                if (file) handleImportFile(file);
+              }}
+              className="hidden"
+            />
+          </label>
           {editingId === null && (
             <button
               onClick={startCreate}
@@ -254,6 +290,34 @@ export default function AdminProductsPage() {
           )}
         </div>
       </div>
+
+      {importResult && (
+        <div className="mb-6 rounded-xl border border-cream-200 p-4 text-sm">
+          <div className="flex items-center justify-between">
+            <p className="font-medium text-coffee-900">
+              Importación completa: {importResult.updated} producto{importResult.updated === 1 ? '' : 's'} actualizado
+              {importResult.updated === 1 ? '' : 's'}.
+            </p>
+            <button onClick={() => setImportResult(null)} className="text-coffee-400 hover:text-coffee-700">
+              Cerrar
+            </button>
+          </div>
+          {importResult.notFound.length > 0 && (
+            <p className="mt-2 text-amber-800">
+              No se encontraron {importResult.notFound.length}: {importResult.notFound.join(', ')}
+            </p>
+          )}
+          {importResult.errors.length > 0 && (
+            <ul className="mt-2 space-y-1 text-red-700">
+              {importResult.errors.map((e, i) => (
+                <li key={i}>
+                  Fila {e.row} ({e.name}): {e.message}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       {editingId !== null && (
         <form onSubmit={handleSubmit} className="mb-10 max-w-2xl space-y-4 rounded-2xl border border-cream-200 p-6">

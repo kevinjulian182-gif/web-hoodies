@@ -59,25 +59,34 @@ export async function GET() {
     });
   }
 
+  // Numeric columns are raw numbers (not formatCOP strings) so this sheet
+  // can be edited in Excel and re-uploaded via "Importar Excel" — Slug is
+  // the match key the import uses to find each product again (names aren't
+  // guaranteed unique, e.g. a duplicated product).
   const inventorySheet = workbook.addWorksheet('Inventario');
   inventorySheet.columns = [
     { header: 'Nombre', key: 'name', width: 28 },
+    { header: 'Slug', key: 'slug', width: 24 },
     { header: 'Marca', key: 'brand', width: 18 },
-    { header: 'Precio', key: 'price', width: 16 },
-    { header: 'Costo', key: 'cost', width: 16 },
-    { header: 'Margen', key: 'margin', width: 14 },
+    { header: 'Precio', key: 'price', width: 14 },
+    { header: 'Precio antes de descuento', key: 'compareAtPrice', width: 22 },
+    { header: 'Costo', key: 'cost', width: 14 },
+    { header: 'Margen', key: 'margin', width: 12 },
     { header: 'Stock', key: 'stock', width: 10 },
     { header: 'Tallas', key: 'sizes', width: 18 },
     { header: 'Colores', key: 'colors', width: 22 },
     { header: 'Estado', key: 'status', width: 12 },
+    { header: 'Promo', key: 'promo', width: 10 },
   ];
   inventorySheet.getRow(1).font = { bold: true };
   for (const product of products) {
     inventorySheet.addRow({
       name: product.name,
+      slug: product.slug,
       brand: product.brand,
-      price: formatCOP(product.priceCents),
-      cost: product.costCents != null ? formatCOP(product.costCents) : '',
+      price: product.priceCents / 100,
+      compareAtPrice: product.compareAtPriceCents != null ? product.compareAtPriceCents / 100 : '',
+      cost: product.costCents != null ? product.costCents / 100 : '',
       margin:
         product.costCents != null
           ? `${Math.round(((product.priceCents - product.costCents) / product.priceCents) * 100)}%`
@@ -86,6 +95,7 @@ export async function GET() {
       sizes: product.sizes.join(', '),
       colors: product.colors.join(', '),
       status: product.active ? 'Activo' : 'Inactivo',
+      promo: product.isPromo ? 'Sí' : 'No',
     });
   }
 
