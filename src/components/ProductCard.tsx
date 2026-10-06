@@ -49,8 +49,9 @@ export default function ProductCard({ product, index = 0 }: { product: PublicPro
       initial={{ opacity: 0, y: 32 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, delay: (index % 4) * 0.08, ease: [0.16, 1, 0.3, 1] }}
+      className="h-full"
     >
-      <Link href={`/productos/${product.slug}`} className="group block">
+      <Link href={`/productos/${product.slug}`} className="group flex h-full flex-col">
         <div className="relative aspect-[4/5] overflow-hidden rounded-2xl border border-cream-200/70 bg-cream-50 transition-shadow duration-300 group-hover:shadow-[0_18px_40px_-16px_rgba(54,37,25,0.35)]">
           {displayImages[0] && (
             <Image
@@ -87,7 +88,7 @@ export default function ProductCard({ product, index = 0 }: { product: PublicPro
 
         <div className="mt-4">
           <p className="truncate text-[11px] uppercase tracking-[0.15em] text-coffee-500">{product.brand}</p>
-          <h3 className="mt-1 text-sm font-medium leading-snug text-coffee-900 line-clamp-2 md:text-base">
+          <h3 className="mt-1 min-h-[2.625rem] text-sm font-medium leading-snug text-coffee-900 line-clamp-2 md:min-h-[3rem] md:text-base">
             {product.name}
           </h3>
           <div className="mt-1.5 flex items-center gap-2">
@@ -100,7 +101,7 @@ export default function ProductCard({ product, index = 0 }: { product: PublicPro
           </div>
         </div>
 
-        <div className="mt-4">
+        <div className="mt-4 flex flex-1 flex-col">
           {/* Color/size pickers only render when the admin has them turned on
               (Admin > Contenido > Catálogo) — off by default for a cleaner,
               more exclusive-feeling card; picking a variant then happens on
@@ -108,29 +109,34 @@ export default function ProductCard({ product, index = 0 }: { product: PublicPro
           {(showColors || showSizes) && (
             <div>
               {showColors && product.colors.length > 0 && (
-                <div className="flex flex-wrap items-center gap-0.5">
-                  {product.colors.map((c) => (
-                    <button
-                      key={c}
-                      title={c}
-                      aria-label={c}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setColor(c);
-                      }}
-                      className="group/swatch relative flex h-7 w-7 shrink-0 items-center justify-center"
-                    >
-                      <span
-                        className={`h-4 w-4 rounded-full border border-coffee-900/10 shadow-sm transition-transform duration-150 ${
-                          color === c
-                            ? 'scale-110 ring-2 ring-coffee-900 ring-offset-2 ring-offset-cream-50'
-                            : 'group-hover/swatch:scale-110'
-                        }`}
-                        style={{ backgroundColor: colorToHex(c) }}
-                      />
-                    </button>
-                  ))}
+                <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-1">
+                    {product.colors.map((c) => (
+                      <button
+                        key={c}
+                        title={c}
+                        aria-label={c}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setColor(c);
+                        }}
+                        className="group/swatch relative flex h-7 w-7 shrink-0 items-center justify-center"
+                      >
+                        <span
+                          className={`h-4 w-4 rounded-full border border-coffee-900/10 shadow-sm transition-all duration-200 ease-out ${
+                            color === c
+                              ? 'scale-110 ring-2 ring-coffee-900 ring-offset-2 ring-offset-cream-50'
+                              : 'group-hover/swatch:scale-110 group-hover/swatch:ring-1 group-hover/swatch:ring-coffee-300 group-hover/swatch:ring-offset-2 group-hover/swatch:ring-offset-cream-50'
+                          }`}
+                          style={{ backgroundColor: colorToHex(c) }}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                  {color && (
+                    <span className="truncate text-[11px] text-coffee-400">{color}</span>
+                  )}
                 </div>
               )}
               {showSizes && product.sizes.length > 0 && (
@@ -158,7 +164,7 @@ export default function ProductCard({ product, index = 0 }: { product: PublicPro
           )}
           <button
             onClick={handleAdd}
-            className="mt-3 w-full rounded-full bg-coffee-900 py-2.5 text-[11px] font-medium uppercase tracking-[0.15em] text-cream-50 transition-colors transition-transform hover:bg-coffee-800 active:scale-[0.97]"
+            className="mt-auto w-full rounded-full bg-coffee-900 py-2.5 text-[11px] font-medium uppercase tracking-[0.15em] text-cream-50 transition-colors transition-transform hover:bg-coffee-800 active:scale-[0.97]"
           >
             {added ? 'Agregado ✓' : 'Agregar al carrito'}
           </button>
