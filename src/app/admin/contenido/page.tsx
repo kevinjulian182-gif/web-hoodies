@@ -7,6 +7,7 @@ import MediaUploader from '@/components/admin/MediaUploader';
 import SectionManager from '@/components/admin/SectionManager';
 import RepeatableListEditor from '@/components/admin/RepeatableListEditor';
 import BlogManager from '@/components/admin/BlogManager';
+import { autoBulletize, pasteBulletedText } from '@/lib/textareaBullets';
 
 const SECTION_PREVIEW_PATH: Record<string, string> = {
   'Colores': '/',
@@ -335,7 +336,8 @@ export default function AdminContentPage() {
                     ) : field.multiline ? (
                       <textarea
                         value={values[field.key]}
-                        onChange={(e) => handleChange(field.key, e.target.value)}
+                        onChange={(e) => handleChange(field.key, autoBulletize(e.target.value, e.target.selectionStart))}
+                        onPaste={(e) => pasteBulletedText(e, values[field.key], (v) => handleChange(field.key, v))}
                         placeholder={CONTENT_DEFAULTS[field.key]}
                         rows={3}
                         className="w-full rounded-lg border border-cream-200 px-3 py-2 text-sm focus:outline-none focus:border-coffee-600"

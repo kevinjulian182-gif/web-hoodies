@@ -1,6 +1,7 @@
 'use client';
 
 import MediaUploader from '@/components/admin/MediaUploader';
+import { autoBulletize, pasteBulletedText } from '@/lib/textareaBullets';
 
 type FieldSpec = {
   key: string;
@@ -94,7 +95,8 @@ export default function RepeatableListEditor({
               ) : field.type === 'textarea' ? (
                 <textarea
                   value={item[field.key] ?? ''}
-                  onChange={(e) => update(i, field.key, e.target.value)}
+                  onChange={(e) => update(i, field.key, autoBulletize(e.target.value, e.target.selectionStart))}
+                  onPaste={(e) => pasteBulletedText(e, item[field.key] ?? '', (v) => update(i, field.key, v))}
                   rows={2}
                   className="w-full rounded-lg border border-cream-200 px-3 py-1.5 text-sm"
                 />

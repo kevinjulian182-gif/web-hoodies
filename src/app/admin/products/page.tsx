@@ -9,6 +9,7 @@ import ChipListEditor from '@/components/admin/ChipListEditor';
 import MediaUploader from '@/components/admin/MediaUploader';
 import ReviewsManager from '@/components/admin/ReviewsManager';
 import { variantKey, variantCombos, evenSplitStock, type VariantStock } from '@/lib/variants';
+import { autoBulletize, pasteBulletedText } from '@/lib/textareaBullets';
 
 type Product = {
   id: string;
@@ -643,14 +644,22 @@ export default function AdminProductsPage() {
           </label>
 
           <FormField label="Descripción">
-            <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} required className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm" rows={2} />
+            <textarea
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: autoBulletize(e.target.value, e.target.selectionStart) })}
+              onPaste={(e) => pasteBulletedText(e, form.description, (v) => setForm((f) => ({ ...f, description: v })))}
+              required
+              className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm"
+              rows={2}
+            />
           </FormField>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <FormField label="Materiales (opcional)">
               <textarea
                 value={form.materials}
-                onChange={(e) => setForm({ ...form, materials: e.target.value })}
+                onChange={(e) => setForm({ ...form, materials: autoBulletize(e.target.value, e.target.selectionStart) })}
+                onPaste={(e) => pasteBulletedText(e, form.materials, (v) => setForm((f) => ({ ...f, materials: v })))}
                 placeholder="100% algodón felpa francesa 400g"
                 className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm"
                 rows={3}
@@ -659,7 +668,8 @@ export default function AdminProductsPage() {
             <FormField label="Detalles del producto (opcional)">
               <textarea
                 value={form.details}
-                onChange={(e) => setForm({ ...form, details: e.target.value })}
+                onChange={(e) => setForm({ ...form, details: autoBulletize(e.target.value, e.target.selectionStart) })}
+                onPaste={(e) => pasteBulletedText(e, form.details, (v) => setForm((f) => ({ ...f, details: v })))}
                 placeholder={'Un detalle por línea, ej:\nCorte oversized\nBolsillo canguro\nEtiqueta bordada'}
                 className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm"
                 rows={3}
@@ -668,7 +678,8 @@ export default function AdminProductsPage() {
             <FormField label="Recomendaciones de lavado (opcional)">
               <textarea
                 value={form.careInstructions}
-                onChange={(e) => setForm({ ...form, careInstructions: e.target.value })}
+                onChange={(e) => setForm({ ...form, careInstructions: autoBulletize(e.target.value, e.target.selectionStart) })}
+                onPaste={(e) => pasteBulletedText(e, form.careInstructions, (v) => setForm((f) => ({ ...f, careInstructions: v })))}
                 placeholder="Lavar en frío, del revés, sin secadora"
                 className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm"
                 rows={3}

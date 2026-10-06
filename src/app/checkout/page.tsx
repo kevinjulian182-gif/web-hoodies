@@ -9,6 +9,7 @@ import { useCart } from '@/lib/cart';
 import { formatCOP } from '@/lib/format';
 import { COLOMBIA_DEPARTMENTS } from '@/lib/colombia';
 import WompiCheckoutButton from '@/components/WompiCheckoutButton';
+import { autoBulletize, pasteBulletedText } from '@/lib/textareaBullets';
 
 type CheckoutData = {
   orderId: string;
@@ -300,7 +301,8 @@ export default function CheckoutPage() {
                       rows={3}
                       placeholder="Ej: dejar con el celador, no hay timbre, llamar al llegar…"
                       value={form.deliveryNotes}
-                      onChange={(e) => setForm({ ...form, deliveryNotes: e.target.value })}
+                      onChange={(e) => setForm({ ...form, deliveryNotes: autoBulletize(e.target.value, e.target.selectionStart) })}
+                      onPaste={(e) => pasteBulletedText(e, form.deliveryNotes, (v) => setForm((f) => ({ ...f, deliveryNotes: v })))}
                       className="w-full resize-none border border-cream-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-coffee-600"
                     />
                   </Field>

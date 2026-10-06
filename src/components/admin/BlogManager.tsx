@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import MediaUploader from '@/components/admin/MediaUploader';
 import RichTextEditor from '@/components/admin/RichTextEditor';
+import { autoBulletize, pasteBulletedText } from '@/lib/textareaBullets';
 
 type Post = {
   id: string;
@@ -149,7 +150,8 @@ export default function BlogManager() {
           <textarea
             placeholder="Resumen (aparece en la lista del blog)"
             value={form.excerpt}
-            onChange={(e) => setForm({ ...form, excerpt: e.target.value })}
+            onChange={(e) => setForm({ ...form, excerpt: autoBulletize(e.target.value, e.target.selectionStart) })}
+            onPaste={(e) => pasteBulletedText(e, form.excerpt, (v) => setForm((f) => ({ ...f, excerpt: v })))}
             required
             rows={2}
             className="w-full rounded-lg border border-cream-200 px-3 py-2 text-sm focus:outline-none focus:border-coffee-600"
