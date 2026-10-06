@@ -258,7 +258,7 @@ export const CONTENT_FIELDS: Array<{
   { key: 'site.favicon_url', label: 'Favicon', section: 'General del sitio', type: 'image' },
   {
     key: 'site.whatsapp_number',
-    label: 'Número de WhatsApp de contacto (con indicativo, ej: 573001234567)',
+    label: 'Número de WhatsApp de contacto (ej: 3138089302, con o sin indicativo 57)',
     section: 'General del sitio',
   },
   { key: 'hero.eyebrow', label: 'Texto superior', section: 'Portada (Hero)' },
