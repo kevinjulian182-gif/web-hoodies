@@ -108,7 +108,7 @@ export default function ProductCard({ product, index = 0 }: { product: PublicPro
           {(showColors || showSizes) && (
             <div>
               {showColors && product.colors.length > 0 && (
-                <div className="flex h-5 flex-wrap gap-1.5">
+                <div className="flex flex-wrap items-center gap-0.5">
                   {product.colors.map((c) => (
                     <button
                       key={c}
@@ -119,11 +119,16 @@ export default function ProductCard({ product, index = 0 }: { product: PublicPro
                         e.stopPropagation();
                         setColor(c);
                       }}
-                      className={`h-5 w-5 rounded-full border-2 transition-transform ${
-                        color === c ? 'border-coffee-900 scale-110' : 'border-transparent'
-                      }`}
+                      className="group/swatch relative flex h-7 w-7 shrink-0 items-center justify-center"
                     >
-                      <span className="block h-full w-full rounded-full" style={{ backgroundColor: colorToHex(c) }} />
+                      <span
+                        className={`h-4 w-4 rounded-full border border-coffee-900/10 shadow-sm transition-transform duration-150 ${
+                          color === c
+                            ? 'scale-110 ring-2 ring-coffee-900 ring-offset-2 ring-offset-cream-50'
+                            : 'group-hover/swatch:scale-110'
+                        }`}
+                        style={{ backgroundColor: colorToHex(c) }}
+                      />
                     </button>
                   ))}
                 </div>

@@ -16,6 +16,8 @@ export default function ChipListEditor({
   swatch?: (value: string) => string;
 }) {
   const [draft, setDraft] = useState('');
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [overIndex, setOverIndex] = useState<number | null>(null);
 
   const add = (value: string) => {
     const v = value.trim();
@@ -26,14 +28,52 @@ export default function ChipListEditor({
 
   const remove = (value: string) => onChange(items.filter((i) => i !== value));
 
+  const reorder = (from: number, to: number) => {
+    if (from === to) return;
+    const next = [...items];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    onChange(next);
+  };
+
   return (
     <div>
-      <p className="mb-1.5 text-xs text-coffee-600">{label}</p>
+      <p className="mb-1.5 text-xs text-coffee-600">
+        {label}
+        {items.length > 1 && <span className="ml-1.5 text-coffee-400">— arrastra para reordenar</span>}
+      </p>
       <div className="flex flex-wrap gap-1.5 mb-2">
-        {items.map((item) => (
+        {items.map((item, index) => (
           <span
             key={item}
-            className="flex items-center gap-1.5 rounded-full border border-cream-300 bg-cream-50 pl-2.5 pr-1.5 py-1 text-xs text-coffee-800"
+            draggable
+            onDragStart={(e) => {
+              e.stopPropagation();
+              setDragIndex(index);
+            }}
+            onDragEnter={(e) => {
+              e.stopPropagation();
+              if (dragIndex !== null) setOverIndex(index);
+            }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (dragIndex !== null) reorder(dragIndex, index);
+              setDragIndex(null);
+              setOverIndex(null);
+            }}
+            onDragEnd={(e) => {
+              e.stopPropagation();
+              setDragIndex(null);
+              setOverIndex(null);
+            }}
+            className={`flex cursor-move items-center gap-1.5 rounded-full border border-cream-300 bg-cream-50 pl-2.5 pr-1.5 py-1 text-xs text-coffee-800 transition-opacity ${
+              dragIndex === index ? 'opacity-40' : ''
+            } ${overIndex === index && dragIndex !== null && dragIndex !== index ? 'ring-2 ring-coffee-600' : ''}`}
           >
             {swatch && (
               <span
