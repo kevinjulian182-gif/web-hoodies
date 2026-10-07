@@ -21,7 +21,7 @@ export default function FavoritesPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-16">
-      <h1 className="font-display text-4xl md:text-5xl font-semibold italic text-coffee-900">Favoritos</h1>
+      <h1 className="text-3xl md:text-4xl font-semibold tracking-tightest text-coffee-900">Favoritos</h1>
       <p className="mt-3 text-coffee-600">Las piezas que estás siguiendo de cerca.</p>
 
       {products === null ? (

@@ -1,7 +1,25 @@
+import type { Metadata } from 'next';
 import ProductGrid from '@/components/ProductGrid';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<{ marca?: string }>;
+}): Promise<Metadata> {
+  const { marca } = await searchParams;
+  return marca
+    ? {
+        title: `${marca} — Catálogo — AFRA`,
+        description: `Hoodies, sudaderas y chaquetas premium de ${marca}, disponibles en AFRA con pago contra entrega en toda Colombia.`,
+      }
+    : {
+        title: 'Catálogo — AFRA',
+        description: 'Explora el catálogo completo de streetwear premium de AFRA: Nike, Adidas, Supreme y más, con garantía y envíos a toda Colombia.',
+      };
+}
 
 export default async function CatalogPage({
   searchParams,
@@ -9,17 +27,20 @@ export default async function CatalogPage({
   searchParams: Promise<{ marca?: string }>;
 }) {
   const { marca } = await searchParams;
-  const products = await prisma.product.findMany({
-    where: { active: true },
-    orderBy: { createdAt: 'desc' },
-  });
+  const [products, brands] = await Promise.all([
+    prisma.product.findMany({
+      where: { active: true },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.brand.findMany({ where: { logoUrl: { not: null } }, select: { name: true, logoUrl: true } }),
+  ]);
 
   return (
     <div className="pt-8">
-      <h1 className="font-display mx-auto max-w-7xl px-6 text-4xl italic font-semibold text-coffee-900">
+      <h1 className="mx-auto max-w-7xl px-6 text-3xl font-semibold tracking-tightest text-coffee-900">
         Catálogo
       </h1>
-      <ProductGrid products={products} initialBrand={marca} />
+      <ProductGrid products={products} initialBrand={marca} brandLogos={brands} />
     </div>
   );
 }

@@ -2,16 +2,89 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Fallback palette (as "R G B" triplets, matching Tailwind's rgb(var(..) /
+   <alpha-value>) opacity syntax). Admin > Contenido > Colores overrides
+   these at runtime via an inline <style> tag in the root layout — this
+   block only matters before that tag loads or if it's ever absent. */
+:root {
+  --color-cream-50: 251 246 236;
+  --color-cream-100: 247 238 219;
+  --color-cream-200: 242 226 194;
+  --color-cream-300: 234 208 156;
+  --color-coffee-400: 165 112 76;
+  --color-coffee-500: 131 89 61;
+  --color-coffee-600: 104 71 48;
+  --color-coffee-700: 79 54 36;
+  --color-coffee-800: 58 40 27;
+  --color-coffee-900: 41 28 19;
+}
+
 html {
   scroll-behavior: smooth;
+  /* No font inflation when the phone rotates to landscape. */
+  -webkit-text-size-adjust: 100%;
+  /* The gray/blue flash Safari/Chrome paint on every tap — the single
+     loudest "this is a website" tell on mobile. Replaced by each
+     element's own :active state instead. */
+  -webkit-tap-highlight-color: transparent;
+  /* No page-level pull-to-refresh/rubber-band; the cart drawer and search
+     overlay opt back into their own contained bounce below. */
+  overscroll-behavior: none;
 }
 
 body {
   @apply bg-cream-50 text-coffee-900 antialiased;
+  /* Safety net: a single element that's a hair too wide (a full-bleed
+     section, an untruncated long word) shouldn't be able to open a
+     page-level horizontal scrollbar on mobile. */
+  overflow-x: hidden;
+}
+
+/* iOS Safari zooms the page on focus for any input under 16px and never
+   zooms back out on blur. 16px is the minimum, not a design choice.
+   !important because every input in the app carries a Tailwind text-sm
+   utility, which otherwise outranks a plain element selector; scoped to
+   coarse pointers so desktop keeps the smaller type scale. */
+@media (pointer: coarse) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+button,
+a,
+[role='button'] {
+  /* Skip the ~300ms double-tap-zoom wait before the click fires. */
+  touch-action: manipulation;
+}
+
+button,
+[role='button'] {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 ::selection {
   @apply bg-coffee-800 text-cream-50;
+}
+
+html.custom-cursor,
+html.custom-cursor * {
+  cursor: none !important;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid theme('colors.coffee.700');
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -23,4 +96,74 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Diagonal shine sliding across the free-shipping progress bar fill. */
+@keyframes shipping-bar-shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+
+.shipping-bar-shimmer {
+  animation: shipping-bar-shimmer 1.8s ease-in-out infinite;
+}
+
+/* Shared rendering for rich text from the blog's Tiptap editor — the admin
+   toolbar (.prose-editor) and the public post page (.blog-content) use the
+   same tag styling so what you see while writing is what ships. */
+.prose-editor,
+.blog-content {
+  line-height: 1.75;
+}
+.prose-editor p,
+.blog-content p {
+  margin-top: 1.1em;
+}
+.prose-editor p:first-child,
+.blog-content p:first-child {
+  margin-top: 0;
+}
+.prose-editor h2,
+.blog-content h2 {
+  @apply text-xl font-semibold tracking-tightest text-coffee-900;
+  margin-top: 1.4em;
+  margin-bottom: 0.4em;
+}
+.prose-editor h3,
+.blog-content h3 {
+  @apply text-lg font-semibold tracking-tightest text-coffee-900;
+  margin-top: 1.2em;
+  margin-bottom: 0.4em;
+}
+.prose-editor ul,
+.blog-content ul {
+  list-style: disc;
+  margin-top: 1em;
+  padding-left: 1.4em;
+}
+.prose-editor ol,
+.blog-content ol {
+  list-style: decimal;
+  margin-top: 1em;
+  padding-left: 1.4em;
+}
+.prose-editor li,
+.blog-content li {
+  margin-top: 0.35em;
+}
+.prose-editor blockquote,
+.blog-content blockquote {
+  @apply border-cream-300 text-coffee-600;
+  border-left-width: 3px;
+  padding-left: 1em;
+  margin: 1.2em 0;
+  font-style: italic;
+}
+.prose-editor strong,
+.blog-content strong {
+  @apply text-coffee-900 font-semibold;
 }

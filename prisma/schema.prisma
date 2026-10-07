@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["omitApi"]
 }
 
 datasource db {
@@ -26,6 +27,11 @@ enum DiscountType {
   FIXED
 }
 
+enum PaymentMethod {
+  WOMPI
+  COD
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -41,17 +47,79 @@ model Product {
   name        String
   slug        String      @unique
   brand       String
+  // Garment type (hoodie, chaqueta, ...) — optional since products created
+  // before this field existed have none yet; managed the same way as
+  // brand, via the separate Category list.
+  category    String?
   description String
+  materials   String?
+  details     String?
+  careInstructions String?
   priceCents  Int
+  compareAtPriceCents Int?
+  costCents   Int?
   images      String[]
+  colorImages Json?
+  // Per-product override of the color name -> swatch hex shown on cards
+  // and the PDP. Falls back to the shared name-based guess (lib/colors.ts)
+  // for any color not present here, so existing products need no backfill.
+  colorHex    Json?
   videos      String[]    @default([])
   sizes       String[]
   colors      String[]    @default([])
+  // Cached sum of variants[].stock — kept in sync on every write that
+  // touches variants (admin save, checkout decrement) so every existing
+  // read of "total stock for this product" keeps working unchanged.
   stock       Int         @default(0)
   active      Boolean     @default(true)
+  isPromo     Boolean     @default(false)
   orderItems  OrderItem[]
+  reviews     Review[]
+  variants    ProductVariant[]
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
+}
+
+// A managed list of brand names, separate from Product.brand (a plain
+// string) so a brand can be created ahead of any product using it, and
+// deleted once nothing references it — deletion is blocked in the API
+// while any Product still carries that name.
+model Brand {
+  id      String  @id @default(cuid())
+  name    String  @unique
+  logoUrl String?
+}
+
+// Managed list of garment types (hoodie, chaqueta, ...), same pattern as
+// Brand: a name can be added ahead of any product using it, and deleted
+// once no Product carries it.
+model Category {
+  id   String @id @default(cuid())
+  name String @unique
+}
+
+// Stock belongs to a specific size+color combination, not the product as a
+// whole — a shirt can be out of Black/M while Black/L and White/M are fine.
+// color is null for products with no color options (sizes-only stock).
+model ProductVariant {
+  id        String  @id @default(cuid())
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+  size      String
+  color     String?
+  stock     Int     @default(0)
+
+  @@unique([productId, size, color])
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId  String
+  authorName String
+  rating     Int
+  comment    String
+  createdAt  DateTime @default(now())
 }
 
 model Order {
@@ -60,15 +128,21 @@ model Order {
   userId            String?
   customerEmail     String
   customerName      String
+  customerDocument  String?
   shippingAddress   String
+  shippingAddressComplement String?
+  shippingDepartment String?
   shippingCity      String
   shippingPhone     String
+  deliveryNotes     String?
   items             OrderItem[]
   subtotalCents     Int
   discountCents     Int         @default(0)
   totalCents        Int
   couponCode        String?
   status            OrderStatus @default(PENDING)
+  paymentMethod     PaymentMethod @default(WOMPI)
+  whatsappConfirmedAt DateTime?
   wompiReference    String      @unique
   wompiTransactionId String?
   carrier           String      @default("Inter Rapidísimo")

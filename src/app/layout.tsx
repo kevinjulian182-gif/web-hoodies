@@ -1,54 +1,105 @@
-import type { Metadata } from 'next';
-import { Montserrat, Cormorant } from 'next/font/google';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { CartProvider } from '@/lib/cart';
 import { WishlistProvider } from '@/lib/wishlist';
+import { CatalogSettingsProvider } from '@/lib/catalogSettings';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import PageTransition from '@/components/PageTransition';
 import CartDrawer from '@/components/CartDrawer';
 import WhatsAppButton from '@/components/WhatsAppButton';
-import { getSiteContent } from '@/lib/content';
-
-const montserrat = Montserrat({
-  subsets: ['latin'],
-  variable: '--font-sans',
-  display: 'swap',
-});
-
-const cormorant = Cormorant({
-  subsets: ['latin'],
-  weight: ['500', '600', '700'],
-  style: ['normal', 'italic'],
-  variable: '--font-display',
-  display: 'swap',
-});
-
-export const metadata: Metadata = {
-  title: 'AFRA — Streetwear de lujo',
-  description: 'Hoodies, sudaderas y chaquetas de las marcas más exclusivas.',
-};
+import CustomCursor from '@/components/CustomCursor';
+import { getSiteContent, getHomeSectionOrder, getHeroImages, getFreeShippingThresholdCents } from '@/lib/content';
+import { generateThemeVars, themeVarsToCss } from '@/lib/theme';
+import { getStoreWhatsAppNumber } from '@/lib/whatsapp';
 
 // The footer pulls its tagline from the editable SiteContent table on every
 // request; without this, Next would bake it into the static HTML at build
 // time and admin edits to it would never show up without a redeploy.
 export const dynamic = 'force-dynamic';
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  interactiveWidget: 'resizes-content',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#FDFCFA' },
+    { media: '(prefers-color-scheme: dark)', color: '#1C1611' },
+  ],
+};
+
+export async function generateMetadata(): Promise<Metadata> {
+  const content = await getSiteContent();
+  return {
+    title: content['site.title'],
+    description: content['site.description'],
+    icons: content['site.favicon_url'] ? { icon: content['site.favicon_url'] } : undefined,
+    openGraph: {
+      siteName: 'AFRA',
+      title: content['site.title'],
+      description: content['site.description'],
+      locale: 'es_CO',
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: content['site.title'],
+      description: content['site.description'],
+    },
+  };
+}
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const content = await getSiteContent();
+  const heroIsFirstAndDark =
+    getHomeSectionOrder(content)[0] === 'hero' &&
+    (Boolean(content['hero.video_url']) || getHeroImages(content).length > 0);
+  const themeCss = themeVarsToCss(generateThemeVars(content['theme.coffee_color'], content['theme.cream_color']));
+  const whatsappNumber = getStoreWhatsAppNumber(content);
 
   return (
-    <html lang="es" className={`${montserrat.variable} ${cormorant.variable}`}>
+    <html lang="es">
       <body>
+        <style dangerouslySetInnerHTML={{ __html: themeCss }} />
         <CartProvider>
           <WishlistProvider>
-            <Navbar />
-            <main>
-              <PageTransition>{children}</PageTransition>
-            </main>
-            <Footer tagline={content['footer.tagline']} />
-            <CartDrawer />
-            <WhatsAppButton />
+            <CatalogSettingsProvider
+              showColors={content['catalog.show_colors_on_card'] === 'true'}
+              showSizes={content['catalog.show_sizes_on_card'] === 'true'}
+            >
+              <Navbar
+                logoUrl={content['site.logo_url'] || undefined}
+                transparentOverHero={heroIsFirstAndDark}
+                whatsappNumber={whatsappNumber}
+                social={{
+                  instagramUrl: content['social.instagram_url'] || undefined,
+                  tiktokUrl: content['social.tiktok_url'] || undefined,
+                  facebookUrl: content['social.facebook_url'] || undefined,
+                  xUrl: content['social.x_url'] || undefined,
+                }}
+              />
+              <main>
+                <PageTransition>{children}</PageTransition>
+              </main>
+              <Footer
+                tagline={content['footer.tagline']}
+                copyrightYear={content['footer.copyright_year']}
+                whatsappNumber={whatsappNumber}
+                social={{
+                  instagramUrl: content['social.instagram_url'] || undefined,
+                  tiktokUrl: content['social.tiktok_url'] || undefined,
+                  facebookUrl: content['social.facebook_url'] || undefined,
+                  xUrl: content['social.x_url'] || undefined,
+                }}
+              />
+              <CartDrawer
+                freeShippingThresholdCents={getFreeShippingThresholdCents(content)}
+                whatsappNumber={whatsappNumber}
+              />
+              <WhatsAppButton number={whatsappNumber} />
+              <CustomCursor />
+            </CatalogSettingsProvider>
           </WishlistProvider>
         </CartProvider>
       </body>

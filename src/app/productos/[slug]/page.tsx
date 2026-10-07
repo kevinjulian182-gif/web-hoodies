@@ -1,43 +1,80 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { formatCOP } from '@/lib/format';
+import { isOnSale, discountPercent } from '@/lib/discount';
 import AddToCartButton from '@/components/AddToCartButton';
 import ProductGallery from '@/components/ProductGallery';
 import ProductGrid from '@/components/ProductGrid';
 import HeartButton from '@/components/HeartButton';
 import MobileBuyBar from '@/components/MobileBuyBar';
+import ReviewsSection from '@/components/ReviewsSection';
+import ComparisonTable from '@/components/ComparisonTable';
+import FaqSection from '@/components/FaqSection';
+import { getSiteContent, getFaqItems } from '@/lib/content';
+import { parseColorImages } from '@/lib/colors';
+import { ProductColorProvider } from '@/lib/productColor';
+import { getStoreWhatsAppNumber } from '@/lib/whatsapp';
 
 export const dynamic = 'force-dynamic';
 
-export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
   const { slug } = await params;
   const product = await prisma.product.findUnique({ where: { slug } });
+  if (!product) return { title: 'Producto no encontrado — AFRA' };
+  return {
+    title: `${product.name} — ${product.brand} — AFRA`,
+    description: `${product.description} Pago contra entrega y envíos a toda Colombia.`,
+    openGraph: product.images[0] ? { images: [product.images[0]] } : undefined,
+  };
+}
+
+export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const product = await prisma.product.findUnique({ where: { slug }, include: { variants: true } });
   if (!product || !product.active) notFound();
 
-  const related = await prisma.product.findMany({
-    where: { brand: product.brand, active: true, id: { not: product.id } },
-    take: 4,
-  });
+  const [related, reviews, content] = await Promise.all([
+    prisma.product.findMany({
+      where: { brand: product.brand, active: true, id: { not: product.id } },
+      take: 4,
+    }),
+    prisma.review.findMany({ where: { productId: product.id }, orderBy: { createdAt: 'desc' } }),
+    getSiteContent(),
+  ]);
+
+  const onSale = isOnSale(product.priceCents, product.compareAtPriceCents);
+  const details = product.details
+    ? product.details.split('\n').map((line) => line.trim()).filter(Boolean)
+    : [];
+  const whatsappNumber = getStoreWhatsAppNumber(content);
 
   return (
     <div>
       <nav aria-label="Breadcrumb" className="mx-auto max-w-6xl px-6 pt-6 text-xs text-coffee-500">
         <ol className="flex flex-wrap items-center gap-1.5">
           <li>
-            <Link href="/" className="hover:text-coffee-800">
+            <Link href="/" className="transition-colors hover:text-coffee-800">
               Inicio
             </Link>
           </li>
           <li aria-hidden="true">/</li>
           <li>
-            <Link href="/productos" className="hover:text-coffee-800">
+            <Link href="/productos" className="transition-colors hover:text-coffee-800">
               Catálogo
             </Link>
           </li>
           <li aria-hidden="true">/</li>
           <li>
-            <Link href={`/productos?marca=${encodeURIComponent(product.brand)}`} className="hover:text-coffee-800">
+            <Link
+              href={`/productos?marca=${encodeURIComponent(product.brand)}`}
+              className="transition-colors hover:text-coffee-800"
+            >
               {product.brand}
             </Link>
           </li>
@@ -48,14 +85,20 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         </ol>
       </nav>
 
+      <ProductColorProvider defaultColor={product.colors[0] ?? ''}>
       <div className="mx-auto max-w-6xl px-6 pb-16 pt-6 grid md:grid-cols-2 gap-16">
-        <ProductGallery images={product.images} videos={product.videos} name={product.name} />
+        <ProductGallery
+          images={product.images}
+          colorImages={parseColorImages(product.colorImages)}
+          videos={product.videos}
+          name={`${product.brand} ${product.name}`}
+        />
 
         <div id="comprar" className="md:sticky md:top-24 md:self-start max-w-md scroll-mt-24">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-coffee-600">{product.brand}</p>
-              <h1 className="font-display mt-1 text-3xl md:text-4xl font-semibold italic text-coffee-900">
+              <h1 className="mt-1 text-3xl md:text-4xl font-semibold tracking-tightest text-coffee-900">
                 {product.name}
               </h1>
             </div>
@@ -65,24 +108,173 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               className="mt-1 shrink-0 text-coffee-700 hover:text-coffee-900 transition-colors"
             />
           </div>
-          <p className="mt-4 text-xl font-medium text-coffee-800">{formatCOP(product.priceCents)}</p>
-          <p className="mt-6 text-coffee-700 leading-relaxed">{product.description}</p>
-          <div className="mt-10">
-            <AddToCartButton product={product} />
+          <div className="mt-4 flex items-center gap-3">
+            <p className={`text-xl font-medium ${onSale ? 'text-red-700' : 'text-coffee-800'}`}>
+              {formatCOP(product.priceCents)}
+            </p>
+            {onSale && (
+              <>
+                <p className="text-base text-coffee-400 line-through">{formatCOP(product.compareAtPriceCents as number)}</p>
+                <span className="rounded-full bg-red-700 px-2.5 py-1 text-xs font-semibold text-cream-50">
+                  -{discountPercent(product.priceCents, product.compareAtPriceCents as number)}%
+                </span>
+              </>
+            )}
           </div>
+          <div className="mt-8">
+            <AddToCartButton product={product} whatsappNumber={whatsappNumber} />
+          </div>
+
+          <ul className="mt-8 space-y-3 border-t border-cream-200 pt-6">
+            <li className="flex items-start gap-3 text-sm text-coffee-700">
+              <CheckIcon />
+              <span>
+                <strong className="font-medium text-coffee-900">Pago contra entrega:</strong> revisa tu
+                pedido y paga en efectivo o con tarjeta cuando lo recibas.
+              </span>
+            </li>
+            <li className="flex items-start gap-3 text-sm text-coffee-700">
+              <CheckIcon />
+              <span>
+                <strong className="font-medium text-coffee-900">Garantía de cambio:</strong> si no te
+                queda bien, la cambias sin costo dentro de los primeros 5 días hábiles.
+              </span>
+            </li>
+            <li className="flex items-start gap-3 text-sm text-coffee-700">
+              <CheckIcon />
+              <span>
+                <strong className="font-medium text-coffee-900">Envíos a toda Colombia:</strong> 2-5 días
+                hábiles según tu ciudad.
+              </span>
+            </li>
+          </ul>
+
+          <ul className="mt-6 space-y-5 border-t border-cream-200 pt-6 text-sm text-coffee-700">
+            {details.length > 0 && (
+              <li className="flex items-start gap-3">
+                <TagIcon />
+                <span>
+                  <strong className="block font-medium text-coffee-900">Detalles del producto</strong>
+                  <span className="mt-1 block leading-relaxed text-coffee-600">{details.join(' · ')}</span>
+                </span>
+              </li>
+            )}
+            <li className="flex items-start gap-3">
+              <FabricIcon />
+              <span>
+                <strong className="block font-medium text-coffee-900">Materiales</strong>
+                <span className="mt-1 block leading-relaxed text-coffee-600">
+                  {product.materials || 'Algodón pesado y felpa francesa de gramaje alto.'}
+                </span>
+              </span>
+            </li>
+            <li className="flex items-start gap-3">
+              <DropletIcon />
+              <span>
+                <strong className="block font-medium text-coffee-900">Talla y cuidado</strong>
+                <span className="mt-1 block leading-relaxed text-coffee-600">
+                  {product.careInstructions ||
+                    'Guía de tallas en formato US. Si dudas entre dos tallas, elige la más grande para un calce más relajado. Lava en frío, del revés y evita la secadora para conservar la impresión y el bordado.'}
+                </span>
+              </span>
+            </li>
+          </ul>
+
+          {product.description && (
+            <div className="mt-6 border-t border-cream-200 pt-6">
+              <h2 className="text-sm font-medium text-coffee-900">Descripción</h2>
+              <p className="mt-2 text-sm leading-relaxed text-coffee-600">{product.description}</p>
+            </div>
+          )}
         </div>
       </div>
+      </ProductColorProvider>
+
+      <ReviewsSection title={content['pdp.reviews_title']} reviews={reviews} />
+      <ComparisonTable current={product} others={related.slice(0, 3)} />
 
       {related.length > 0 && (
         <div className="border-t border-cream-200">
-          <h2 className="font-display mx-auto max-w-7xl px-6 pt-16 text-2xl md:text-3xl italic font-semibold text-coffee-900">
+          <h2 className="mx-auto max-w-7xl px-6 pt-16 text-2xl font-semibold tracking-tightest text-coffee-900">
             Más de {product.brand}
           </h2>
           <ProductGrid products={related} />
         </div>
       )}
 
+      <FaqSection title={content['pdp.faq_title']} items={getFaqItems(content)} />
+
       <MobileBuyBar name={product.name} priceCents={product.priceCents} />
     </div>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className="mt-0.5 shrink-0 text-coffee-600"
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path d="m8.5 12.5 2.5 2.5 4.5-5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function TagIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className="mt-0.5 shrink-0 text-coffee-600"
+    >
+      <path d="M11.5 3H5a2 2 0 0 0-2 2v6.5a2 2 0 0 0 .6 1.4l9 9a2 2 0 0 0 2.8 0l6.5-6.5a2 2 0 0 0 0-2.8l-9-9a2 2 0 0 0-1.4-.6Z" strokeLinejoin="round" />
+      <circle cx="8" cy="8" r="1.4" />
+    </svg>
+  );
+}
+
+function FabricIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className="mt-0.5 shrink-0 text-coffee-600"
+    >
+      <path d="M4 4c2 1.5 2 3 0 4.5S2 12 4 13.5" strokeLinecap="round" />
+      <path d="M9 4c2 1.5 2 3 0 4.5S7 12 9 13.5" strokeLinecap="round" />
+      <path d="M14 4c2 1.5 2 3 0 4.5S12 12 14 13.5" strokeLinecap="round" />
+      <path d="M4 18h16" strokeLinecap="round" />
+      <path d="M4 21h16" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function DropletIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className="mt-0.5 shrink-0 text-coffee-600"
+    >
+      <path d="M12 3s6.5 7.2 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 10.2 12 3 12 3Z" strokeLinejoin="round" />
+    </svg>
   );
 }

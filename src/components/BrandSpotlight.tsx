@@ -31,7 +31,7 @@ export default function BrandSpotlight({ content }: { content: SpotlightContent 
           initial={{ opacity: 0, y: 28 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          className="font-display text-5xl md:text-7xl italic font-medium leading-[1.05] text-cream-50"
+          className="text-4xl md:text-6xl font-semibold tracking-tightest leading-[1.05] text-cream-50"
         >
           {content.titleLine1}
           <br />

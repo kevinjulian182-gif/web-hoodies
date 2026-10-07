@@ -8,6 +8,7 @@ const COLUMNS = [
     title: 'Tienda',
     links: [
       { href: '/productos', label: 'Catálogo' },
+      { href: '/promos', label: 'Promos' },
       { href: '/checkout', label: 'Carrito' },
       { href: '/favoritos', label: 'Favoritos' },
       { href: '/blog', label: 'Blog' },
@@ -27,13 +28,45 @@ const COLUMNS = [
 
 const TRUST_BADGES = [
   { label: 'Pago contra entrega', icon: <TruckIcon /> },
-  { label: 'Piezas 100% originales', icon: <BadgeIcon /> },
+  { label: 'Garantía y cambios', icon: <BadgeIcon /> },
   { label: 'Envíos a toda Colombia', icon: <MapIcon /> },
 ];
 
-export default function Footer({ tagline }: { tagline: string }) {
+type SocialLinks = {
+  instagramUrl?: string;
+  tiktokUrl?: string;
+  facebookUrl?: string;
+  xUrl?: string;
+};
+
+export default function Footer({
+  tagline,
+  copyrightYear,
+  social,
+  whatsappNumber,
+}: {
+  tagline: string;
+  copyrightYear: string;
+  social: SocialLinks;
+  whatsappNumber?: string;
+}) {
   const pathname = usePathname();
-  if (pathname.startsWith('/checkout') || pathname.startsWith('/admin')) return null;
+  if (
+    pathname.startsWith('/checkout') ||
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/voucher')
+  )
+    return null;
+
+  const allSocialLinks = [
+    { href: social.instagramUrl, label: 'Instagram', icon: <InstagramIcon /> },
+    { href: social.tiktokUrl, label: 'TikTok', icon: <TikTokIcon /> },
+    { href: social.facebookUrl, label: 'Facebook', icon: <FacebookIcon /> },
+    { href: social.xUrl, label: 'X (Twitter)', icon: <XIcon /> },
+  ];
+  const socialLinks = allSocialLinks.filter(
+    (s): s is { href: string; label: string; icon: JSX.Element } => Boolean(s.href)
+  );
 
   return (
     <footer className="bg-coffee-900 text-cream-100">
@@ -50,8 +83,35 @@ export default function Footer({ tagline }: { tagline: string }) {
 
       <div className="mx-auto max-w-7xl px-6 py-16 grid md:grid-cols-[1.5fr_1fr_1fr] gap-12">
         <div>
-          <p className="font-display text-3xl italic font-semibold text-cream-50">AFRA°</p>
+          <p className="text-2xl font-semibold tracking-tightest text-cream-50">AFRA°</p>
           <p className="mt-4 text-sm text-cream-100/60 max-w-xs leading-relaxed">{tagline}</p>
+          {socialLinks.length > 0 && (
+            <div className="mt-5 flex items-center gap-3">
+              {socialLinks.map((s) => (
+                <a
+                  key={s.label}
+                  href={s.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={s.label}
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-cream-50/15 text-cream-100/80 transition-colors hover:border-cream-50/40 hover:text-cream-50"
+                >
+                  {s.icon}
+                </a>
+              ))}
+            </div>
+          )}
+          {whatsappNumber && (
+            <a
+              href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hola, tengo una pregunta sobre un producto de AFRA.')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-cream-100/80 transition-colors hover:text-cream-50"
+            >
+              <WhatsAppIcon />
+              ¿Dudas? Escríbenos por WhatsApp
+            </a>
+          )}
         </div>
 
         {COLUMNS.map((col) => (
@@ -73,8 +133,16 @@ export default function Footer({ tagline }: { tagline: string }) {
       </div>
 
       <div className="border-t border-cream-50/10">
-        <div className="mx-auto max-w-7xl px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-2 text-xs text-cream-100/40">
-          <p>© {new Date().getFullYear()} AFRA. Todos los derechos reservados.</p>
+        <div className="mx-auto max-w-7xl px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-cream-100/40">
+          <p>© {copyrightYear} AFRA. Todos los derechos reservados.</p>
+          <div className="flex items-center gap-4">
+            <Link href="/terminos" className="hover:text-cream-100/70 transition-colors">
+              Términos y condiciones
+            </Link>
+            <Link href="/privacidad" className="hover:text-cream-100/70 transition-colors">
+              Privacidad
+            </Link>
+          </div>
           <p>Bogotá, Colombia</p>
         </div>
       </div>
@@ -107,6 +175,49 @@ function MapIcon() {
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
       <path d="M12 21s-7-6.3-7-11.5A7 7 0 0 1 19 9.5C19 14.7 12 21 12 21Z" strokeLinejoin="round" />
       <circle cx="12" cy="9.5" r="2.5" />
+    </svg>
+  );
+}
+
+function InstagramIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+      <rect x="3" y="3" width="18" height="18" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function TikTokIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M16.5 2h-3v13.5a3 3 0 1 1-2.4-2.94V9.4a6.1 6.1 0 1 0 5.4 6.06V8.8a7.3 7.3 0 0 0 4.5 1.55V7.3a4.4 4.4 0 0 1-4.5-4.3V2Z" />
+    </svg>
+  );
+}
+
+function FacebookIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M13.5 21v-7.8h2.6l.4-3h-3v-1.9c0-.87.24-1.46 1.5-1.46h1.6V4.14C15.9 4.1 14.9 4 13.7 4c-2.4 0-4 1.47-4 4.16v2.05H7v3h2.7V21h3.8Z" />
+    </svg>
+  );
+}
+
+function XIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M4 3h4.2l4 5.5L16.8 3H21l-6.6 8.4L21 21h-4.2l-4.3-5.9L7.2 21H3l6.9-8.8L4 3Z" />
+    </svg>
+  );
+}
+
+function WhatsAppIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M17.5 14.4c-.3-.1-1.7-.9-2-1-.3-.1-.5-.1-.7.1-.2.3-.8 1-.9 1.1-.2.2-.3.2-.6.1-.3-.1-1.2-.5-2.3-1.5-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.1-.1.2-.3.2-.4.1-.2 0-.3 0-.5-.1-.1-.7-1.6-.9-2.2-.2-.5-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 .9-1 2.3s1 2.7 1.2 2.9c.1.2 2 3.1 5 4.3.7.3 1.2.5 1.7.6.7.2 1.3.2 1.8.1.5-.1 1.7-.7 1.9-1.3.2-.7.2-1.2.2-1.3-.1-.1-.3-.2-.5-.3Z" />
+      <path d="M12 2C6.5 2 2 6.5 2 12c0 1.8.5 3.5 1.3 5L2 22l5.2-1.4c1.4.8 3.1 1.2 4.8 1.2 5.5 0 10-4.5 10-10S17.5 2 12 2Zm0 18.2c-1.6 0-3.1-.4-4.4-1.2l-.3-.2-3.1.8.8-3-.2-.3C4.1 14.9 3.7 13.5 3.7 12c0-4.6 3.7-8.3 8.3-8.3s8.3 3.7 8.3 8.3-3.7 8.2-8.3 8.2Z" />
     </svg>
   );
 }

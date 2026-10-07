@@ -2,14 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { buildWompiSignature, generateOrderReference, getWompiPublicKey } from '@/lib/wompi';
+import { sendOrderConfirmationEmail } from '@/lib/email';
+import { checkStock, buildStockDecrementOps } from '@/lib/stock';
 
 const schema = z.object({
   customerEmail: z.string().email(),
   customerName: z.string().min(1),
+  customerDocument: z.string().min(1),
   shippingAddress: z.string().min(1),
+  shippingAddressComplement: z.string().optional(),
+  shippingDepartment: z.string().min(1),
   shippingCity: z.string().min(1),
   shippingPhone: z.string().min(7),
+  deliveryNotes: z.string().optional(),
   couponCode: z.string().optional(),
+  paymentMethod: z.enum(['WOMPI', 'COD']).default('WOMPI'),
   items: z
     .array(
       z.object({
@@ -27,21 +34,20 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
-  const { items, couponCode, ...customer } = parsed.data;
+  const { items, couponCode, paymentMethod, ...customer } = parsed.data;
 
   const products = await prisma.product.findMany({
     where: { id: { in: items.map((i) => i.productId) }, active: true },
+    include: { variants: true },
   });
   if (products.length !== new Set(items.map((i) => i.productId)).size) {
     return NextResponse.json({ error: 'Uno o más productos ya no están disponibles' }, { status: 400 });
   }
 
   const productMap = new Map(products.map((p) => [p.id, p]));
-  for (const item of items) {
-    const product = productMap.get(item.productId)!;
-    if (product.stock < item.quantity) {
-      return NextResponse.json({ error: `Stock insuficiente para ${product.name}` }, { status: 400 });
-    }
+  const stockError = checkStock(productMap, items);
+  if (stockError) {
+    return NextResponse.json({ error: stockError }, { status: 400 });
   }
 
   const subtotalCents = items.reduce((sum, i) => sum + productMap.get(i.productId)!.priceCents * i.quantity, 0);
@@ -63,6 +69,7 @@ export async function POST(req: NextRequest) {
   const order = await prisma.order.create({
     data: {
       ...customer,
+      paymentMethod,
       subtotalCents,
       discountCents,
       totalCents,
@@ -78,7 +85,23 @@ export async function POST(req: NextRequest) {
         })),
       },
     },
+    include: { items: { include: { product: true } } },
   });
+
+  // Pago contra entrega: no hay pasarela que confirme el pago, así que el
+  // pedido queda comprometido de una vez (se descuenta stock y se avisa al
+  // cliente) apenas se crea, en vez de esperar un webhook que nunca llega.
+  if (paymentMethod === 'COD') {
+    await prisma.$transaction(buildStockDecrementOps(productMap, items));
+    await sendOrderConfirmationEmail(order);
+    return NextResponse.json({
+      orderId: order.id,
+      reference,
+      amountInCents: totalCents,
+      currency: 'COP',
+      paymentMethod,
+    });
+  }
 
   const [signature, publicKey] = await Promise.all([
     buildWompiSignature(reference, totalCents, 'COP'),
@@ -92,5 +115,6 @@ export async function POST(req: NextRequest) {
     currency: 'COP',
     signature,
     publicKey,
+    paymentMethod,
   });
 }

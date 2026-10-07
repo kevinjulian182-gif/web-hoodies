@@ -1,84 +1,301 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import { formatCOP } from '@/lib/format';
-import { colorToHex, COMMON_COLORS } from '@/lib/colors';
+import { colorToHex, COMMON_COLORS, parseColorImages, parseColorHex, type ColorImages } from '@/lib/colors';
+import { isOnSale, discountPercent } from '@/lib/discount';
 import ChipListEditor from '@/components/admin/ChipListEditor';
 import MediaUploader from '@/components/admin/MediaUploader';
+import ReviewsManager from '@/components/admin/ReviewsManager';
+import { variantKey, variantCombos, evenSplitStock, COMMON_SIZES, type VariantStock } from '@/lib/variants';
+import { autoBulletize, pasteBulletedText } from '@/lib/textareaBullets';
 
 type Product = {
   id: string;
   name: string;
   slug: string;
   brand: string;
+  category: string | null;
   description: string;
+  materials: string | null;
+  details: string | null;
+  careInstructions: string | null;
   priceCents: number;
+  compareAtPriceCents: number | null;
+  costCents: number | null;
   images: string[];
+  colorImages: ColorImages | null;
+  colorHex: Record<string, string> | null;
   videos: string[];
   sizes: string[];
   colors: string[];
   stock: number;
+  variants: VariantStock[];
   active: boolean;
+  isPromo: boolean;
 };
 
-const COMMON_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+type BrandEntry = { id: string; name: string; logoUrl: string | null; productCount: number };
+type CategoryEntry = { id: string; name: string; productCount: number };
+
+const LOW_STOCK_THRESHOLD = 5;
+
+function slugify(text: string) {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+}
+
+// Only the first color goes into the slug — a product can carry several
+// colors, but the slug just needs to disambiguate it from another product
+// with the same name, not enumerate every variant.
+function autoSlug(name: string, colors: string[]) {
+  return slugify(colors[0] ? `${name} ${colors[0]}` : name);
+}
+
+// Groups near-duplicate labels that only differ in case or stray whitespace
+// (e.g. one product saved with "Fear of God" and another with "FEAR OF
+// GOD") so the filter chips show one entry instead of two.
+function dedupeLabels(values: (string | null)[]): string[] {
+  const seen = new Map<string, string>();
+  for (const raw of values) {
+    const trimmed = raw?.trim();
+    if (!trimmed) continue;
+    const key = trimmed.toLowerCase();
+    if (!seen.has(key)) seen.set(key, trimmed);
+  }
+  return Array.from(seen.values()).sort((a, b) => a.localeCompare(b));
+}
 
 type FormState = {
   name: string;
   slug: string;
   brand: string;
+  category: string;
   description: string;
-  priceCents: string;
-  stock: string;
+  materials: string;
+  details: string;
+  careInstructions: string;
+  price: string;
+  compareAtPrice: string;
+  cost: string;
+  variantStock: Record<string, number>;
   images: string[];
+  colorImages: ColorImages;
+  colorHex: Record<string, string>;
   videos: string[];
   sizes: string[];
   colors: string[];
+  isPromo: boolean;
 };
 
 const emptyForm: FormState = {
   name: '',
   slug: '',
   brand: '',
+  category: '',
   description: '',
-  priceCents: '',
-  stock: '',
+  materials: '',
+  details: '',
+  careInstructions: '',
+  price: '',
+  compareAtPrice: '',
+  cost: '',
+  variantStock: {},
   images: [],
+  colorImages: {},
+  colorHex: {},
   videos: [],
   sizes: [],
   colors: [],
+  isPromo: false,
 };
 
+// The form works in whole pesos (what an admin actually types and reads);
+// priceCents in the API/DB stays in cents for consistency with the rest of
+// the codebase (discounts, totals, Wompi amounts) — convert at this boundary.
 function toForm(p: Product): FormState {
   return {
     name: p.name,
-    slug: p.slug,
+    slug: autoSlug(p.name, p.colors),
     brand: p.brand,
+    category: p.category ?? '',
     description: p.description,
-    priceCents: String(p.priceCents),
-    stock: String(p.stock),
+    materials: p.materials ?? '',
+    details: p.details ?? '',
+    careInstructions: p.careInstructions ?? '',
+    price: String(p.priceCents / 100),
+    compareAtPrice: p.compareAtPriceCents ? String(p.compareAtPriceCents / 100) : '',
+    cost: p.costCents != null ? String(p.costCents / 100) : '',
+    variantStock:
+      p.variants.length > 0
+        ? Object.fromEntries(p.variants.map((v) => [variantKey(v.size, v.color), v.stock]))
+        : evenSplitStock(p.stock, p.sizes, p.colors),
     images: p.images,
+    colorImages: parseColorImages(p.colorImages),
+    colorHex: parseColorHex(p.colorHex),
     videos: p.videos,
     sizes: p.sizes,
     colors: p.colors,
+    isPromo: p.isPromo,
   };
 }
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [brandList, setBrandList] = useState<BrandEntry[]>([]);
+  const [showBrandManager, setShowBrandManager] = useState(false);
+  const [categoryList, setCategoryList] = useState<CategoryEntry[]>([]);
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [editingId, setEditingId] = useState<string | 'new' | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [query, setQuery] = useState('');
+  const [brandFilter, setBrandFilter] = useState<string | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{
+    updated: number;
+    notFound: string[];
+    errors: { row: number; name: string; message: string }[];
+  } | null>(null);
 
   const load = async () => {
     const res = await fetch('/api/products');
     if (res.ok) setProducts(await res.json());
   };
 
+  const loadBrands = async () => {
+    const res = await fetch('/api/admin/brands');
+    if (res.ok) setBrandList(await res.json());
+  };
+
+  const loadCategories = async () => {
+    const res = await fetch('/api/admin/categories');
+    if (res.ok) setCategoryList(await res.json());
+  };
+
   useEffect(() => {
     load();
+    loadBrands();
+    loadCategories();
   }, []);
+
+  const deleteBrand = async (b: BrandEntry) => {
+    if (!confirm(`¿Eliminar la marca "${b.name}"?`)) return;
+    const res = await fetch(`/api/admin/brands/${b.id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      alert(body?.error ?? 'No se pudo eliminar la marca');
+      return;
+    }
+    loadBrands();
+  };
+
+  const [uploadingLogoFor, setUploadingLogoFor] = useState<string | null>(null);
+
+  const uploadBrandLogo = async (b: BrandEntry, file: File) => {
+    setUploadingLogoFor(b.id);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const uploadRes = await fetch('/api/admin/upload', { method: 'POST', body: form });
+      const uploadData = await uploadRes.json().catch(() => null);
+      if (!uploadRes.ok || !uploadData?.url) {
+        alert(uploadData?.error ?? 'No se pudo subir el logo');
+        return;
+      }
+      const patchRes = await fetch(`/api/admin/brands/${b.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ logoUrl: uploadData.url }),
+      });
+      if (!patchRes.ok) {
+        alert('No se pudo guardar el logo');
+        return;
+      }
+      loadBrands();
+    } finally {
+      setUploadingLogoFor(null);
+    }
+  };
+
+  const removeBrandLogo = async (b: BrandEntry) => {
+    await fetch(`/api/admin/brands/${b.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ logoUrl: null }),
+    });
+    loadBrands();
+  };
+
+  const deleteCategory = async (c: CategoryEntry) => {
+    if (!confirm(`¿Eliminar la categoría "${c.name}"?`)) return;
+    const res = await fetch(`/api/admin/categories/${c.id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      alert(body?.error ?? 'No se pudo eliminar la categoría');
+      return;
+    }
+    loadCategories();
+  };
+
+  const brands = useMemo(() => dedupeLabels(products.map((p) => p.brand)), [products]);
+  const categories = useMemo(() => dedupeLabels(products.map((p) => p.category)), [products]);
+
+  // Managed Brand rows saved before the case-insensitive upsert existed can
+  // still collide once displayed uppercase (e.g. "Fear of God" and "FEAR OF
+  // GOD" read identically as chips) — group those so the UI can offer a
+  // one-click fix instead of leaving two rows that look like one.
+  const duplicateBrandGroups = useMemo(() => {
+    const groups = new Map<string, BrandEntry[]>();
+    for (const b of brandList) {
+      const key = b.name.trim().toLowerCase();
+      groups.set(key, [...(groups.get(key) ?? []), b]);
+    }
+    return Array.from(groups.values()).filter((g) => g.length > 1);
+  }, [brandList]);
+
+  const mergeBrandGroup = async (group: BrandEntry[]) => {
+    const survivor = [...group].sort((a, b) => b.productCount - a.productCount)[0];
+    const mergeIds = group.filter((b) => b.id !== survivor.id).map((b) => b.id);
+    const res = await fetch('/api/admin/brands/merge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ keepId: survivor.id, mergeIds }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      alert(body?.error ?? 'No se pudo unificar la marca');
+      return;
+    }
+    loadBrands();
+    load();
+  };
+
+  const totalFormStock = useMemo(
+    () =>
+      variantCombos(form.sizes, form.colors).reduce(
+        (sum, { size, color }) => sum + (form.variantStock[variantKey(size, color)] ?? 0),
+        0
+      ),
+    [form.sizes, form.colors, form.variantStock]
+  );
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return products.filter((p) => {
+      if (brandFilter && p.brand.trim().toLowerCase() !== brandFilter.toLowerCase()) return false;
+      if (categoryFilter && p.category?.trim().toLowerCase() !== categoryFilter.toLowerCase()) return false;
+      if (q && !p.name.toLowerCase().includes(q) && !p.brand.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [products, query, brandFilter, categoryFilter]);
 
   const startCreate = () => {
     setEditingId('new');
@@ -101,8 +318,19 @@ export default function AdminProductsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (form.images.length === 0) {
-      setError('Sube al menos una imagen');
+    // With colors, there's no general gallery to edit anymore — the
+    // product's main `images` (used wherever there's no color context yet,
+    // e.g. the cart line, search results, the admin list) is derived from
+    // the first color's photos, falling back to any other color's if the
+    // first one hasn't gotten its photos yet.
+    const effectiveImages =
+      form.colors.length > 0
+        ? form.colorImages[form.colors[0]]?.length
+          ? form.colorImages[form.colors[0]]
+          : form.colors.flatMap((c) => form.colorImages[c] ?? [])
+        : form.images;
+    if (effectiveImages.length === 0) {
+      setError(form.colors.length > 0 ? 'Sube al menos una foto para alguno de los colores' : 'Sube al menos una imagen');
       return;
     }
     if (form.sizes.length === 0) {
@@ -110,17 +338,47 @@ export default function AdminProductsPage() {
       return;
     }
     setSaving(true);
+    // The slug is always auto-generated now, so two products that land on
+    // the same name+color need a disambiguating suffix instead of a 500
+    // from the DB's unique constraint.
+    const takenSlugs = new Set(products.filter((p) => p.id !== editingId).map((p) => p.slug));
+    let slug = form.slug;
+    for (let n = 2; takenSlugs.has(slug); n++) slug = `${form.slug}-${n}`;
     const payload = {
       name: form.name,
-      slug: form.slug,
+      slug,
       brand: form.brand,
+      category: form.category || null,
       description: form.description,
-      priceCents: Number(form.priceCents),
-      stock: Number(form.stock),
-      images: form.images,
+      materials: form.materials || null,
+      details: form.details || null,
+      careInstructions: form.careInstructions || null,
+      priceCents: Math.round(Number(form.price) * 100),
+      compareAtPriceCents: form.compareAtPrice ? Math.round(Number(form.compareAtPrice) * 100) : null,
+      costCents: form.cost ? Math.round(Number(form.cost) * 100) : null,
+      // Stock lives per size+color combo now — send the full matrix for
+      // the product's current sizes/colors; the API sums it into the
+      // product's cached total stock.
+      variants: variantCombos(form.sizes, form.colors).map(({ size, color }) => ({
+        size,
+        color,
+        stock: form.variantStock[variantKey(size, color)] ?? 0,
+      })),
+      images: effectiveImages,
+      // Drop any leftover entry for a color that's since been removed from
+      // the chip list, so deleting a color also clears its photo set.
+      colorImages: Object.fromEntries(
+        Object.entries(form.colorImages).filter(([color, urls]) => form.colors.includes(color) && urls.length > 0)
+      ),
+      // Same cleanup as colorImages: drop overrides for colors no longer
+      // on the product, so the stored map never outlives the chip it tints.
+      colorHex: Object.fromEntries(
+        Object.entries(form.colorHex).filter(([color]) => form.colors.includes(color))
+      ),
       videos: form.videos,
       sizes: form.sizes,
       colors: form.colors,
+      isPromo: form.isPromo,
     };
     const res =
       editingId === 'new'
@@ -139,8 +397,25 @@ export default function AdminProductsPage() {
       setError('No se pudo guardar el producto');
       return;
     }
+    // Register the brand (and category, if set) even if new, so each stays
+    // in its managed list even after this product is later deleted or
+    // reassigned.
+    await fetch('/api/admin/brands', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: form.brand }),
+    });
+    if (form.category) {
+      await fetch('/api/admin/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: form.category }),
+      });
+    }
     cancelEdit();
     load();
+    loadBrands();
+    loadCategories();
   };
 
   const toggleActive = async (p: Product) => {
@@ -152,12 +427,51 @@ export default function AdminProductsPage() {
     load();
   };
 
+  const togglePromo = async (p: Product) => {
+    await fetch(`/api/products/${p.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isPromo: !p.isPromo }),
+    });
+    load();
+  };
+
+  const handleImportFile = async (file: File) => {
+    setImporting(true);
+    setImportResult(null);
+    const body = new FormData();
+    body.append('file', file);
+    const res = await fetch('/api/admin/import', { method: 'POST', body });
+    setImporting(false);
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      alert(err?.error ?? 'No se pudo importar el archivo');
+      return;
+    }
+    setImportResult(await res.json());
+    load();
+  };
+
   const duplicate = async (p: Product) => {
     const res = await fetch(`/api/products/${p.id}/duplicate`, { method: 'POST' });
     if (!res.ok) return;
     const copy: Product = await res.json();
     await load();
     startEdit(copy);
+  };
+
+  const deleteProduct = async (p: Product) => {
+    if (!confirm(`¿Eliminar "${p.name}" de forma permanente? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+    const res = await fetch(`/api/products/${p.id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      alert(body?.error ?? 'No se pudo eliminar el producto');
+      return;
+    }
+    if (editingId === p.id) cancelEdit();
+    load();
   };
 
   return (
@@ -171,6 +485,32 @@ export default function AdminProductsPage() {
           >
             Exportar Excel
           </a>
+          <label className="cursor-pointer rounded-full border border-cream-300 px-4 py-2 text-sm text-coffee-700 hover:border-coffee-600">
+            {importing ? 'Importando…' : 'Importar Excel'}
+            <input
+              type="file"
+              accept=".xlsx"
+              disabled={importing}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = '';
+                if (file) handleImportFile(file);
+              }}
+              className="hidden"
+            />
+          </label>
+          <button
+            onClick={() => setShowBrandManager((v) => !v)}
+            className="rounded-full border border-cream-300 px-4 py-2 text-sm text-coffee-700 hover:border-coffee-600"
+          >
+            Gestionar marcas
+          </button>
+          <button
+            onClick={() => setShowCategoryManager((v) => !v)}
+            className="rounded-full border border-cream-300 px-4 py-2 text-sm text-coffee-700 hover:border-coffee-600"
+          >
+            Gestionar categorías
+          </button>
           {editingId === null && (
             <button
               onClick={startCreate}
@@ -182,6 +522,156 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
+      {showBrandManager && (
+        <div className="mb-6 rounded-xl border border-cream-200 p-4">
+          <p className="mb-3 text-sm font-medium text-coffee-900">
+            Marcas ({brandList.length})
+          </p>
+
+          {duplicateBrandGroups.length > 0 && (
+            <div className="mb-4 space-y-2 rounded-lg border border-amber-300 bg-amber-50 p-3">
+              <p className="text-xs font-medium text-amber-900">
+                Hay marcas que parecen duplicadas (mismo nombre, distinta mayúscula/espacio):
+              </p>
+              {duplicateBrandGroups.map((group) => (
+                <div key={group.map((b) => b.id).join('-')} className="flex flex-wrap items-center gap-2 text-xs text-amber-800">
+                  <span>
+                    {group.map((b) => `"${b.name}" (${b.productCount})`).join('  +  ')}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => mergeBrandGroup(group)}
+                    className="rounded-full bg-amber-900 px-3 py-1 text-[11px] font-medium text-cream-50 hover:bg-amber-800"
+                  >
+                    Unificar
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {brandList.length === 0 ? (
+            <p className="text-sm text-coffee-500">Aún no hay marcas registradas.</p>
+          ) : (
+            <div className="space-y-2">
+              {brandList.map((b) => (
+                <div key={b.id} className="flex items-center gap-3 rounded-lg border border-cream-200 p-2.5">
+                  <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md border border-cream-200 bg-cream-50">
+                    {b.logoUrl ? (
+                      <Image src={b.logoUrl} alt={b.name} fill className="object-contain p-1" sizes="40px" />
+                    ) : (
+                      <span className="flex h-full w-full items-center justify-center text-[9px] text-coffee-300">
+                        Sin logo
+                      </span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-coffee-900">{b.name}</p>
+                    <p className="text-xs text-coffee-400">
+                      {b.productCount} producto{b.productCount === 1 ? '' : 's'}
+                    </p>
+                  </div>
+                  <label className="shrink-0 cursor-pointer text-xs font-medium text-coffee-600 underline decoration-cream-300 underline-offset-2 hover:text-coffee-900">
+                    {uploadingLogoFor === b.id ? 'Subiendo…' : b.logoUrl ? 'Cambiar logo' : 'Subir logo'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={uploadingLogoFor === b.id}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = '';
+                        if (file) uploadBrandLogo(b, file);
+                      }}
+                    />
+                  </label>
+                  {b.logoUrl && (
+                    <button
+                      type="button"
+                      onClick={() => removeBrandLogo(b)}
+                      className="shrink-0 text-xs text-coffee-400 hover:text-red-600"
+                    >
+                      Quitar
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => deleteBrand(b)}
+                    disabled={b.productCount > 0}
+                    title={b.productCount > 0 ? 'En uso: no se puede eliminar' : 'Eliminar marca'}
+                    aria-label={`Eliminar marca ${b.name}`}
+                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-coffee-400 hover:bg-cream-100 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-coffee-400"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {showCategoryManager && (
+        <div className="mb-6 rounded-xl border border-cream-200 p-4">
+          <p className="mb-3 text-sm font-medium text-coffee-900">
+            Categorías ({categoryList.length})
+          </p>
+          {categoryList.length === 0 ? (
+            <p className="text-sm text-coffee-500">Aún no hay categorías registradas.</p>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {categoryList.map((c) => (
+                <span
+                  key={c.id}
+                  className="flex items-center gap-1.5 rounded-full border border-cream-200 py-1.5 pl-3 pr-1.5 text-xs text-coffee-700"
+                >
+                  {c.name}
+                  <span className="text-coffee-400">({c.productCount})</span>
+                  <button
+                    type="button"
+                    onClick={() => deleteCategory(c)}
+                    disabled={c.productCount > 0}
+                    title={c.productCount > 0 ? 'En uso: no se puede eliminar' : 'Eliminar categoría'}
+                    aria-label={`Eliminar categoría ${c.name}`}
+                    className="flex h-5 w-5 items-center justify-center rounded-full text-coffee-400 hover:bg-cream-100 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-coffee-400"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {importResult && (
+        <div className="mb-6 rounded-xl border border-cream-200 p-4 text-sm">
+          <div className="flex items-center justify-between">
+            <p className="font-medium text-coffee-900">
+              Importación completa: {importResult.updated} producto{importResult.updated === 1 ? '' : 's'} actualizado
+              {importResult.updated === 1 ? '' : 's'}.
+            </p>
+            <button onClick={() => setImportResult(null)} className="text-coffee-400 hover:text-coffee-700">
+              Cerrar
+            </button>
+          </div>
+          {importResult.notFound.length > 0 && (
+            <p className="mt-2 text-amber-800">
+              No se encontraron {importResult.notFound.length}: {importResult.notFound.join(', ')}
+            </p>
+          )}
+          {importResult.errors.length > 0 && (
+            <ul className="mt-2 space-y-1 text-red-700">
+              {importResult.errors.map((e, i) => (
+                <li key={i}>
+                  Fila {e.row} ({e.name}): {e.message}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
       {editingId !== null && (
         <form onSubmit={handleSubmit} className="mb-10 max-w-2xl space-y-4 rounded-2xl border border-cream-200 p-6">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-coffee-700">
@@ -189,20 +679,262 @@ export default function AdminProductsPage() {
           </h2>
 
           <div className="grid grid-cols-2 gap-3">
-            <input placeholder="Nombre" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className="border border-cream-200 rounded-lg px-3 py-2 text-sm" />
-            <input placeholder="Slug (url)" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} required className="border border-cream-200 rounded-lg px-3 py-2 text-sm" />
-            <input placeholder="Marca" value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} required className="border border-cream-200 rounded-lg px-3 py-2 text-sm" />
-            <input placeholder="Precio en centavos (COP)" type="number" value={form.priceCents} onChange={(e) => setForm({ ...form, priceCents: e.target.value })} required className="border border-cream-200 rounded-lg px-3 py-2 text-sm" />
-            <input placeholder="Stock" type="number" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} required className="col-span-2 border border-cream-200 rounded-lg px-3 py-2 text-sm" />
+            <FormField label="Nombre">
+              <input
+                value={form.name}
+                onChange={(e) => {
+                  const name = e.target.value;
+                  setForm((f) => ({ ...f, name, slug: autoSlug(name, f.colors) }));
+                }}
+                required
+                className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm"
+              />
+            </FormField>
+            <FormField label="Slug (url)">
+              <input
+                value={form.slug}
+                readOnly
+                title="Se genera solo a partir del nombre y el color"
+                className="w-full cursor-not-allowed rounded-lg border border-cream-200 bg-cream-50 px-3 py-2 text-sm text-coffee-500"
+              />
+            </FormField>
+            <FormField label="Marca">
+              <input
+                value={form.brand}
+                onChange={(e) => setForm({ ...form, brand: e.target.value })}
+                required
+                list="brand-options"
+                placeholder="Elige una marca existente o escribe una nueva"
+                className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm"
+              />
+              <datalist id="brand-options">
+                {brandList.map((b) => (
+                  <option key={b.id} value={b.name} />
+                ))}
+              </datalist>
+            </FormField>
+            <FormField label="Tipo de prenda">
+              <input
+                value={form.category}
+                onChange={(e) => setForm({ ...form, category: e.target.value })}
+                list="category-options"
+                placeholder="Elige una existente o escribe una nueva (opcional)"
+                className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm"
+              />
+              <datalist id="category-options">
+                {categoryList.map((c) => (
+                  <option key={c.id} value={c.name} />
+                ))}
+              </datalist>
+            </FormField>
+            <FormField label="Precio (COP)">
+              <input type="number" min="0" step="1" placeholder="450000" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm" />
+            </FormField>
+            <FormField label="Precio antes del descuento (opcional)">
+              <input type="number" min="0" step="1" placeholder="560000" value={form.compareAtPrice} onChange={(e) => setForm({ ...form, compareAtPrice: e.target.value })} className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm" />
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] text-coffee-500">Descuento rápido:</span>
+                {[10, 20, 30, 40, 50].map((pct) => (
+                  <button
+                    key={pct}
+                    type="button"
+                    disabled={!form.price}
+                    onClick={() =>
+                      setForm({
+                        ...form,
+                        compareAtPrice: String(Math.round(Number(form.price) / (1 - pct / 100))),
+                      })
+                    }
+                    className="rounded-full border border-cream-300 px-2 py-0.5 text-[11px] text-coffee-600 hover:border-coffee-600 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    -{pct}%
+                  </button>
+                ))}
+                {form.compareAtPrice && (
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, compareAtPrice: '' })}
+                    className="text-[11px] text-coffee-400 hover:text-coffee-700"
+                  >
+                    Quitar
+                  </button>
+                )}
+              </div>
+            </FormField>
+            <FormField label="Costo (COP) — solo interno">
+              <input type="number" min="0" step="1" placeholder="180000" value={form.cost} onChange={(e) => setForm({ ...form, cost: e.target.value })} className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm" />
+              {form.cost && form.price && Number(form.price) > 0 && (
+                <p className="mt-1 text-[11px] text-coffee-500">
+                  Margen: {formatCOP(Math.round((Number(form.price) - Number(form.cost)) * 100))} (
+                  {Math.round(((Number(form.price) - Number(form.cost)) / Number(form.price)) * 100)}%)
+                </p>
+              )}
+            </FormField>
           </div>
 
-          <textarea placeholder="Descripción" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} required className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm" rows={2} />
+          <label className="flex items-center gap-2.5 rounded-lg border border-cream-200 px-3 py-2.5 text-sm text-coffee-800">
+            <input
+              type="checkbox"
+              checked={form.isPromo}
+              onChange={(e) => setForm({ ...form, isPromo: e.target.checked })}
+              className="h-4 w-4 accent-coffee-900"
+            />
+            Mostrar en Promos
+            <span className="text-xs text-coffee-500">
+              — aparece en /promos y en la sección de promociones del inicio, independiente del descuento
+            </span>
+          </label>
+
+          <FormField label="Descripción">
+            <textarea
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: autoBulletize(e.target.value, e.target.selectionStart) })}
+              onPaste={(e) => pasteBulletedText(e, form.description, (v) => setForm((f) => ({ ...f, description: v })))}
+              required
+              className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm"
+              rows={2}
+            />
+          </FormField>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <FormField label="Materiales (opcional)">
+              <textarea
+                value={form.materials}
+                onChange={(e) => setForm({ ...form, materials: autoBulletize(e.target.value, e.target.selectionStart) })}
+                onPaste={(e) => pasteBulletedText(e, form.materials, (v) => setForm((f) => ({ ...f, materials: v })))}
+                placeholder="100% algodón felpa francesa 400g"
+                className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm"
+                rows={3}
+              />
+            </FormField>
+            <FormField label="Detalles del producto (opcional)">
+              <textarea
+                value={form.details}
+                onChange={(e) => setForm({ ...form, details: autoBulletize(e.target.value, e.target.selectionStart) })}
+                onPaste={(e) => pasteBulletedText(e, form.details, (v) => setForm((f) => ({ ...f, details: v })))}
+                placeholder={'Un detalle por línea, ej:\nCorte oversized\nBolsillo canguro\nEtiqueta bordada'}
+                className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm"
+                rows={3}
+              />
+            </FormField>
+            <FormField label="Recomendaciones de lavado (opcional)">
+              <textarea
+                value={form.careInstructions}
+                onChange={(e) => setForm({ ...form, careInstructions: autoBulletize(e.target.value, e.target.selectionStart) })}
+                onPaste={(e) => pasteBulletedText(e, form.careInstructions, (v) => setForm((f) => ({ ...f, careInstructions: v })))}
+                placeholder="Lavar en frío, del revés, sin secadora"
+                className="w-full border border-cream-200 rounded-lg px-3 py-2 text-sm"
+                rows={3}
+              />
+            </FormField>
+          </div>
 
           <ChipListEditor label="Tallas" items={form.sizes} onChange={(sizes) => setForm({ ...form, sizes })} suggestions={COMMON_SIZES} />
-          <ChipListEditor label="Colores" items={form.colors} onChange={(colors) => setForm({ ...form, colors })} suggestions={COMMON_COLORS} swatch={colorToHex} />
+          <ChipListEditor
+            label="Colores"
+            items={form.colors}
+            onChange={(colors) =>
+              setForm((f) => ({ ...f, colors, slug: autoSlug(f.name, colors) }))
+            }
+            suggestions={COMMON_COLORS}
+            swatch={(c) => colorToHex(c, form.colorHex)}
+            onSwatchChange={(c, hex) => setForm((f) => ({ ...f, colorHex: { ...f.colorHex, [c]: hex } }))}
+          />
 
-          <MediaUploader label="Imágenes" kind="image" items={form.images} onChange={(images) => setForm({ ...form, images })} />
+          <div>
+            <div className="mb-1.5 flex items-center justify-between">
+              <p className="text-xs font-medium text-coffee-600">
+                Stock por talla{form.colors.length > 0 ? ' y color' : ''}
+              </p>
+              <p className="text-xs text-coffee-500">
+                Total: <span className="font-semibold text-coffee-800">{totalFormStock}</span>
+              </p>
+            </div>
+            {form.sizes.length === 0 ? (
+              <p className="text-xs text-coffee-400">Agrega al menos una talla para definir el stock.</p>
+            ) : (
+              <div className="overflow-x-auto rounded-lg border border-cream-200">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-cream-200 bg-cream-50">
+                      <th className="px-3 py-2 text-left text-xs font-medium text-coffee-600">Talla</th>
+                      {(form.colors.length > 0 ? form.colors : ['Stock']).map((color) => (
+                        <th key={color} className="px-3 py-2 text-left text-xs font-medium text-coffee-600">
+                          {color}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {form.sizes.map((size) => (
+                      <tr key={size} className="border-b border-cream-100 last:border-0">
+                        <td className="px-3 py-2 text-xs font-medium text-coffee-700">{size}</td>
+                        {(form.colors.length > 0 ? form.colors : [null]).map((color) => {
+                          const key = variantKey(size, color);
+                          return (
+                            <td key={key} className="px-2 py-1.5">
+                              <input
+                                type="number"
+                                min="0"
+                                value={form.variantStock[key] ?? 0}
+                                onChange={(e) =>
+                                  setForm({
+                                    ...form,
+                                    variantStock: {
+                                      ...form.variantStock,
+                                      [key]: Math.max(0, Number(e.target.value)),
+                                    },
+                                  })
+                                }
+                                className="w-20 rounded-md border border-cream-200 px-2 py-1 text-sm focus:outline-none focus:border-coffee-600"
+                              />
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {form.colors.length === 0 ? (
+            <MediaUploader label="Imágenes" kind="image" items={form.images} onChange={(images) => setForm({ ...form, images })} />
+          ) : (
+            <div>
+              <p className="mb-1.5 text-xs font-medium text-coffee-600">Fotos por color</p>
+              <p className="mb-3 text-[11px] text-coffee-500">
+                Cada color tiene sus propias fotos — no hay una galería general. Un color sin fotos propias
+                muestra temporalmente las del primer color mientras le subes las suyas.
+              </p>
+              <div className="space-y-4 rounded-lg border border-cream-200 p-3">
+                {form.colors.map((color) => (
+                  <div key={color}>
+                    <div className="mb-1.5 flex items-center gap-2">
+                      <span
+                        className="h-3.5 w-3.5 shrink-0 rounded-full border border-cream-300"
+                        style={{ backgroundColor: colorToHex(color, form.colorHex) }}
+                      />
+                      <span className="text-xs font-medium text-coffee-700">{color}</span>
+                    </div>
+                    <MediaUploader
+                      label=""
+                      kind="image"
+                      items={form.colorImages[color] ?? []}
+                      onChange={(urls) =>
+                        setForm({ ...form, colorImages: { ...form.colorImages, [color]: urls } })
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <MediaUploader label="Videos" kind="video" items={form.videos} onChange={(videos) => setForm({ ...form, videos })} />
+
+          {editingId !== 'new' && editingId !== null && <ReviewsManager productId={editingId} />}
 
           {error && <p className="text-sm text-red-600">{error}</p>}
 
@@ -217,32 +949,176 @@ export default function AdminProductsPage() {
         </form>
       )}
 
-      <div className="space-y-2">
-        {products.map((p) => (
-          <div key={p.id} className="border border-cream-200 rounded-xl p-4 flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <p className="font-medium text-coffee-900">
-                {p.name} {!p.active && <span className="text-xs text-red-600">(inactivo)</span>}
-              </p>
-              <p className="text-sm text-coffee-600">
-                {p.brand} · {formatCOP(p.priceCents)} · Stock: {p.stock}
-                {p.colors.length > 0 && ` · ${p.colors.join(', ')}`}
-              </p>
-            </div>
-            <div className="flex shrink-0 gap-3">
-              <button onClick={() => startEdit(p)} className="text-sm text-coffee-700 hover:text-coffee-900">
-                Editar
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Buscar por nombre o marca…"
+          className="w-full max-w-xs rounded-full border border-cream-200 px-4 py-2 text-sm focus:outline-none focus:border-coffee-600"
+        />
+        {brands.length > 1 && (
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              onClick={() => setBrandFilter(null)}
+              className={`rounded-full border px-3 py-1.5 text-xs font-medium uppercase tracking-wide transition-colors ${
+                brandFilter === null ? 'border-coffee-900 bg-coffee-900 text-cream-50' : 'border-cream-200 text-coffee-600 hover:border-coffee-600'
+              }`}
+            >
+              Todas
+            </button>
+            {brands.map((b) => (
+              <button
+                key={b}
+                onClick={() => setBrandFilter(b)}
+                className={`rounded-full border px-3 py-1.5 text-xs font-medium uppercase tracking-wide transition-colors ${
+                  brandFilter === b ? 'border-coffee-900 bg-coffee-900 text-cream-50' : 'border-cream-200 text-coffee-600 hover:border-coffee-600'
+                }`}
+              >
+                {b}
               </button>
-              <button onClick={() => duplicate(p)} className="text-sm text-coffee-700 hover:text-coffee-900">
-                Duplicar
-              </button>
-              <button onClick={() => toggleActive(p)} className={`text-sm ${p.active ? 'text-red-600' : 'text-green-700'}`}>
-                {p.active ? 'Desactivar' : 'Reactivar'}
-              </button>
-            </div>
+            ))}
           </div>
-        ))}
+        )}
+        {categories.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              onClick={() => setCategoryFilter(null)}
+              className={`rounded-full border px-3 py-1.5 text-xs font-medium uppercase tracking-wide transition-colors ${
+                categoryFilter === null ? 'border-coffee-900 bg-coffee-900 text-cream-50' : 'border-cream-200 text-coffee-600 hover:border-coffee-600'
+              }`}
+            >
+              Todos los tipos
+            </button>
+            {categories.map((c) => (
+              <button
+                key={c}
+                onClick={() => setCategoryFilter(c)}
+                className={`rounded-full border px-3 py-1.5 text-xs font-medium uppercase tracking-wide transition-colors ${
+                  categoryFilter === c ? 'border-coffee-900 bg-coffee-900 text-cream-50' : 'border-cream-200 text-coffee-600 hover:border-coffee-600'
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        )}
+        <span className="text-xs text-coffee-500">
+          {filtered.length} de {products.length} producto{products.length === 1 ? '' : 's'}
+        </span>
+      </div>
+
+      <div className="space-y-2">
+        {filtered.length === 0 && (
+          <p className="rounded-xl border border-dashed border-cream-300 p-8 text-center text-sm text-coffee-500">
+            Ningún producto coincide con la búsqueda.
+          </p>
+        )}
+        {filtered.map((p) => {
+          const onSale = isOnSale(p.priceCents, p.compareAtPriceCents);
+          const lowStock = p.active && p.stock > 0 && p.stock <= LOW_STOCK_THRESHOLD;
+          return (
+            <div key={p.id} className="flex items-center gap-4 rounded-xl border border-cream-200 p-3">
+              <div className="relative h-16 w-14 shrink-0 overflow-hidden rounded-lg bg-cream-100">
+                {p.images[0] ? (
+                  <Image src={p.images[0]} alt={p.name} fill className="object-cover" sizes="56px" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-coffee-300">
+                    <NoImageIcon />
+                  </div>
+                )}
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-medium text-coffee-900">{p.name}</p>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                      p.active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                    }`}
+                  >
+                    {p.active ? 'Activo' : 'Inactivo'}
+                  </span>
+                  {onSale && (
+                    <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">
+                      -{discountPercent(p.priceCents, p.compareAtPriceCents as number)}%
+                    </span>
+                  )}
+                  {p.isPromo && (
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800">
+                      Promo
+                    </span>
+                  )}
+                </div>
+                <p className="mt-0.5 text-sm text-coffee-600">
+                  {p.brand} · {formatCOP(p.priceCents)} ·{' '}
+                  <span className={lowStock ? 'font-medium text-amber-700' : ''}>
+                    Stock: {p.stock}
+                    {lowStock && ' (bajo)'}
+                  </span>
+                  {p.costCents != null && (
+                    <>
+                      {' · '}
+                      <span className="text-coffee-400">
+                        Margen: {formatCOP(p.priceCents - p.costCents)} (
+                        {Math.round(((p.priceCents - p.costCents) / p.priceCents) * 100)}%)
+                      </span>
+                    </>
+                  )}
+                </p>
+                {p.colors.length > 0 && (
+                  <div className="mt-1.5 flex items-center gap-1">
+                    {p.colors.map((c) => (
+                      <span
+                        key={c}
+                        title={c}
+                        className="h-3.5 w-3.5 rounded-full border border-cream-300"
+                        style={{ backgroundColor: colorToHex(c, parseColorHex(p.colorHex)) }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex shrink-0 gap-3">
+                <button onClick={() => startEdit(p)} className="text-sm text-coffee-700 hover:text-coffee-900">
+                  Editar
+                </button>
+                <button onClick={() => duplicate(p)} className="text-sm text-coffee-700 hover:text-coffee-900">
+                  Duplicar
+                </button>
+                <button onClick={() => togglePromo(p)} className={`text-sm ${p.isPromo ? 'text-amber-800' : 'text-coffee-700 hover:text-coffee-900'}`}>
+                  {p.isPromo ? 'Quitar de Promos' : 'Agregar a Promos'}
+                </button>
+                <button onClick={() => toggleActive(p)} className={`text-sm ${p.active ? 'text-red-600' : 'text-green-700'}`}>
+                  {p.active ? 'Desactivar' : 'Reactivar'}
+                </button>
+                <button onClick={() => deleteProduct(p)} className="text-sm text-red-700 hover:text-red-900">
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
+  );
+}
+
+function FormField({ label, className = '', children }: { label: string; className?: string; children: React.ReactNode }) {
+  return (
+    <label className={`block ${className}`}>
+      <span className="mb-1 block text-xs text-coffee-600">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function NoImageIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <circle cx="9" cy="10" r="1.8" />
+      <path d="m4 18 5-5 3.5 3.5L18 11l2 2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
