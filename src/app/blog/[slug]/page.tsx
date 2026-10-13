@@ -4,12 +4,11 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 
-// Cached statically per slug — edits call revalidateBlogPost(slug). See
-// the equivalent comment on productos/[slug]/page.tsx for why this is
-// needed for a [slug] route to be cached at all.
+// Cached per slug on first visit — edits call revalidateBlogPost(slug). See
+// the equivalent comment on productos/[slug]/page.tsx for why this exists
+// and why it's empty.
 export async function generateStaticParams() {
-  const posts = await prisma.blogPost.findMany({ select: { slug: true } });
-  return posts.map((p) => ({ slug: p.slug }));
+  return [];
 }
 
 export async function generateMetadata({
