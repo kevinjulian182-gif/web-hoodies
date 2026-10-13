@@ -22,17 +22,15 @@ export default function ProductCard({
   product: PublicProduct;
   index?: number;
   // Set when this card is one color of a multi-color product, split out by
-  // ProductGrid to look like an independent product. Fixes the color (no
-  // swatch picker) and carries it to the PDP via ?color= so the gallery and
-  // add-to-cart there land on the same colorway — everything downstream
-  // (stock, variants, checkout) still works off the single underlying
-  // Product row, this only changes what the card shows.
+  // ProductGrid to look like an independent product: the card starts on
+  // this color (swatches still let the shopper switch). Everything
+  // downstream (stock, variants, checkout) still works off the single
+  // underlying Product row.
   fixedColor?: string;
 }) {
   const { addItem } = useCart();
   const { showColors, showSizes } = useCatalogSettings();
   const onSale = isOnSale(product.priceCents, product.compareAtPriceCents);
-  const isSplitCard = Boolean(fixedColor);
   const [size, setSize] = useState(product.sizes[0] ?? '');
   const [color, setColor] = useState(fixedColor ?? product.colors[0] ?? '');
   const [added, setAdded] = useState(false);
@@ -42,9 +40,11 @@ export default function ProductCard({
   const colorImages = parseColorImages(product.colorImages);
   const colorHex = parseColorHex(product.colorHex);
   const displayImages = (color && colorImages[color]?.length ? colorImages[color] : product.images);
-  const href = isSplitCard
-    ? `/productos/${product.slug}?color=${encodeURIComponent(fixedColor!)}`
-    : `/productos/${product.slug}`;
+  // Carry the card's current color to the PDP so it opens on the same one.
+  const href =
+    product.colors.length > 1 && color
+      ? `/productos/${product.slug}?color=${encodeURIComponent(color)}`
+      : `/productos/${product.slug}`;
 
   const handleAdd = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -106,21 +106,7 @@ export default function ProductCard({
         </div>
 
         <div className="mt-4">
-          <div className="flex items-center gap-1.5">
-            <p className="truncate text-[11px] uppercase tracking-[0.15em] text-coffee-500">{product.brand}</p>
-            {isSplitCard && (
-              <>
-                <span className="h-0.5 w-0.5 shrink-0 rounded-full bg-coffee-300" aria-hidden="true" />
-                <span className="flex shrink-0 items-center gap-1 text-[11px] uppercase tracking-[0.15em] text-coffee-500">
-                  <span
-                    className="h-2.5 w-2.5 shrink-0 rounded-full border border-coffee-900/10"
-                    style={{ backgroundColor: colorToHex(fixedColor!, colorHex) }}
-                  />
-                  {fixedColor}
-                </span>
-              </>
-            )}
-          </div>
+          <p className="truncate text-[11px] uppercase tracking-[0.15em] text-coffee-500">{product.brand}</p>
           <h3 className="mt-1 min-h-[2.625rem] text-sm font-medium leading-snug text-coffee-900 line-clamp-2 md:min-h-[3rem] md:text-base">
             {product.name}
           </h3>
@@ -138,11 +124,10 @@ export default function ProductCard({
           {/* Color/size pickers only render when the admin has them turned on
               (Admin > Contenido > Catálogo) — off by default for a cleaner,
               more exclusive-feeling card; picking a variant then happens on
-              the product page instead. The color swatch picker never shows
-              on a split card — it already represents one fixed color. */}
-          {((showColors && !isSplitCard) || showSizes) && (
+              the product page instead. */}
+          {(showColors || showSizes) && (
             <div className="mb-4">
-              {showColors && !isSplitCard && product.colors.length > 0 && (
+              {showColors && product.colors.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {product.colors.map((c) => (
                     <button
@@ -169,7 +154,7 @@ export default function ProductCard({
                 </div>
               )}
               {showSizes && product.sizes.length > 0 && (
-                <div className={`flex flex-wrap gap-1.5 ${showColors && !isSplitCard && product.colors.length > 0 ? 'mt-3' : ''}`}>
+                <div className={`flex flex-wrap gap-1.5 ${showColors && product.colors.length > 0 ? 'mt-3' : ''}`}>
                   {product.sizes.map((s) => (
                     <button
                       key={s}
