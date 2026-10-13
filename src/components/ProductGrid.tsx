@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import ProductCard from '@/components/ProductCard';
+import { expandByColor } from '@/lib/colorVariants';
 import type { Product } from '@prisma/client';
 
 type PublicProduct = Omit<Product, 'costCents'>;
@@ -65,6 +66,7 @@ export default function ProductGrid({
       (!activeBrand || p.brand.trim().toLowerCase() === activeBrand.toLowerCase()) &&
       (!activeCategory || p.category?.trim().toLowerCase() === activeCategory.toLowerCase())
   );
+  const cards = expandByColor(filtered);
 
   if (products.length === 0) {
     return <p className="text-center text-coffee-600 py-24">Pronto nuevas piezas.</p>;
@@ -111,8 +113,8 @@ export default function ProductGrid({
       )}
 
       <motion.div layout className="grid grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-16 md:gap-x-10 md:gap-y-20 lg:grid-cols-4">
-        {filtered.map((product, i) => (
-          <ProductCard key={product.id} product={product} index={i} />
+        {cards.map((card, i) => (
+          <ProductCard key={card.cardKey} product={card} index={i} fixedColor={card.displayColor ?? undefined} />
         ))}
       </motion.div>
     </div>

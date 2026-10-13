@@ -103,7 +103,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         </ol>
       </nav>
 
-      <ProductColorProvider defaultColor={product.colors[0] ?? ''}>
+      <ProductColorProvider defaultColor={product.colors[0] ?? ''} validColors={product.colors}>
       <div className="mx-auto max-w-6xl px-6 pb-16 pt-6 grid md:grid-cols-2 gap-16">
         <ProductGallery
           images={product.images}
