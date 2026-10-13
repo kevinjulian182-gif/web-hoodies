@@ -95,7 +95,7 @@ function renderSection(
         />
       );
     case 'brands':
-      return <BrandsSection key={id} brands={brandLogos.filter((b) => b.logoUrl)} />;
+      return <BrandsSection key={id} brands={brandLogos} />;
     case 'howwork':
       return (
         <HowItWorks
