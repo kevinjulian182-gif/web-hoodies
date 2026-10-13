@@ -3,9 +3,9 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import type { BrandItem } from '@/lib/content';
+import type { BrandLogo } from '@/components/ProductGrid';
 
-export default function BrandsSection({ brands }: { brands: BrandItem[] }) {
+export default function BrandsSection({ brands }: { brands: BrandLogo[] }) {
   if (brands.length === 0) return null;
 
   return (

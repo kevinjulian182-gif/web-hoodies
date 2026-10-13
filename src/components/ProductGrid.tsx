@@ -6,7 +6,7 @@ import ProductCard from '@/components/ProductCard';
 import type { Product } from '@prisma/client';
 
 type PublicProduct = Omit<Product, 'costCents'>;
-type BrandLogo = { name: string; logoUrl: string | null };
+export type BrandLogo = { name: string; logoUrl: string | null };
 
 // Groups near-duplicate labels that only differ in case or stray whitespace
 // (e.g. an admin typing "Fear of God" on one product and "FEAR OF GOD" on

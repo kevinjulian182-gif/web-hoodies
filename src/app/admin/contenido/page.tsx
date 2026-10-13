@@ -46,12 +46,14 @@ const SECTION_HINTS: Record<string, string> = {
 };
 
 const STRUCTURE_TAB = 'Estructura del inicio';
-const BRANDS_TAB = 'Compra por marca';
 const BLOG_TAB = 'Blog';
 
 // Groups the flat list of tabs into scannable categories for the sidebar.
 // Every tab referenced here must exist as a CONTENT_FIELDS section, or be
-// one of the special tabs (STRUCTURE_TAB / BRANDS_TAB / BLOG_TAB).
+// one of the special tabs (STRUCTURE_TAB / BLOG_TAB). The brands shown in
+// "Compra por marca" on the home page aren't configured here — that section
+// now reuses the same Brand list (with logos) managed in Admin > Productos
+// > Gestionar marcas, the same source the catalog's brand filter uses.
 const NAV_GROUPS: { label: string; tabs: string[] }[] = [
   { label: 'General', tabs: ['General del sitio', 'Colores', 'Pie de página'] },
   {
@@ -64,7 +66,6 @@ const NAV_GROUPS: { label: string; tabs: string[] }[] = [
       'Cómo trabajamos',
       'Envíos seguros',
       'Materiales y calidad',
-      BRANDS_TAB,
       'Preguntas frecuentes',
       'CTA final',
       'Newsletter (inicio)',
@@ -187,11 +188,7 @@ export default function AdminContentPage() {
                   label={tab}
                   active={activeTab === tab}
                   dirty={
-                    tab === BRANDS_TAB
-                      ? Boolean(dirty['brands.items'])
-                      : tab === STRUCTURE_TAB || tab === BLOG_TAB
-                        ? false
-                        : dirtySections.has(tab)
+                    tab === STRUCTURE_TAB || tab === BLOG_TAB ? false : dirtySections.has(tab)
                   }
                   onClick={() => setActiveTab(tab)}
                 />
@@ -213,24 +210,6 @@ export default function AdminContentPage() {
             <div>
               <SectionHeader title={BLOG_TAB} hint="Crea, edita y elimina los artículos que aparecen en /blog." previewPath="/blog" />
               <BlogManager />
-            </div>
-          ) : activeTab === BRANDS_TAB ? (
-            <div>
-              <SectionHeader
-                title={BRANDS_TAB}
-                hint="Las marcas que aparecen en la sección 'Compra por marca' del inicio, con su logo."
-                previewPath="/"
-              />
-              <RepeatableListEditor
-                value={values['brands.items']}
-                onChange={(json) => handleChange('brands.items', json)}
-                fields={[
-                  { key: 'name', label: 'Nombre de la marca' },
-                  { key: 'logoUrl', label: 'Logo', type: 'image' },
-                ]}
-                emptyItem={{ name: '', logoUrl: '' }}
-                addLabel="Agregar marca"
-              />
             </div>
           ) : (
             <div>

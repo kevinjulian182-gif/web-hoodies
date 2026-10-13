@@ -15,7 +15,6 @@ import {
   getHomeSectionOrder,
   getHeroImages,
   getFaqItems,
-  getBrandItems,
   type HomeSectionId,
 } from '@/lib/content';
 import type { Product } from '@prisma/client';
@@ -96,7 +95,7 @@ function renderSection(
         />
       );
     case 'brands':
-      return <BrandsSection key={id} brands={getBrandItems(content)} />;
+      return <BrandsSection key={id} brands={brandLogos} />;
     case 'howwork':
       return (
         <HowItWorks

@@ -179,6 +179,49 @@ export default function MediaUploader({
 
   const remove = (url: string) => onChange(items.filter((i) => i !== url));
 
+  // Vercel Blob URLs are cross-origin from the admin page, so a plain
+  // `<a download>` just opens the file in a new tab instead of saving it —
+  // browsers only honor `download` for same-origin links. Fetching the
+  // bytes ourselves and handing the browser a blob: URL (same-origin by
+  // definition) makes the save dialog actually appear.
+  const downloadFile = async (url: string, index: number) => {
+    const extFromUrl = url.split('?')[0].split('.').pop();
+    const ext = extFromUrl && extFromUrl.length <= 4 ? extFromUrl : kind === 'image' ? 'jpg' : 'mp4';
+    const filename = `afra-${kind}-${index + 1}.${ext}`;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error();
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      // Fall back to opening it in a new tab so the admin can still save
+      // it manually (right click → guardar imagen) if the fetch failed.
+      window.open(url, '_blank');
+    }
+  };
+
+  const [downloadingAll, setDownloadingAll] = useState(false);
+
+  const downloadAll = async () => {
+    setDownloadingAll(true);
+    for (let i = 0; i < items.length; i++) {
+      // eslint-disable-next-line no-await-in-loop
+      await downloadFile(items[i], i);
+      // A short gap between triggers keeps the browser from treating the
+      // burst as a pop-up flood and blocking the later ones.
+      // eslint-disable-next-line no-await-in-loop
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    }
+    setDownloadingAll(false);
+  };
+
   const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
     const files = Array.from(e.clipboardData.items)
       .filter((item) => item.type.startsWith(`${kind}/`))
@@ -199,15 +242,27 @@ export default function MediaUploader({
             <span className="ml-1.5 text-coffee-400">— arrastra para reordenar, la primera es la principal</span>
           )}
         </p>
-        {kind === 'image' && items.length > 1 && (
-          <button
-            type="button"
-            onClick={removeBackgroundFromAll}
-            disabled={removingAll}
-            className="shrink-0 text-xs font-medium text-coffee-700 underline decoration-cream-300 underline-offset-2 hover:text-coffee-900 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {removingAll ? `Quitando fondo… (${bulkProgress.done}/${bulkProgress.total})` : 'Quitar fondo a todas'}
-          </button>
+        {items.length > 1 && (
+          <div className="flex shrink-0 items-center gap-3">
+            <button
+              type="button"
+              onClick={downloadAll}
+              disabled={downloadingAll}
+              className="text-xs font-medium text-coffee-700 underline decoration-cream-300 underline-offset-2 hover:text-coffee-900 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {downloadingAll ? 'Descargando…' : 'Descargar todas'}
+            </button>
+            {kind === 'image' && (
+              <button
+                type="button"
+                onClick={removeBackgroundFromAll}
+                disabled={removingAll}
+                className="text-xs font-medium text-coffee-700 underline decoration-cream-300 underline-offset-2 hover:text-coffee-900 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {removingAll ? `Quitando fondo… (${bulkProgress.done}/${bulkProgress.total})` : 'Quitar fondo a todas'}
+              </button>
+            )}
+          </div>
         )}
       </div>
       <div
@@ -298,17 +353,27 @@ export default function MediaUploader({
               >
                 ×
               </button>
-              {kind === 'image' && (
+              <div className="absolute inset-x-0 bottom-0 flex overflow-hidden rounded-b-lg">
                 <button
                   type="button"
-                  onClick={() => removeBackground(url)}
-                  disabled={removingBg.has(url)}
-                  title="Quitar fondo"
-                  className="absolute inset-x-0 bottom-0 rounded-b-lg bg-coffee-900/80 py-0.5 text-center text-[9px] font-medium leading-tight text-cream-50 disabled:opacity-60"
+                  onClick={() => downloadFile(url, index)}
+                  title="Descargar"
+                  className="flex-1 whitespace-nowrap bg-coffee-900/80 py-0.5 text-center text-[9px] font-medium leading-tight text-cream-50 transition-colors hover:bg-coffee-900"
                 >
-                  {removingBg.has(url) ? '…' : 'Quitar fondo'}
+                  Descargar
                 </button>
-              )}
+                {kind === 'image' && (
+                  <button
+                    type="button"
+                    onClick={() => removeBackground(url)}
+                    disabled={removingBg.has(url)}
+                    title="Quitar fondo"
+                    className="flex-1 whitespace-nowrap border-l border-cream-50/20 bg-coffee-900/80 py-0.5 text-center text-[9px] font-medium leading-tight text-cream-50 transition-colors hover:bg-coffee-900 disabled:opacity-60"
+                  >
+                    {removingBg.has(url) ? '…' : 'Sin fondo'}
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>

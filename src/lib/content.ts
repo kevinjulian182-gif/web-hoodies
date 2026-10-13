@@ -50,12 +50,6 @@ export const CONTENT_DEFAULTS = {
   'site.favicon_url': '',
   'site.logo_url': '',
   'site.whatsapp_number': '',
-  'brands.items': JSON.stringify([
-    { name: 'Nike', logoUrl: '' },
-    { name: 'Supreme', logoUrl: '' },
-    { name: 'Essentials', logoUrl: '' },
-    { name: 'Bape', logoUrl: '' },
-  ]),
   'faq.items': JSON.stringify([
     {
       question: '¿Cómo funciona el pago contra entrega?',
@@ -205,19 +199,6 @@ export function getFaqItems(content: SiteContent): FaqItem[] {
 export function getFreeShippingThresholdCents(content: SiteContent): number {
   const pesos = Number(content['shipping.free_threshold']);
   return Number.isFinite(pesos) && pesos > 0 ? Math.round(pesos * 100) : 0;
-}
-
-export type BrandItem = { name: string; logoUrl: string };
-export function getBrandItems(content: SiteContent): BrandItem[] {
-  try {
-    const parsed = JSON.parse(content['brands.items']);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (item): item is BrandItem => item && typeof item.name === 'string' && item.name.trim() !== ''
-    );
-  } catch {
-    return [];
-  }
 }
 
 export type ContentKey = keyof typeof CONTENT_DEFAULTS;
