@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { verifyWompiWebhook } from '@/lib/wompi';
 import { sendOrderConfirmationEmail } from '@/lib/email';
 import { buildStockDecrementOps, type ProductWithVariants } from '@/lib/stock';
+import { revalidateProductListings, revalidateProduct } from '@/lib/revalidate';
 
 export async function POST(req: NextRequest) {
   const event = await req.json();
@@ -38,6 +39,8 @@ export async function POST(req: NextRequest) {
         }))
       ),
     ]);
+    revalidateProductListings();
+    for (const product of productMap.values()) revalidateProduct(product.slug);
     await sendOrderConfirmationEmail({ ...order, status: 'PAID' });
   } else if (transaction.status === 'DECLINED' || transaction.status === 'ERROR') {
     await prisma.order.update({ where: { id: order.id }, data: { status: 'CANCELLED' } });

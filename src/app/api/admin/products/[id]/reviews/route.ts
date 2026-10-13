@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { getSession, requireRole } from '@/lib/auth';
+import { revalidateProduct } from '@/lib/revalidate';
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
@@ -32,6 +33,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
   const { id } = await params;
-  const review = await prisma.review.create({ data: { ...parsed.data, productId: id } });
+  const [review, product] = await Promise.all([
+    prisma.review.create({ data: { ...parsed.data, productId: id } }),
+    prisma.product.findUnique({ where: { id }, select: { slug: true } }),
+  ]);
+  if (product) revalidateProduct(product.slug);
   return NextResponse.json(review, { status: 201 });
 }

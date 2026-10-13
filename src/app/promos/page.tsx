@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import ProductGrid from '@/components/ProductGrid';
 import { prisma } from '@/lib/prisma';
 
-export const dynamic = 'force-dynamic';
+// Cached and served statically between revalidations — see src/app/page.tsx.
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: 'Promos — AFRA',

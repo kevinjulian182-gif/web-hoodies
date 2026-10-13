@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import ExcelJS from 'exceljs';
 import { prismaInternal } from '@/lib/prisma';
 import { getSession, requireRole } from '@/lib/auth';
+import { revalidateProductListings, revalidateProduct } from '@/lib/revalidate';
 
 type RowError = { row: number; name: string; message: string };
 
@@ -114,8 +115,10 @@ export async function POST(req: NextRequest) {
         isPromo: parseBoolFlag(cell(row, 'Promo'), ['sí', 'si', 'yes', 'true']),
       },
     });
+    revalidateProduct(product.slug);
     updated += 1;
   }
 
+  if (updated > 0) revalidateProductListings();
   return NextResponse.json({ updated, notFound, errors });
 }

@@ -4,7 +4,13 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 
-export const dynamic = 'force-dynamic';
+// Cached statically per slug — edits call revalidateBlogPost(slug). See
+// the equivalent comment on productos/[slug]/page.tsx for why this is
+// needed for a [slug] route to be cached at all.
+export async function generateStaticParams() {
+  const posts = await prisma.blogPost.findMany({ select: { slug: true } });
+  return posts.map((p) => ({ slug: p.slug }));
+}
 
 export async function generateMetadata({
   params,

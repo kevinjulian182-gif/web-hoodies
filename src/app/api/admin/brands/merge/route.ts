@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prismaInternal } from '@/lib/prisma';
 import { getSession, requireRole } from '@/lib/auth';
+import { revalidateProductListings } from '@/lib/revalidate';
 
 const schema = z.object({
   keepId: z.string().min(1),
@@ -43,5 +44,6 @@ export async function POST(req: NextRequest) {
     prismaInternal.brand.deleteMany({ where: { id: { in: mergeIds } } }),
   ]);
 
+  revalidateProductListings();
   return NextResponse.json({ ok: true, survivor });
 }

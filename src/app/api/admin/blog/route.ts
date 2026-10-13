@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { getSession, requireRole } from '@/lib/auth';
+import { revalidateBlogListing, revalidateBlogPost } from '@/lib/revalidate';
 
 export async function GET() {
   const session = await getSession();
@@ -32,5 +33,7 @@ export async function POST(req: NextRequest) {
   }
 
   const post = await prisma.blogPost.create({ data: parsed.data });
+  revalidateBlogListing();
+  revalidateBlogPost(post.slug);
   return NextResponse.json(post, { status: 201 });
 }

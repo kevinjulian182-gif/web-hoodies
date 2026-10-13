@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prismaInternal } from '@/lib/prisma';
 import { getSession, requireRole } from '@/lib/auth';
+import { revalidateProductListings } from '@/lib/revalidate';
 
 export async function GET() {
   const session = await getSession();
@@ -41,5 +42,6 @@ export async function POST(req: NextRequest) {
     where: { name: { equals: parsed.data.name, mode: 'insensitive' } },
   });
   const brand = existing ?? (await prismaInternal.brand.create({ data: { name: parsed.data.name } }));
+  if (!existing) revalidateProductListings();
   return NextResponse.json(brand, { status: 201 });
 }

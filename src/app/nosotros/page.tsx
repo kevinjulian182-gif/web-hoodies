@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import TrustSection from '@/components/TrustSection';
 import { getSiteContent } from '@/lib/content';
 
-export const dynamic = 'force-dynamic';
-
+// Cached statically — content edits call revalidateSite(), which busts
+// the whole layout tree this page lives under.
 export const metadata: Metadata = {
   title: 'Sobre nosotros — AFRA',
   description: 'La historia y los valores detrás de AFRA, streetwear de élite.',

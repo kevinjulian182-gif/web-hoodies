@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prismaInternal } from '@/lib/prisma';
 import { getSession, requireRole } from '@/lib/auth';
+import { revalidateProductListings } from '@/lib/revalidate';
 
 const patchSchema = z.object({ logoUrl: z.string().url().nullable() });
 
@@ -18,6 +19,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const { id } = await params;
   const brand = await prismaInternal.brand.update({ where: { id }, data: { logoUrl: parsed.data.logoUrl } });
+  revalidateProductListings();
   return NextResponse.json(brand);
 }
 
@@ -42,5 +44,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   }
 
   await prismaInternal.brand.delete({ where: { id } });
+  revalidateProductListings();
   return NextResponse.json({ ok: true });
 }

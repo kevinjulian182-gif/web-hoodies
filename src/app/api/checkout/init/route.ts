@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { buildWompiSignature, generateOrderReference, getWompiPublicKey } from '@/lib/wompi';
 import { sendOrderConfirmationEmail } from '@/lib/email';
 import { checkStock, buildStockDecrementOps } from '@/lib/stock';
+import { revalidateProductListings, revalidateProduct } from '@/lib/revalidate';
 
 const schema = z.object({
   customerEmail: z.string().email(),
@@ -93,6 +94,8 @@ export async function POST(req: NextRequest) {
   // cliente) apenas se crea, en vez de esperar un webhook que nunca llega.
   if (paymentMethod === 'COD') {
     await prisma.$transaction(buildStockDecrementOps(productMap, items));
+    revalidateProductListings();
+    for (const product of productMap.values()) revalidateProduct(product.slug);
     await sendOrderConfirmationEmail(order);
     return NextResponse.json({
       orderId: order.id,

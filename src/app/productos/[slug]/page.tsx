@@ -17,7 +17,25 @@ import { parseColorImages } from '@/lib/colors';
 import { ProductColorProvider } from '@/lib/productColor';
 import { getStoreWhatsAppNumber } from '@/lib/whatsapp';
 
-export const dynamic = 'force-dynamic';
+// Cached per slug and served statically between revalidations — product
+// edits and new reviews invalidate this specific page immediately via
+// revalidateProduct(slug), the 60s window self-heals stock changes from
+// checkout without needing every write path wired to revalidate.
+export const revalidate = 60;
+
+// Without this, a [slug] route has no static params to work from and Next
+// renders it dynamically (DB round-trip) on every single request — the
+// `revalidate` above only takes effect once there's at least a param list,
+// even an empty one, to render from. Pre-rendering every active product at
+// build time means visitors hit an already-cached page immediately instead
+// of waiting on the first request to populate it; dynamicParams (on by
+// default) still renders-and-caches any slug created after the last
+// deploy, so new products work the same way, just one request slower on
+// their very first visit.
+export async function generateStaticParams() {
+  const products = await prisma.product.findMany({ where: { active: true }, select: { slug: true } });
+  return products.map((p) => ({ slug: p.slug }));
+}
 
 export async function generateMetadata({
   params,

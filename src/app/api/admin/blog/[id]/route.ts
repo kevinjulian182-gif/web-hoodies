@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { getSession, requireRole } from '@/lib/auth';
+import { revalidateBlogListing, revalidateBlogPost } from '@/lib/revalidate';
 
 const updateSchema = z.object({
   title: z.string().min(1).optional(),
@@ -23,7 +24,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   const { id } = await params;
+  const before = await prisma.blogPost.findUnique({ where: { id }, select: { slug: true } });
   const post = await prisma.blogPost.update({ where: { id }, data: parsed.data });
+  revalidateBlogListing();
+  revalidateBlogPost(post.slug);
+  if (before && before.slug !== post.slug) revalidateBlogPost(before.slug);
   return NextResponse.json(post);
 }
 
@@ -34,6 +39,8 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   }
 
   const { id } = await params;
-  await prisma.blogPost.delete({ where: { id } });
+  const deleted = await prisma.blogPost.delete({ where: { id } });
+  revalidateBlogListing();
+  revalidateBlogPost(deleted.slug);
   return NextResponse.json({ ok: true });
 }

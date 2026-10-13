@@ -22,7 +22,12 @@ import type { SiteContent } from '@/lib/content';
 
 type PublicProduct = Omit<Product, 'costCents'>;
 
-export const dynamic = 'force-dynamic';
+// Cached and served statically between revalidations instead of hitting
+// the DB on every visit — product edits (price, stock, active) invalidate
+// this immediately via revalidateProductListings(), the 60s window here
+// just self-heals anything that changes outside the admin (checkout stock
+// decrements) without needing every write path wired to revalidate.
+export const revalidate = 60;
 
 function renderSection(
   id: HomeSectionId,

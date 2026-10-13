@@ -13,11 +13,14 @@ import { getSiteContent, getHomeSectionOrder, getHeroImages, getFreeShippingThre
 import { generateThemeVars, themeVarsToCss } from '@/lib/theme';
 import { getStoreWhatsAppNumber } from '@/lib/whatsapp';
 
-// The footer pulls its tagline from the editable SiteContent table on every
-// request; without this, Next would bake it into the static HTML at build
-// time and admin edits to it would never show up without a redeploy.
-export const dynamic = 'force-dynamic';
-
+// This layout wraps every page in the app, and a force-dynamic ancestor
+// forces every descendant page dynamic too regardless of its own config —
+// so leaving this static (the default) is what lets individual pages below
+// be cached at all. The SiteContent it reads only ever changes when an
+// admin explicitly saves, and every admin route that touches it calls
+// revalidatePath (see src/lib/revalidate.ts), so the cache never goes
+// stale in a way a visitor would notice — it's invalidated the moment an
+// edit is saved, not after some arbitrary time window.
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,

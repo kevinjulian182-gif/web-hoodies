@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { getSession, requireRole } from '@/lib/auth';
+import { revalidateProductListings, revalidateProduct } from '@/lib/revalidate';
 
 const updateSchema = z.object({
   name: z.string().min(1).optional(),
@@ -56,6 +57,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
             include: { variants: true },
           });
         });
+  revalidateProductListings();
+  revalidateProduct(product.slug);
   return NextResponse.json(product);
 }
 
@@ -79,6 +82,8 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     );
   }
 
-  await prisma.product.delete({ where: { id } });
+  const deleted = await prisma.product.delete({ where: { id } });
+  revalidateProductListings();
+  revalidateProduct(deleted.slug);
   return NextResponse.json({ ok: true });
 }
