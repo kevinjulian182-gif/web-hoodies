@@ -95,7 +95,7 @@ function renderSection(
         />
       );
     case 'brands':
-      return <BrandsSection key={id} brands={brandLogos} />;
+      return <BrandsSection key={id} brands={brandLogos.filter((b) => b.logoUrl)} />;
     case 'howwork':
       return (
         <HowItWorks
@@ -208,7 +208,7 @@ export default async function HomePage() {
     }),
     prisma.product.findMany({ where: { active: true } }),
     getSiteContent(),
-    prisma.brand.findMany({ where: { logoUrl: { not: null } }, select: { name: true, logoUrl: true } }),
+    prisma.brand.findMany({ select: { name: true, logoUrl: true }, orderBy: { name: 'asc' } }),
   ]);
 
   const promoProducts = allActive.filter((p) => p.isPromo).slice(0, 4);

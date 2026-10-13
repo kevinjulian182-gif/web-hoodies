@@ -32,7 +32,21 @@ export default function ProductGrid({
   initialBrand?: string;
   brandLogos?: BrandLogo[];
 }) {
-  const brands = useMemo(() => dedupeLabels(products.map((p) => p.brand)), [products]);
+  // The filter row lists the brands managed in Admin > Productos >
+  // Gestionar marcas (same list "Compra por marca" and the logos draw
+  // from), not just whatever brand strings happen to appear on today's
+  // products — so a brand shows up consistently everywhere once it's
+  // added there, logo included. Falls back to scraping the products'
+  // own brand field only where no managed list was passed in (e.g. the
+  // PDP's "more from this brand" grid, which never shows a filter row
+  // anyway since every item already shares one brand).
+  const brands = useMemo(
+    () =>
+      brandLogos.length > 0
+        ? [...brandLogos].map((b) => b.name).sort((a, b) => a.localeCompare(b))
+        : dedupeLabels(products.map((p) => p.brand)),
+    [products, brandLogos]
+  );
   const logoByBrand = useMemo(() => {
     const map = new Map<string, string>();
     for (const b of brandLogos) {

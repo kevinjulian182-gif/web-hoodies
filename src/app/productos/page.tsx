@@ -32,7 +32,7 @@ export default async function CatalogPage({
       where: { active: true },
       orderBy: { createdAt: 'desc' },
     }),
-    prisma.brand.findMany({ where: { logoUrl: { not: null } }, select: { name: true, logoUrl: true } }),
+    prisma.brand.findMany({ select: { name: true, logoUrl: true }, orderBy: { name: 'asc' } }),
   ]);
 
   return (
