@@ -192,7 +192,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
       {related.length > 0 && (
         <div className="border-t border-cream-200">
-          <h2 className="mx-auto max-w-7xl px-6 pt-16 text-2xl font-semibold tracking-tightest text-coffee-900">
+          <h2 className="mx-auto max-w-screen-2xl px-6 pt-16 text-2xl md:px-10 font-semibold tracking-tightest text-coffee-900">
             Más de {product.brand}
           </h2>
           <ProductGrid products={related} />

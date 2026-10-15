@@ -12,6 +12,20 @@ export type BrandLogo = { name: string; logoUrl: string | null };
 
 const norm = (value: string | null | undefined) => value?.trim().toLowerCase() ?? '';
 
+// Shopper-chosen grid density, remembered per browser. Class strings are
+// spelled out in full so Tailwind's scanner picks them up.
+type GridView = { mobile: 1 | 2; desktop: 2 | 3 | 4 };
+const MOBILE_COLS = [1, 2] as const;
+const DESKTOP_COLS = [2, 3, 4] as const;
+const DEFAULT_VIEW: GridView = { mobile: 2, desktop: 4 };
+const VIEW_STORAGE_KEY = 'paramo-grid-view';
+const MOBILE_GRID: Record<GridView['mobile'], string> = { 1: 'grid-cols-1', 2: 'grid-cols-2' };
+const DESKTOP_GRID: Record<GridView['desktop'], string> = {
+  2: 'md:grid-cols-2',
+  3: 'md:grid-cols-3',
+  4: 'md:grid-cols-3 lg:grid-cols-4',
+};
+
 // Groups near-duplicate labels that only differ in case or stray whitespace
 // (e.g. an admin typing "Fear of God" on one product and "FEAR OF GOD" on
 // another) so the filter row shows one chip instead of two that read
@@ -65,6 +79,26 @@ export default function ProductGrid({
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
   const [promoOnly, setPromoOnly] = useState(false);
+  const [view, setView] = useState<GridView>(DEFAULT_VIEW);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(VIEW_STORAGE_KEY) ?? 'null');
+      if (saved && MOBILE_COLS.includes(saved.mobile) && DESKTOP_COLS.includes(saved.desktop)) setView(saved);
+    } catch {
+      // storage unavailable or malformed — keep the default view
+    }
+  }, []);
+
+  const changeView = (next: Partial<GridView>) => {
+    const merged = { ...view, ...next };
+    setView(merged);
+    try {
+      localStorage.setItem(VIEW_STORAGE_KEY, JSON.stringify(merged));
+    } catch {
+      // ignore — the choice just won't persist
+    }
+  };
 
   // "Promo" covers both ways the admin marks one: the Promo flag (what
   // /promos lists) and an actual markdown (a "precio antes" above the price).
@@ -104,7 +138,7 @@ export default function ProductGrid({
   const showCategoryRow = categories.length > 1;
 
   return (
-    <div className="mx-auto max-w-7xl px-6 pb-16 pt-10 md:pb-20 md:pt-12">
+    <div className="mx-auto max-w-screen-2xl px-6 pb-16 pt-10 md:px-10 md:pb-20 md:pt-12">
       {(showBrandRow || showCategoryRow || showPromoToggle) && (
         <div className="mb-8 space-y-5 md:mb-12">
           {showBrandRow && (
@@ -170,6 +204,7 @@ export default function ProductGrid({
               <span />
             )}
             <div className="flex items-center gap-3">
+              <ViewToggle view={view} onChange={changeView} />
               <p aria-live="polite" className="whitespace-nowrap">
                 {cards.length} {cards.length === 1 ? 'producto' : 'productos'}
               </p>
@@ -197,7 +232,7 @@ export default function ProductGrid({
           </button>
         </div>
       ) : (
-        <motion.div layout className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-12 sm:gap-x-8 md:gap-x-10 md:gap-y-20 lg:grid-cols-4">
+        <motion.div layout className={`grid gap-x-4 gap-y-12 sm:gap-x-6 md:gap-y-16 lg:gap-x-8 ${MOBILE_GRID[view.mobile]} ${DESKTOP_GRID[view.desktop]}`}>
           {cards.map((card, i) => (
             <ProductCard key={card.cardKey} product={card} index={i} fixedColor={card.displayColor ?? undefined} />
           ))}
@@ -300,5 +335,50 @@ function FilterChip({
     >
       {label}
     </button>
+  );
+}
+
+function ViewToggle({ view, onChange }: { view: GridView; onChange: (next: Partial<GridView>) => void }) {
+  const btn = (active: boolean) =>
+    `flex h-8 w-8 items-center justify-center rounded-full transition-colors ${
+      active ? 'bg-coffee-900 text-cream-50' : 'text-coffee-400 hover:text-coffee-900'
+    }`;
+  return (
+    <div role="group" aria-label="Vista de productos" className="flex items-center gap-0.5">
+      {MOBILE_COLS.map((n) => (
+        <button
+          key={`m${n}`}
+          onClick={() => onChange({ mobile: n })}
+          aria-pressed={view.mobile === n}
+          aria-label={n === 1 ? 'Ver 1 por fila' : 'Ver 2 por fila'}
+          className={`${btn(view.mobile === n)} md:hidden`}
+        >
+          <GridIcon cols={n} />
+        </button>
+      ))}
+      {DESKTOP_COLS.map((n) => (
+        <button
+          key={`d${n}`}
+          onClick={() => onChange({ desktop: n })}
+          aria-pressed={view.desktop === n}
+          aria-label={`Ver ${n} por fila`}
+          className={`${btn(view.desktop === n)} hidden md:flex`}
+        >
+          <GridIcon cols={n} />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function GridIcon({ cols }: { cols: number }) {
+  const gap = 1.5;
+  const w = (14 - gap * (cols - 1)) / cols;
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true">
+      {Array.from({ length: cols }, (_, i) => (
+        <rect key={i} x={i * (w + gap)} y="0" width={w} height="14" rx="1" />
+      ))}
+    </svg>
   );
 }

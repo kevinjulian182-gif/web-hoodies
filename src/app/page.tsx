@@ -73,7 +73,7 @@ function renderSection(
       if (promoProducts.length === 0) return null;
       return (
         <div key={id} className="border-t border-cream-200">
-          <div className="mx-auto flex max-w-7xl items-end justify-between px-6 pt-12">
+          <div className="mx-auto flex max-w-screen-2xl items-end justify-between px-6 pt-12 md:px-10">
             <div>
               <p className="text-xs font-medium uppercase tracking-[0.2em] text-red-700">Por tiempo limitado</p>
               <h2 className="mt-1 text-2xl font-semibold tracking-tightest text-coffee-900">Promociones</h2>

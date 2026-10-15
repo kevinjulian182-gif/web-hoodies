@@ -21,8 +21,8 @@ export default async function PromosPage() {
 
   return (
     <div className="pt-8">
-      <h1 className="mx-auto max-w-7xl px-6 text-3xl font-semibold tracking-tightest text-coffee-900">Promos</h1>
-      <p className="mx-auto max-w-7xl px-6 mt-2 text-coffee-600">Piezas con descuento, por tiempo limitado.</p>
+      <h1 className="mx-auto max-w-screen-2xl px-6 text-3xl md:px-10 font-semibold tracking-tightest text-coffee-900">Promos</h1>
+      <p className="mx-auto mt-2 max-w-screen-2xl px-6 text-coffee-600 md:px-10">Piezas con descuento, por tiempo limitado.</p>
 
       {products.length === 0 ? (
         <p className="mx-auto max-w-7xl px-6 py-24 text-center text-coffee-600">

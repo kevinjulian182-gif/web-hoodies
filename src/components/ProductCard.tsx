@@ -80,7 +80,7 @@ export default function ProductCard({
               className={`object-contain transition-transform duration-700 ease-out group-hover:scale-105 ${
                 displayImages[1] ? 'group-hover:opacity-0' : ''
               }`}
-              sizes="(max-width: 768px) 50vw, 25vw"
+              sizes="(max-width: 768px) 100vw, 50vw"
             />
           )}
           {displayImages[1] && (
@@ -89,7 +89,7 @@ export default function ProductCard({
               alt={`${product.brand} ${product.name}`}
               fill
               className="object-contain opacity-0 transition-opacity duration-500 ease-out group-hover:opacity-100"
-              sizes="(max-width: 768px) 50vw, 25vw"
+              sizes="(max-width: 768px) 100vw, 50vw"
             />
           )}
 

@@ -79,7 +79,7 @@ export default function Navbar({
               : 'bg-cream-50/60 backdrop-blur-sm border-b border-transparent'
         }`}
       >
-        <nav className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-center md:justify-between">
+        <nav className="mx-auto flex h-16 max-w-screen-2xl items-center justify-center px-6 md:justify-between md:px-10">
           <Link href="/" aria-label="Paramo — inicio">
             <Wordmark logoUrl={logoUrl} className={overHero ? 'text-cream-50' : 'text-coffee-900'} />
           </Link>

@@ -26,7 +26,7 @@ export default async function CatalogPage() {
 
   return (
     <div className="pt-8">
-      <h1 className="mx-auto max-w-7xl px-6 text-3xl font-semibold tracking-tightest text-coffee-900">
+      <h1 className="mx-auto max-w-screen-2xl px-6 text-3xl md:px-10 font-semibold tracking-tightest text-coffee-900">
         Catálogo
       </h1>
       <Suspense fallback={null}>
