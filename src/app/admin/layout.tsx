@@ -27,6 +27,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <Link href="/admin/contenido" className="block py-2 hover:text-coffee-900">
             Contenido
           </Link>
+          <Link href="/admin/cuenta" className="block py-2 hover:text-coffee-900">
+            Mi cuenta
+          </Link>
           {session?.role === 'SUPER_ADMIN' && (
             <Link href="/admin/settings" className="block py-2 hover:text-coffee-900">
               Configuración
