@@ -167,3 +167,13 @@ select:focus-visible,
 .blog-content strong {
   @apply text-coffee-900 font-semibold;
 }
+
+@layer utilities {
+  /* Horizontally scrollable chip rows on mobile: swipeable, no visible bar. */
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}

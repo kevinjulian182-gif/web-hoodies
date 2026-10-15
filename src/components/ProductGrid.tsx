@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import ProductCard from '@/components/ProductCard';
 import { expandByColor } from '@/lib/colorVariants';
@@ -8,6 +8,8 @@ import type { Product } from '@prisma/client';
 
 type PublicProduct = Omit<Product, 'costCents'>;
 export type BrandLogo = { name: string; logoUrl: string | null };
+
+const norm = (value: string | null | undefined) => value?.trim().toLowerCase() ?? '';
 
 // Groups near-duplicate labels that only differ in case or stray whitespace
 // (e.g. an admin typing "Fear of God" on one product and "FEAR OF GOD" on
@@ -51,72 +53,147 @@ export default function ProductGrid({
   const logoByBrand = useMemo(() => {
     const map = new Map<string, string>();
     for (const b of brandLogos) {
-      if (b.logoUrl) map.set(b.name.trim().toLowerCase(), b.logoUrl);
+      if (b.logoUrl) map.set(norm(b.name), b.logoUrl);
     }
     return map;
   }, [brandLogos]);
   const [activeBrand, setActiveBrand] = useState<string | null>(
-    initialBrand && brands.some((b) => b.toLowerCase() === initialBrand.toLowerCase()) ? initialBrand : null
+    initialBrand && brands.some((b) => norm(b) === norm(initialBrand)) ? initialBrand : null
   );
   const categories = useMemo(() => dedupeLabels(products.map((p) => p.category)), [products]);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
-  const filtered = products.filter(
-    (p) =>
-      (!activeBrand || p.brand.trim().toLowerCase() === activeBrand.toLowerCase()) &&
-      (!activeCategory || p.category?.trim().toLowerCase() === activeCategory.toLowerCase())
-  );
+  const matchesBrand = (p: PublicProduct, brand: string | null) => !brand || norm(p.brand) === norm(brand);
+  const matchesCategory = (p: PublicProduct, category: string | null) => !category || norm(p.category) === norm(category);
+
+  // Each option counts against the *other* active filter, so a chip that
+  // would lead to an empty grid (a managed brand with no stock yet, or a
+  // brand + garment combo that doesn't exist) is shown disabled instead of
+  // letting the shopper tap into a blank page.
+  const brandHasResults = (brand: string) => products.some((p) => matchesBrand(p, brand) && matchesCategory(p, activeCategory));
+  const categoryHasResults = (category: string) => products.some((p) => matchesBrand(p, activeBrand) && matchesCategory(p, category));
+
+  const filtered = products.filter((p) => matchesBrand(p, activeBrand) && matchesCategory(p, activeCategory));
   const cards = expandByColor(filtered);
+  const hasActiveFilter = activeBrand !== null || activeCategory !== null;
+  const clearFilters = () => {
+    setActiveBrand(null);
+    setActiveCategory(null);
+  };
 
   if (products.length === 0) {
     return <p className="text-center text-coffee-600 py-24">Pronto nuevas piezas.</p>;
   }
 
+  const showBrandRow = brands.length > 1;
+  const showCategoryRow = categories.length > 1;
+
   return (
-    <div className="mx-auto max-w-7xl px-6 py-20">
-      {(brands.length > 1 || categories.length > 0) && (
-        <div className="mb-14 space-y-4 border-b border-cream-200 pb-8">
-          {brands.length > 1 && (
-            <div>
-              <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.2em] text-coffee-400">Marca</p>
-              <div className="flex flex-wrap gap-2">
-                <FilterChip label="Todas" active={activeBrand === null} onClick={() => setActiveBrand(null)} />
-                {brands.map((brand) => (
+    <div className="mx-auto max-w-7xl px-6 pb-16 pt-10 md:pb-20 md:pt-12">
+      {(showBrandRow || showCategoryRow) && (
+        <div className="mb-8 space-y-5 md:mb-12">
+          {showBrandRow && (
+            <FilterRow label="Marca" activeKey={norm(activeBrand)}>
+              <FilterChip label="Todas" active={activeBrand === null} onClick={() => setActiveBrand(null)} />
+              {brands.map((brand) => {
+                const active = norm(activeBrand) === norm(brand);
+                return (
                   <FilterChip
                     key={brand}
                     label={brand}
-                    logo={logoByBrand.get(brand.toLowerCase())}
-                    active={activeBrand?.toLowerCase() === brand.toLowerCase()}
-                    onClick={() => setActiveBrand(brand)}
+                    logo={logoByBrand.get(norm(brand))}
+                    active={active}
+                    dimmed={activeBrand !== null && !active}
+                    disabled={!active && !brandHasResults(brand)}
+                    onClick={() => setActiveBrand(active ? null : brand)}
                   />
-                ))}
-              </div>
-            </div>
+                );
+              })}
+            </FilterRow>
           )}
-          {categories.length > 0 && (
-            <div>
-              <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.2em] text-coffee-400">Tipo de prenda</p>
-              <div className="flex flex-wrap gap-2">
-                <FilterChip label="Todos" active={activeCategory === null} onClick={() => setActiveCategory(null)} />
-                {categories.map((category) => (
+          {showCategoryRow && (
+            <FilterRow label="Tipo de prenda" activeKey={norm(activeCategory)}>
+              <FilterChip label="Todos" active={activeCategory === null} onClick={() => setActiveCategory(null)} />
+              {categories.map((category) => {
+                const active = norm(activeCategory) === norm(category);
+                return (
                   <FilterChip
                     key={category}
                     label={category}
-                    active={activeCategory?.toLowerCase() === category.toLowerCase()}
-                    onClick={() => setActiveCategory(category)}
+                    active={active}
+                    disabled={!active && !categoryHasResults(category)}
+                    onClick={() => setActiveCategory(active ? null : category)}
                   />
-                ))}
-              </div>
-            </div>
+                );
+              })}
+            </FilterRow>
           )}
+
+          <div className="flex h-8 items-center justify-between border-t border-cream-200 pt-4 text-xs text-coffee-500">
+            <p aria-live="polite">
+              {cards.length} {cards.length === 1 ? 'producto' : 'productos'}
+            </p>
+            {hasActiveFilter && (
+              <button
+                onClick={clearFilters}
+                className="-mr-2 rounded-full px-2 py-1.5 font-medium text-coffee-800 underline decoration-coffee-300 underline-offset-4 transition-colors hover:text-coffee-900 hover:decoration-coffee-900"
+              >
+                Limpiar filtros
+              </button>
+            )}
+          </div>
         </div>
       )}
 
-      <motion.div layout className="grid grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-16 md:gap-x-10 md:gap-y-20 lg:grid-cols-4">
-        {cards.map((card, i) => (
-          <ProductCard key={card.cardKey} product={card} index={i} fixedColor={card.displayColor ?? undefined} />
-        ))}
-      </motion.div>
+      {cards.length === 0 ? (
+        <div className="py-20 text-center">
+          <p className="text-coffee-700">No hay productos con estos filtros.</p>
+          <button
+            onClick={clearFilters}
+            className="mt-5 rounded-full bg-coffee-900 px-6 py-3 text-sm font-medium text-cream-50 transition-transform active:scale-[0.97]"
+          >
+            Ver todo el catálogo
+          </button>
+        </div>
+      ) : (
+        <motion.div layout className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-12 sm:gap-x-8 md:gap-x-10 md:gap-y-20 lg:grid-cols-4">
+          {cards.map((card, i) => (
+            <ProductCard key={card.cardKey} product={card} index={i} fixedColor={card.displayColor ?? undefined} />
+          ))}
+        </motion.div>
+      )}
+    </div>
+  );
+}
+
+// On phones each filter group is one swipeable row (instead of wrapping
+// into 4-7 rows of chips that push the products below the fold); from md
+// up it wraps normally since there's room. The row scrolls the selected
+// chip into view so a filter preset from the URL (?marca=) isn't hidden
+// off-screen to the right.
+function FilterRow({ label, activeKey, children }: { label: string; activeKey: string; children: ReactNode }) {
+  const scrollerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller || scroller.scrollWidth <= scroller.clientWidth) return;
+    const chip = scroller.querySelector<HTMLElement>('[aria-pressed="true"]');
+    if (!chip) return;
+    const left = chip.offsetLeft - (scroller.clientWidth - chip.offsetWidth) / 2;
+    scroller.scrollTo({ left: Math.max(0, left), behavior: 'smooth' });
+  }, [activeKey]);
+
+  return (
+    <div>
+      <p className="mb-2.5 text-[10px] font-medium uppercase tracking-[0.2em] text-coffee-400">{label}</p>
+      <div
+        ref={scrollerRef}
+        role="group"
+        aria-label={label}
+        className="scrollbar-none relative -mx-6 flex snap-x scroll-px-6 gap-2 overflow-x-auto overscroll-x-contain px-6 py-0.5 [mask-image:linear-gradient(to_right,transparent,#000_20px,#000_calc(100%-20px),transparent)] md:mx-0 md:flex-wrap md:overflow-visible md:px-0 md:[mask-image:none]"
+      >
+        {children}
+      </div>
     </div>
   );
 }
@@ -125,35 +202,59 @@ function FilterChip({
   label,
   logo,
   active,
+  dimmed = false,
+  disabled = false,
   onClick,
 }: {
   label: string;
   logo?: string;
   active: boolean;
+  dimmed?: boolean;
+  disabled?: boolean;
   onClick: () => void;
 }) {
+  const base =
+    'flex h-10 shrink-0 snap-start items-center rounded-full border transition-[background-color,border-color,color,opacity,transform] duration-200 ease-out active:scale-[0.96] disabled:pointer-events-none md:h-9';
+
   if (logo) {
     return (
       <button
         onClick={onClick}
-        title={label}
+        disabled={disabled}
+        aria-pressed={active}
+        title={disabled ? `${label} — sin productos por ahora` : label}
         aria-label={label}
-        className={`flex h-9 items-center rounded-full border bg-white px-3 transition-all duration-200 ${
-          active ? 'border-coffee-900 ring-1 ring-coffee-900' : 'border-cream-300/80 hover:border-coffee-400'
+        className={`${base} bg-white px-3.5 ${
+          active
+            ? 'border-coffee-900 ring-1 ring-coffee-900'
+            : disabled
+              ? 'border-cream-200 opacity-35'
+              : 'border-cream-300/80 hover:border-coffee-400'
         }`}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={logo} alt={label} className="h-5 max-w-[88px] object-contain" />
+        <img
+          src={logo}
+          alt={label}
+          className={`h-5 max-w-[88px] object-contain transition-[filter,opacity] duration-200 ${
+            dimmed || disabled ? 'opacity-60 grayscale' : ''
+          }`}
+        />
       </button>
     );
   }
   return (
     <button
       onClick={onClick}
-      className={`flex h-9 items-center rounded-full border px-3.5 text-[11px] uppercase tracking-[0.1em] transition-all duration-200 ${
+      disabled={disabled}
+      aria-pressed={active}
+      title={disabled ? `${label} — sin productos por ahora` : undefined}
+      className={`${base} whitespace-nowrap px-4 text-[11px] uppercase tracking-[0.1em] ${
         active
           ? 'border-coffee-900 bg-coffee-900 font-medium text-cream-50'
-          : 'border-cream-300/80 font-normal text-coffee-600 hover:border-coffee-400 hover:text-coffee-900'
+          : disabled
+            ? 'border-cream-200 text-coffee-600 opacity-40'
+            : 'border-cream-300/80 font-normal text-coffee-600 hover:border-coffee-400 hover:text-coffee-900'
       }`}
     >
       {label}

@@ -178,7 +178,7 @@ export default function ProductCard({
           )}
           <button
             onClick={handleAdd}
-            className="mt-auto w-full rounded-full bg-coffee-900 py-2.5 text-[11px] font-medium uppercase tracking-[0.15em] text-cream-50 transition-colors transition-transform hover:bg-coffee-800 active:scale-[0.97]"
+            className="mt-auto w-full whitespace-nowrap rounded-full bg-coffee-900 px-2 py-3 text-[10px] font-medium uppercase tracking-[0.08em] text-cream-50 transition-[background-color,transform] hover:bg-coffee-800 active:scale-[0.97] sm:py-2.5 sm:text-[11px] sm:tracking-[0.15em]"
           >
             {added ? 'Agregado ✓' : 'Agregar al carrito'}
           </button>
