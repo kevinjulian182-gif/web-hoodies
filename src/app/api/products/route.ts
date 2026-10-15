@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma, prismaInternal } from '@/lib/prisma';
 import { getSession, requireRole } from '@/lib/auth';
 import { revalidateProductListings, revalidateProduct } from '@/lib/revalidate';
+import { sizeChartSchema, toSizeChartData } from '@/lib/sizeChartSchema';
 
 export async function GET() {
   const session = await getSession();
@@ -30,6 +31,7 @@ const productSchema = z.object({
   images: z.array(z.string().url()).min(1),
   colorImages: z.record(z.string(), z.array(z.string().url())).optional(),
   colorHex: z.record(z.string(), z.string().regex(/^#[0-9a-fA-F]{6}$/)).optional(),
+  sizeChart: sizeChartSchema,
   videos: z.array(z.string().url()).optional(),
   sizes: z.array(z.string()).min(1),
   colors: z.array(z.string()).optional(),
@@ -50,7 +52,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { variants, ...data } = parsed.data;
+  const { variants, sizeChart, ...rest } = parsed.data;
+  const data = { ...rest, sizeChart: toSizeChartData(sizeChart) };
   const stock = variants.reduce((sum, v) => sum + v.stock, 0);
 
   const product = await prisma.product.create({

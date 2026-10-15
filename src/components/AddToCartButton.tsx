@@ -9,6 +9,8 @@ import { useProductColor } from '@/lib/productColor';
 import { variantKey, COMMON_SIZES, type VariantStock } from '@/lib/variants';
 import { buildWhatsAppLink, buildWhatsAppOrderMessage } from '@/lib/whatsapp';
 import { WhatsAppGlyph } from '@/components/CartDrawer';
+import { parseSizeChart, hasSizeChartData } from '@/lib/sizeChart';
+import SizeGuide from '@/components/SizeGuide';
 import type { Product } from '@prisma/client';
 
 const LOW_STOCK_THRESHOLD = 5;
@@ -35,6 +37,8 @@ export default function AddToCartButton({
   // existed) falls back to the old product-wide total so it keeps selling
   // normally until someone edits it in the new admin stock matrix.
   const colorImages = parseColorImages(product.colorImages);
+  const sizeChart = parseSizeChart(product.sizeChart);
+  const showSizeGuide = hasSizeChartData(sizeChart, product.sizes);
   const colorHex = parseColorHex(product.colorHex);
   const selectedVariant = product.variants.find((v) => variantKey(v.size, v.color) === variantKey(size, color || null));
   const availableStock = product.variants.length > 0 ? selectedVariant?.stock ?? 0 : product.stock;
@@ -99,7 +103,12 @@ export default function AddToCartButton({
 
       {product.sizes.length > 0 && (
       <>
-      <div className="mb-2 text-xs uppercase tracking-wide text-coffee-500">Talla</div>
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-xs uppercase tracking-wide text-coffee-500">Talla</span>
+        {showSizeGuide && (
+          <SizeGuide chart={sizeChart} sizes={product.sizes} selectedSize={size} onSelectSize={setSize} />
+        )}
+      </div>
       <div className="flex flex-wrap gap-2 mb-6">
         {sizesToShow.map((s) => {
           const isAvailable = product.sizes.includes(s);

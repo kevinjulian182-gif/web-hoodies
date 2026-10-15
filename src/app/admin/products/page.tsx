@@ -5,6 +5,8 @@ import Image from 'next/image';
 import { formatCOP } from '@/lib/format';
 import { colorToHex, COMMON_COLORS, parseColorImages, parseColorHex, type ColorImages } from '@/lib/colors';
 import { isOnSale, discountPercent } from '@/lib/discount';
+import SizeChartEditor from '@/components/admin/SizeChartEditor';
+import { parseSizeChart, hasSizeChartData, SUGGESTED_SIZE_COLUMNS, type SizeChart } from '@/lib/sizeChart';
 import ChipListEditor from '@/components/admin/ChipListEditor';
 import MediaUploader from '@/components/admin/MediaUploader';
 import ReviewsManager from '@/components/admin/ReviewsManager';
@@ -27,6 +29,7 @@ type Product = {
   images: string[];
   colorImages: ColorImages | null;
   colorHex: Record<string, string> | null;
+  sizeChart: unknown;
   videos: string[];
   sizes: string[];
   colors: string[];
@@ -87,6 +90,7 @@ type FormState = {
   images: string[];
   colorImages: ColorImages;
   colorHex: Record<string, string>;
+  sizeChart: SizeChart;
   videos: string[];
   sizes: string[];
   colors: string[];
@@ -109,6 +113,7 @@ const emptyForm: FormState = {
   images: [],
   colorImages: {},
   colorHex: {},
+  sizeChart: { columns: SUGGESTED_SIZE_COLUMNS, rows: {}, note: '' },
   videos: [],
   sizes: [],
   colors: [],
@@ -138,6 +143,7 @@ function toForm(p: Product): FormState {
     images: p.images,
     colorImages: parseColorImages(p.colorImages),
     colorHex: parseColorHex(p.colorHex),
+    sizeChart: parseSizeChart(p.sizeChart) ?? { columns: SUGGESTED_SIZE_COLUMNS, rows: {}, note: '' },
     videos: p.videos,
     sizes: p.sizes,
     colors: p.colors,
@@ -375,6 +381,20 @@ export default function AdminProductsPage() {
       colorHex: Object.fromEntries(
         Object.entries(form.colorHex).filter(([color]) => form.colors.includes(color))
       ),
+      // Only rows for the product's current sizes, padded to the column
+      // count; an all-empty chart is cleared so the PDP hides the link.
+      sizeChart: hasSizeChartData(form.sizeChart, form.sizes)
+        ? {
+            columns: form.sizeChart.columns.map((c) => c.trim()),
+            rows: Object.fromEntries(
+              form.sizes.map((size) => [
+                size,
+                form.sizeChart.columns.map((_, i) => (form.sizeChart.rows[size]?.[i] ?? '').trim()),
+              ])
+            ),
+            ...(form.sizeChart.note?.trim() ? { note: form.sizeChart.note.trim() } : {}),
+          }
+        : null,
       videos: form.videos,
       sizes: form.sizes,
       colors: form.colors,
@@ -830,6 +850,11 @@ export default function AdminProductsPage() {
           </div>
 
           <ChipListEditor label="Tallas" items={form.sizes} onChange={(sizes) => setForm({ ...form, sizes })} suggestions={COMMON_SIZES} />
+          <SizeChartEditor
+            sizes={form.sizes}
+            value={form.sizeChart}
+            onChange={(sizeChart) => setForm((f) => ({ ...f, sizeChart }))}
+          />
           <ChipListEditor
             label="Colores"
             items={form.colors}

@@ -64,6 +64,9 @@ model Product {
   // and the PDP. Falls back to the shared name-based guess (lib/colors.ts)
   // for any color not present here, so existing products need no backfill.
   colorHex    Json?
+  // Optional size chart shown on the PDP: { columns, rows: { [size]: values[] }, note? }
+  // (see src/lib/sizeChart.ts). Null for products that don't have one.
+  sizeChart   Json?
   videos      String[]    @default([])
   sizes       String[]
   colors      String[]    @default([])

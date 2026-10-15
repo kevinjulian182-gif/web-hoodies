@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { getSession, requireRole } from '@/lib/auth';
 import { revalidateProductListings, revalidateProduct } from '@/lib/revalidate';
+import { sizeChartSchema, toSizeChartData } from '@/lib/sizeChartSchema';
 
 const updateSchema = z.object({
   name: z.string().min(1).optional(),
@@ -18,6 +19,7 @@ const updateSchema = z.object({
   images: z.array(z.string().url()).optional(),
   colorImages: z.record(z.string(), z.array(z.string().url())).optional(),
   colorHex: z.record(z.string(), z.string().regex(/^#[0-9a-fA-F]{6}$/)).optional(),
+  sizeChart: sizeChartSchema,
   videos: z.array(z.string().url()).optional(),
   sizes: z.array(z.string()).optional(),
   colors: z.array(z.string()).optional(),
@@ -40,7 +42,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   const { id } = await params;
-  const { variants, ...data } = parsed.data;
+  const { variants, sizeChart, ...rest } = parsed.data;
+  const data = { ...rest, sizeChart: toSizeChartData(sizeChart) };
 
   // Toggles like `active`/`isPromo` PATCH without ever sending `variants` —
   // only touch stock and replace the variant rows when the form actually
