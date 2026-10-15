@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import ProductCard from '@/components/ProductCard';
 import { expandByColor } from '@/lib/colorVariants';
+import { isOnSale } from '@/lib/discount';
 import type { Product } from '@prisma/client';
 
 type PublicProduct = Omit<Product, 'costCents'>;
@@ -63,22 +64,36 @@ export default function ProductGrid({
   const categories = useMemo(() => dedupeLabels(products.map((p) => p.category)), [products]);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
+  const [promoOnly, setPromoOnly] = useState(false);
+
+  // "Promo" covers both ways the admin marks one: the Promo flag (what
+  // /promos lists) and an actual markdown (a "precio antes" above the price).
+  const isPromo = (p: PublicProduct) => p.isPromo || isOnSale(p.priceCents, p.compareAtPriceCents);
+  const promoProducts = products.filter(isPromo);
+  // Counted in cards (one per color), the same unit as the results count.
+  const promoCount = expandByColor(promoProducts).length;
+  const showPromoToggle = promoProducts.length > 0 && promoProducts.length < products.length;
+
   const matchesBrand = (p: PublicProduct, brand: string | null) => !brand || norm(p.brand) === norm(brand);
   const matchesCategory = (p: PublicProduct, category: string | null) => !category || norm(p.category) === norm(category);
+  const matchesPromo = (p: PublicProduct) => !promoOnly || isPromo(p);
 
   // Each option counts against the *other* active filter, so a chip that
   // would lead to an empty grid (a managed brand with no stock yet, or a
   // brand + garment combo that doesn't exist) is shown disabled instead of
   // letting the shopper tap into a blank page.
-  const brandHasResults = (brand: string) => products.some((p) => matchesBrand(p, brand) && matchesCategory(p, activeCategory));
-  const categoryHasResults = (category: string) => products.some((p) => matchesBrand(p, activeBrand) && matchesCategory(p, category));
+  const brandHasResults = (brand: string) =>
+    products.some((p) => matchesBrand(p, brand) && matchesCategory(p, activeCategory) && matchesPromo(p));
+  const categoryHasResults = (category: string) =>
+    products.some((p) => matchesBrand(p, activeBrand) && matchesCategory(p, category) && matchesPromo(p));
 
-  const filtered = products.filter((p) => matchesBrand(p, activeBrand) && matchesCategory(p, activeCategory));
+  const filtered = products.filter((p) => matchesBrand(p, activeBrand) && matchesCategory(p, activeCategory) && matchesPromo(p));
   const cards = expandByColor(filtered);
-  const hasActiveFilter = activeBrand !== null || activeCategory !== null;
+  const hasActiveFilter = activeBrand !== null || activeCategory !== null || promoOnly;
   const clearFilters = () => {
     setActiveBrand(null);
     setActiveCategory(null);
+    setPromoOnly(false);
   };
 
   if (products.length === 0) {
@@ -90,7 +105,7 @@ export default function ProductGrid({
 
   return (
     <div className="mx-auto max-w-7xl px-6 pb-16 pt-10 md:pb-20 md:pt-12">
-      {(showBrandRow || showCategoryRow) && (
+      {(showBrandRow || showCategoryRow || showPromoToggle) && (
         <div className="mb-8 space-y-5 md:mb-12">
           {showBrandRow && (
             <FilterRow label="Marca" activeKey={norm(activeBrand)}>
@@ -129,18 +144,44 @@ export default function ProductGrid({
             </FilterRow>
           )}
 
-          <div className="flex h-8 items-center justify-between border-t border-cream-200 pt-4 text-xs text-coffee-500">
-            <p aria-live="polite">
-              {cards.length} {cards.length === 1 ? 'producto' : 'productos'}
-            </p>
-            {hasActiveFilter && (
+          <div className="flex min-h-8 items-center justify-between gap-3 border-t border-cream-200 pt-4 text-xs text-coffee-500">
+            {showPromoToggle ? (
               <button
-                onClick={clearFilters}
-                className="-mr-2 rounded-full px-2 py-1.5 font-medium text-coffee-800 underline decoration-coffee-300 underline-offset-4 transition-colors hover:text-coffee-900 hover:decoration-coffee-900"
+                onClick={() => setPromoOnly((on) => !on)}
+                aria-pressed={promoOnly}
+                className={`flex h-9 shrink-0 items-center gap-2 rounded-full border pl-1.5 pr-3.5 text-[11px] font-medium uppercase tracking-[0.1em] transition-[background-color,border-color,color,transform] duration-200 active:scale-[0.96] ${
+                  promoOnly
+                    ? 'border-red-700 bg-red-700 text-cream-50'
+                    : 'border-red-700/30 text-red-700 hover:border-red-700'
+                }`}
               >
-                Limpiar filtros
+                <span
+                  className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold tracking-normal transition-colors ${
+                    promoOnly ? 'bg-cream-50 text-red-700' : 'bg-red-700 text-cream-50'
+                  }`}
+                  aria-hidden="true"
+                >
+                  %
+                </span>
+                Promociones
+                <span className={promoOnly ? 'text-cream-50/80' : 'text-red-700/60'}>{promoCount}</span>
               </button>
+            ) : (
+              <span />
             )}
+            <div className="flex items-center gap-3">
+              <p aria-live="polite" className="whitespace-nowrap">
+                {cards.length} {cards.length === 1 ? 'producto' : 'productos'}
+              </p>
+              {hasActiveFilter && (
+                <button
+                  onClick={clearFilters}
+                  className="-mr-2 whitespace-nowrap rounded-full px-2 py-1.5 font-medium text-coffee-800 underline decoration-coffee-300 underline-offset-4 transition-colors hover:text-coffee-900 hover:decoration-coffee-900"
+                >
+                  Limpiar
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
