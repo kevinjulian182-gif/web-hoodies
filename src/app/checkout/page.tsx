@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -66,6 +66,18 @@ export default function CheckoutPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Each step is a new screen; without this, phones stay scrolled to where
+  // the previous step's button was and land mid-way through the next one.
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [step, checkoutData]);
+  const [summaryOpen, setSummaryOpen] = useState(false);
+
   const goToNextStep = (e: React.FormEvent, next: Step) => {
     e.preventDefault();
     setError('');
@@ -118,13 +130,13 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-dvh bg-cream-50 px-6 py-12 md:py-16">
+    <div className="min-h-dvh bg-cream-50 px-4 pb-12 pt-6 sm:px-6 md:py-16">
       <div className="mx-auto max-w-5xl">
-        <Link href="/" aria-label="Paramo — inicio" className="mx-auto mb-8 block w-fit text-coffee-900">
+        <Link href="/" aria-label="Paramo — inicio" className="mx-auto mb-6 block w-fit text-coffee-900 md:mb-8">
           <Logo className="h-[17px] w-auto" />
         </Link>
 
-        <div className="mx-auto mb-10 flex max-w-sm items-center justify-center">
+        <div className="mx-auto mb-2 flex max-w-sm items-center justify-center sm:mb-10">
           {([1, 2, 3, 4] as Step[]).map((n, i) => (
             <div key={n} className={i > 0 ? 'flex flex-1 items-center' : 'flex items-center'}>
               {i > 0 && <span className={`h-px flex-1 ${step > n - 1 ? 'bg-coffee-900' : 'bg-cream-300'}`} />}
@@ -139,8 +151,11 @@ export default function CheckoutPage() {
             </div>
           ))}
         </div>
+        <p className="mb-5 text-center text-xs text-coffee-500 sm:hidden">
+          Paso {step} de 4 · <span className="font-medium text-coffee-800">{STEP_LABELS[step]}</span>
+        </p>
 
-        <div className="grid gap-8 md:grid-cols-[1fr_360px] md:items-start">
+        <div className="grid gap-4 md:grid-cols-[1fr_360px] md:items-start md:gap-8">
           <div className="order-2 md:order-1">
             {step === 1 && (
               <motion.form
@@ -149,7 +164,7 @@ export default function CheckoutPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                 onSubmit={(e) => goToNextStep(e, 2)}
-                className="space-y-8 rounded-2xl border border-cream-200 p-6 md:p-8"
+                className="space-y-8 rounded-2xl border border-cream-200 p-5 sm:p-6 md:p-8"
               >
                 <FormSection icon={<UserIcon />} title="Contacto">
                   <Field label="Nombre completo">
@@ -167,6 +182,9 @@ export default function CheckoutPage() {
                       required
                       type="email"
                       autoComplete="email"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
                       placeholder="tucorreo@ejemplo.com"
                       value={form.customerEmail}
                       onChange={(e) => setForm({ ...form, customerEmail: e.target.value })}
@@ -202,7 +220,7 @@ export default function CheckoutPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                 onSubmit={(e) => goToNextStep(e, 3)}
-                className="space-y-8 rounded-2xl border border-cream-200 p-6 md:p-8"
+                className="space-y-8 rounded-2xl border border-cream-200 p-5 sm:p-6 md:p-8"
               >
                 <FormSection icon={<PinIcon />} title="Dirección de envío">
                   <Field label="Dirección">
@@ -224,8 +242,8 @@ export default function CheckoutPage() {
                       className="w-full border border-cream-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-coffee-600"
                     />
                   </Field>
-                  <div className="flex gap-3">
-                    <Field label="Departamento" className="w-1/2">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:gap-3">
+                    <Field label="Departamento" className="sm:w-1/2">
                       <select
                         required
                         autoComplete="address-level1"
@@ -243,7 +261,7 @@ export default function CheckoutPage() {
                         ))}
                       </select>
                     </Field>
-                    <Field label="Ciudad" className="w-1/2">
+                    <Field label="Ciudad" className="sm:w-1/2">
                       <input
                         required
                         autoComplete="address-level2"
@@ -269,11 +287,11 @@ export default function CheckoutPage() {
                   </Field>
                 </FormSection>
 
-                <div className="flex gap-3">
+                <div className="flex flex-col-reverse gap-1 sm:flex-row sm:gap-3">
                   <button
                     type="button"
                     onClick={() => setStep(1)}
-                    className="rounded-full px-6 py-4 text-sm font-medium text-coffee-600 transition-colors hover:text-coffee-900"
+                    className="rounded-full px-6 py-3 text-sm font-medium text-coffee-600 transition-colors hover:text-coffee-900 sm:py-4"
                   >
                     Atrás
                   </button>
@@ -294,7 +312,7 @@ export default function CheckoutPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                 onSubmit={(e) => goToNextStep(e, 4)}
-                className="space-y-8 rounded-2xl border border-cream-200 p-6 md:p-8"
+                className="space-y-8 rounded-2xl border border-cream-200 p-5 sm:p-6 md:p-8"
               >
                 <FormSection icon={<NoteIcon />} title="Detalles de entrega">
                   <Field label="Comentarios para la entrega (opcional)">
@@ -320,11 +338,11 @@ export default function CheckoutPage() {
                 {error && (
                   <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
                 )}
-                <div className="flex gap-3">
+                <div className="flex flex-col-reverse gap-1 sm:flex-row sm:gap-3">
                   <button
                     type="button"
                     onClick={() => setStep(2)}
-                    className="rounded-full px-6 py-4 text-sm font-medium text-coffee-600 transition-colors hover:text-coffee-900"
+                    className="rounded-full px-6 py-3 text-sm font-medium text-coffee-600 transition-colors hover:text-coffee-900 sm:py-4"
                   >
                     Atrás
                   </button>
@@ -344,7 +362,7 @@ export default function CheckoutPage() {
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                className="space-y-6 rounded-2xl border border-cream-200 p-6 md:p-8"
+                className="space-y-6 rounded-2xl border border-cream-200 p-5 sm:p-6 md:p-8"
               >
                 <button
                   type="button"
@@ -417,7 +435,7 @@ export default function CheckoutPage() {
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                className="space-y-6 rounded-2xl border border-cream-200 p-6 md:p-8"
+                className="space-y-6 rounded-2xl border border-cream-200 p-5 sm:p-6 md:p-8"
               >
                 <button
                   type="button"
@@ -460,14 +478,42 @@ export default function CheckoutPage() {
             )}
           </div>
 
-          <aside className="order-1 md:order-2 rounded-2xl border border-cream-200 p-6 md:sticky md:top-16">
-            <p className="mb-4 text-xs font-medium uppercase tracking-[0.2em] text-coffee-600">Tu pedido</p>
+          <aside className="order-1 rounded-2xl border border-cream-200 md:sticky md:top-16 md:order-2">
+            <button
+              type="button"
+              onClick={() => setSummaryOpen((open) => !open)}
+              aria-expanded={summaryOpen}
+              className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left md:hidden"
+            >
+              <span className="flex items-center gap-2 text-sm font-medium text-coffee-800">
+                {summaryOpen ? 'Ocultar resumen' : 'Ver resumen'} ({items.reduce((n, i) => n + i.quantity, 0)})
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className={`transition-transform duration-200 ${summaryOpen ? 'rotate-180' : ''}`}
+                  aria-hidden="true"
+                >
+                  <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
+              <span className="text-base font-semibold text-coffee-900">
+                {formatCOP(checkoutData?.amountInCents ?? subtotalCents)}
+              </span>
+            </button>
+            <div className={`${summaryOpen ? 'block' : 'hidden'} border-t border-cream-200 p-5 md:block md:border-0 md:p-6`}>
+            <p className="mb-4 hidden text-xs font-medium uppercase tracking-[0.2em] text-coffee-600 md:block">Tu pedido</p>
             <div className="space-y-4">
               {items.map((item) => (
                 <div key={`${item.productId}-${item.size}-${item.color ?? ''}`} className="flex items-center gap-3">
-                  <div className="relative h-16 w-14 shrink-0 overflow-hidden rounded-lg bg-cream-100">
+                  <div className="relative h-16 w-14 shrink-0 rounded-lg bg-cream-100">
                     {item.image && (
-                      <Image src={item.image} alt={item.name} fill className="object-cover" sizes="56px" />
+                      <div className="absolute inset-0 overflow-hidden rounded-lg">
+                        <Image src={item.image} alt={item.name} fill className="object-cover" sizes="56px" />
+                      </div>
                     )}
                     <span className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-coffee-900 text-[10px] font-medium text-cream-50">
                       {item.quantity}
@@ -513,6 +559,7 @@ export default function CheckoutPage() {
                 <CheckIcon /> Garantía y cambios sin costo
               </li>
             </ul>
+            </div>
           </aside>
         </div>
       </div>
