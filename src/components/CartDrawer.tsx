@@ -123,6 +123,12 @@ export default function CartDrawer({
                   >
                     Continuar al pago
                   </Link>
+                  <button
+                    onClick={closeCart}
+                    className="mt-2.5 block w-full rounded-full border border-coffee-300 py-3.5 text-center text-sm font-medium text-coffee-800 transition-colors hover:border-coffee-600 hover:bg-cream-100 active:scale-[0.98]"
+                  >
+                    Seguir comprando
+                  </button>
                   <p className="mt-3 text-center text-xs text-coffee-500">Envío y descuentos se calculan en el pago.</p>
                   {whatsappNumber && (
                     <a

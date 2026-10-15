@@ -14,8 +14,6 @@ import type { Product } from '@prisma/client';
 
 type PublicProduct = Omit<Product, 'costCents'>;
 
-const NEW_FOR_MS = 21 * 24 * 60 * 60 * 1000;
-
 export default function ProductCard({
   product,
   index = 0,
@@ -48,15 +46,9 @@ export default function ProductCard({
       ? `/productos/${product.slug}?color=${encodeURIComponent(color)}`
       : `/productos/${product.slug}`;
 
-  const soldOut = product.stock <= 0;
-  const lowStock = !soldOut && product.stock <= 3;
-  const isNew = Date.now() - new Date(product.createdAt).getTime() < NEW_FOR_MS;
-  const promoWithoutMarkdown = product.isPromo && !onSale;
-
   const handleAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (soldOut) return;
     addItem({
       productId: product.id,
       name: product.name,
@@ -79,18 +71,15 @@ export default function ProductCard({
       className="h-full"
     >
       <Link href={href} className="group flex h-full flex-col">
-        {/* Desktop: a warm spotlight tile that lifts on hover, with the quick
-            add sliding up from inside the photo. Phones keep the plain tile
-            and the always-visible button below (no hover on touch). */}
-        <div className="relative aspect-[4/5] overflow-hidden rounded-2xl border border-cream-200/70 bg-cream-50 transition-[transform,box-shadow,border-color] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] md:border-transparent md:bg-[radial-gradient(110%_85%_at_50%_35%,rgb(var(--color-cream-50))_0%,rgb(var(--color-cream-100))_70%,rgb(var(--color-cream-200)/0.7)_100%)] md:group-hover:-translate-y-1.5 md:group-hover:shadow-[0_24px_48px_-20px_rgba(54,37,25,0.45)]">
+        <div className="relative aspect-[4/5] overflow-hidden rounded-2xl border border-cream-200/70 bg-cream-50 transition-shadow duration-300 group-hover:shadow-[0_18px_40px_-16px_rgba(54,37,25,0.35)]">
           {displayImages[0] && (
             <Image
               src={displayImages[0]}
               alt={`${product.brand} ${product.name}`}
               fill
-              className={`object-contain transition-[transform,opacity] duration-700 ease-out group-hover:scale-105 md:p-3 ${
+              className={`object-contain transition-transform duration-700 ease-out group-hover:scale-105 ${
                 displayImages[1] ? 'group-hover:opacity-0' : ''
-              } ${soldOut ? 'opacity-50 grayscale' : ''}`}
+              }`}
               sizes="(max-width: 768px) 50vw, 25vw"
             />
           )}
@@ -99,7 +88,7 @@ export default function ProductCard({
               src={displayImages[1]}
               alt={`${product.brand} ${product.name}`}
               fill
-              className="object-contain opacity-0 transition-opacity duration-500 ease-out group-hover:opacity-100 md:p-3"
+              className="object-contain opacity-0 transition-opacity duration-500 ease-out group-hover:opacity-100"
               sizes="(max-width: 768px) 50vw, 25vw"
             />
           )}
@@ -109,37 +98,16 @@ export default function ProductCard({
             size={16}
             className="absolute right-2.5 top-2.5 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-cream-50/90 text-coffee-900 backdrop-blur-sm transition-transform hover:scale-110"
           />
-          <div className="absolute left-2.5 top-2.5 z-10 flex flex-col items-start gap-1.5">
-            {soldOut ? (
-              <Badge className="bg-coffee-900 text-cream-50">Agotado</Badge>
-            ) : (
-              <>
-                {onSale && (
-                  <Badge className="bg-red-800 text-cream-50">
-                    -{discountPercent(product.priceCents, product.compareAtPriceCents as number)}%
-                  </Badge>
-                )}
-                {promoWithoutMarkdown && <Badge className="bg-red-800 text-cream-50">Promo</Badge>}
-                {isNew && <Badge className="bg-cream-50/90 text-coffee-900 ring-1 ring-coffee-900/10 backdrop-blur-sm">Nuevo</Badge>}
-                {lowStock && <Badge className="hidden bg-amber-100 text-amber-900 md:inline-flex">Últimas unidades</Badge>}
-              </>
-            )}
-          </div>
-
-          {!soldOut && (
-            <button
-              onClick={handleAdd}
-              tabIndex={-1}
-              aria-hidden="true"
-              className="absolute inset-x-3 bottom-3 z-10 hidden translate-y-[calc(100%+0.75rem)] items-center justify-center gap-2 rounded-full bg-coffee-900/95 py-3 text-[11px] font-medium uppercase tracking-[0.15em] text-cream-50 opacity-0 shadow-lg backdrop-blur-sm transition-[transform,opacity,background-color] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-coffee-800 active:scale-[0.97] group-hover:translate-y-0 group-hover:opacity-100 md:flex"
-            >
-              {added ? 'Agregado ✓' : (
-                <>
-                  <PlusIcon />
-                  Agregar al carrito
-                </>
-              )}
-            </button>
+          {onSale ? (
+            <span className="absolute left-2.5 top-2.5 z-10 rounded-full bg-red-800 px-2.5 py-[3px] text-[10px] font-medium tracking-wide text-cream-50">
+              -{discountPercent(product.priceCents, product.compareAtPriceCents as number)}%
+            </span>
+          ) : (
+            product.isPromo && (
+              <span className="absolute left-2.5 top-2.5 z-10 rounded-full bg-red-800 px-2.5 py-[3px] text-[10px] font-medium uppercase tracking-wide text-cream-50">
+                Promo
+              </span>
+            )
           )}
         </div>
 
@@ -149,7 +117,7 @@ export default function ProductCard({
             {product.name}
           </h3>
           <div className="mt-1.5 flex items-center gap-2">
-            <p className={`text-sm font-semibold md:text-[15px] ${onSale || product.isPromo ? 'text-red-700' : 'text-coffee-800'}`}>
+            <p className={`text-sm font-semibold ${onSale ? 'text-red-700' : 'text-coffee-800'}`}>
               {formatCOP(product.priceCents)}
             </p>
             {onSale && (
@@ -216,29 +184,12 @@ export default function ProductCard({
           )}
           <button
             onClick={handleAdd}
-            disabled={soldOut}
-            className="mt-auto w-full disabled:opacity-40 md:hidden whitespace-nowrap rounded-full bg-coffee-900 px-2 py-3 text-[10px] font-medium uppercase tracking-[0.08em] text-cream-50 transition-[background-color,transform] hover:bg-coffee-800 active:scale-[0.97] sm:py-2.5 sm:text-[11px] sm:tracking-[0.15em]"
+            className="mt-auto w-full whitespace-nowrap rounded-full bg-coffee-900 px-2 py-3 text-[10px] font-medium uppercase tracking-[0.08em] text-cream-50 transition-[background-color,transform] hover:bg-coffee-800 active:scale-[0.97] sm:py-2.5 sm:text-[11px] sm:tracking-[0.15em]"
           >
-            {soldOut ? 'Agotado' : added ? 'Agregado ✓' : 'Agregar al carrito'}
+            {added ? 'Agregado ✓' : 'Agregar al carrito'}
           </button>
         </div>
       </Link>
     </motion.div>
-  );
-}
-
-function Badge({ className, children }: { className: string; children: React.ReactNode }) {
-  return (
-    <span className={`inline-flex rounded-full px-2.5 py-[3px] text-[10px] font-medium uppercase tracking-[0.08em] ${className}`}>
-      {children}
-    </span>
-  );
-}
-
-function PlusIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-      <path d="M12 5v14M5 12h14" strokeLinecap="round" />
-    </svg>
   );
 }
