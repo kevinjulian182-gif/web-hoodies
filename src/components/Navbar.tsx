@@ -79,7 +79,7 @@ export default function Navbar({
               : 'bg-cream-50/60 backdrop-blur-sm border-b border-transparent'
         }`}
       >
-        <nav className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
+        <nav className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-center md:justify-between">
           <Link href="/" aria-label="Paramo — inicio">
             <Wordmark logoUrl={logoUrl} className={overHero ? 'text-cream-50' : 'text-coffee-900'} />
           </Link>
@@ -108,11 +108,11 @@ export default function Navbar({
             )}
           </div>
 
-          <div className={`flex items-center gap-5 ${overHero ? 'text-cream-50' : 'text-coffee-800'}`}>
+          <div className={`hidden items-center gap-5 md:flex ${overHero ? 'text-cream-50' : 'text-coffee-800'}`}>
             <button
               aria-label="Buscar"
               onClick={() => setSearchOpen(true)}
-              className={`hidden sm:block transition-all active:scale-90 ${overHero ? 'hover:text-cream-200' : 'hover:text-coffee-600'}`}
+              className={`transition-all active:scale-90 ${overHero ? 'hover:text-cream-200' : 'hover:text-coffee-600'}`}
             >
               <SearchIcon />
             </button>
@@ -120,7 +120,7 @@ export default function Navbar({
             <Link
               href="/favoritos"
               aria-label={`Favoritos${wishlistIds.length > 0 ? ` (${wishlistIds.length})` : ''}`}
-              className={`relative hidden sm:block transition-colors ${overHero ? 'hover:text-cream-200' : 'hover:text-coffee-600'}`}
+              className={`relative transition-colors ${overHero ? 'hover:text-cream-200' : 'hover:text-coffee-600'}`}
             >
               <HeartIcon />
               {wishlistIds.length > 0 && (
@@ -152,13 +152,6 @@ export default function Navbar({
               </AnimatePresence>
             </button>
 
-            <button
-              aria-label="Abrir menú"
-              onClick={() => setMenuOpen(true)}
-              className="md:hidden transition-transform active:scale-90"
-            >
-              <MenuIcon />
-            </button>
           </div>
         </nav>
       </header>
@@ -186,7 +179,7 @@ export default function Navbar({
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto overscroll-contain px-6 pb-8 pt-6">
+              <div className="flex-1 overflow-y-auto overscroll-contain px-6 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-6">
                 <motion.nav
                   initial={{ y: 16, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
@@ -206,70 +199,12 @@ export default function Navbar({
                   ))}
                 </motion.nav>
 
-                <motion.div
-                  initial={{ y: 16, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.14, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                  className="mt-8 border-t border-cream-200 pt-6"
-                >
-                  <p className="mb-3 text-xs font-medium uppercase tracking-[0.2em] text-coffee-400">Tu cuenta</p>
-                  <div className="flex flex-col gap-1">
-                    <button
-                      onClick={() => {
-                        setMenuOpen(false);
-                        setSearchOpen(true);
-                      }}
-                      className="flex items-center justify-between py-3 text-left text-base font-medium text-coffee-800"
-                    >
-                      Buscar
-                      <SearchIcon />
-                    </button>
-                    <Link
-                      href="/favoritos"
-                      className="flex items-center justify-between py-3 text-base font-medium text-coffee-800"
-                    >
-                      Favoritos
-                      <span className="flex items-center gap-2 text-coffee-500">
-                        {wishlistIds.length > 0 && <span>{wishlistIds.length}</span>}
-                        <HeartIcon />
-                      </span>
-                    </Link>
-                    <button
-                      onClick={() => {
-                        setMenuOpen(false);
-                        openCart();
-                      }}
-                      className="flex items-center justify-between py-3 text-left text-base font-medium text-coffee-800"
-                    >
-                      Carrito
-                      <span className="flex items-center gap-2 text-coffee-500">
-                        {itemCount > 0 && <span>{itemCount}</span>}
-                        <BagIcon />
-                      </span>
-                    </button>
-                  </div>
-                </motion.div>
-
-                {whatsappNumber && (
-                  <motion.a
-                    initial={{ y: 16, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.18, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                    href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hola, tengo una pregunta sobre un producto de Paramo.')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-8 flex items-center justify-center gap-2 rounded-full bg-coffee-900 py-3.5 text-sm font-medium text-cream-50 transition-colors active:scale-[0.98] hover:bg-coffee-800"
-                  >
-                    Escríbenos por WhatsApp
-                  </motion.a>
-                )}
-
                 {social && Object.values(social).some(Boolean) && (
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.22, duration: 0.4 }}
-                    className="mt-8 flex items-center gap-3"
+                    className="mt-10 flex items-center gap-3 border-t border-cream-200 pt-6"
                   >
                     {social.instagramUrl && (
                       <SocialIconLink href={social.instagramUrl} label="Instagram">
@@ -298,7 +233,130 @@ export default function Navbar({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {!pathname.startsWith('/admin') && (
+        <MobileTabBar
+          menuOpen={menuOpen}
+          onMenu={() => {
+            setSearchOpen(false);
+            setMenuOpen((open) => !open);
+          }}
+          onSearch={() => {
+            setMenuOpen(false);
+            setSearchOpen(true);
+          }}
+          onCart={() => {
+            setMenuOpen(false);
+            openCart();
+          }}
+          itemCount={itemCount}
+          wishlistCount={wishlistIds.length}
+          whatsappNumber={whatsappNumber}
+          favoritesActive={pathname.startsWith('/favoritos')}
+        />
+      )}
     </>
+  );
+}
+
+// Phone-only bottom tab bar: the main actions within thumb reach, the way a
+// native shopping app does it. Stays above the full-screen menu (so "Menú"
+// toggles it closed) but below the cart drawer and search, which cover it.
+function MobileTabBar({
+  menuOpen,
+  onMenu,
+  onSearch,
+  onCart,
+  itemCount,
+  wishlistCount,
+  whatsappNumber,
+  favoritesActive,
+}: {
+  menuOpen: boolean;
+  onMenu: () => void;
+  onSearch: () => void;
+  onCart: () => void;
+  itemCount: number;
+  wishlistCount: number;
+  whatsappNumber?: string;
+  favoritesActive: boolean;
+}) {
+  const tab =
+    'relative flex flex-1 flex-col items-center justify-center gap-1 pt-2 pb-1.5 text-[10px] font-medium uppercase tracking-[0.08em] transition-colors select-none [&>svg]:transition-transform active:[&>svg]:scale-90';
+  const tone = (active: boolean) => (active ? 'text-coffee-900' : 'text-coffee-500');
+
+  return (
+    <nav
+      aria-label="Navegación principal"
+      className="fixed inset-x-0 bottom-0 z-[55] border-t border-cream-200 bg-cream-50/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
+    >
+      <div className="mx-auto flex h-14 max-w-md items-stretch">
+        <button onClick={onMenu} aria-expanded={menuOpen} className={`${tab} ${tone(menuOpen)}`}>
+          {menuOpen ? <CloseIcon /> : <MenuIcon />}
+          {menuOpen ? 'Cerrar' : 'Menú'}
+        </button>
+        <button onClick={onSearch} className={`${tab} ${tone(false)}`}>
+          <SearchIcon />
+          Buscar
+        </button>
+        <button
+          onClick={onCart}
+          aria-label={`Carrito${itemCount > 0 ? ` (${itemCount} productos)` : ''}`}
+          className={`${tab} ${tone(itemCount > 0)}`}
+        >
+          <BagIcon />
+          <AnimatePresence>
+            {itemCount > 0 && (
+              <motion.span
+                key={itemCount}
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.5, opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                className="absolute left-1/2 top-1 ml-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-coffee-900 px-1 text-[9px] font-semibold tracking-normal text-cream-50"
+              >
+                {itemCount}
+              </motion.span>
+            )}
+          </AnimatePresence>
+          Carrito
+        </button>
+        {whatsappNumber && (
+          <a
+            href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hola, tengo una pregunta sobre un producto de Paramo.')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`${tab} ${tone(false)}`}
+          >
+            <ChatIcon />
+            Escríbenos
+          </a>
+        )}
+        <Link
+          href="/favoritos"
+          aria-label={`Favoritos${wishlistCount > 0 ? ` (${wishlistCount})` : ''}`}
+          aria-current={favoritesActive ? 'page' : undefined}
+          className={`${tab} ${tone(favoritesActive)}`}
+        >
+          <HeartIcon />
+          {wishlistCount > 0 && (
+            <span className="absolute left-1/2 top-1 ml-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-coffee-900 px-1 text-[9px] font-semibold tracking-normal text-cream-50">
+              {wishlistCount}
+            </span>
+          )}
+          Favoritos
+        </Link>
+      </div>
+    </nav>
+  );
+}
+
+function ChatIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+      <path d="M3.5 20.5l1.4-4.2A8.5 8.5 0 1 1 8 19.3l-4.5 1.2Z" strokeLinejoin="round" />
+      <path d="M9.2 8.6c.3 1.9 2.3 4.1 4.6 4.9l1-1.1 1.7.8-.4 1.6c-3.6.2-7.6-3.4-7.7-7.2l1.6-.4.8 1.7-1.1 1" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
   );
 }
 

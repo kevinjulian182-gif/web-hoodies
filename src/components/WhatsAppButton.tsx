@@ -1,29 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 
 const MESSAGE = encodeURIComponent('Hola, tengo una pregunta sobre un producto de Paramo.');
 
+// Desktop-only floating button — on phones WhatsApp lives in the bottom tab
+// bar ("Escríbenos"), so a floating bubble there would just cover products.
 export default function WhatsAppButton({ number }: { number: string }) {
   const pathname = usePathname();
-
-  // Product detail pages show a sticky mobile buy bar once the main
-  // "Agregar al carrito" button (#comprar) scrolls out of view — lift the
-  // WhatsApp button above it only then, so it never overlaps either button.
-  const isProductDetail = /^\/productos\/[^/]+$/.test(pathname);
-  const [aboveBuyBar, setAboveBuyBar] = useState(false);
-
-  useEffect(() => {
-    if (!isProductDetail) return;
-    const buyBox = document.getElementById('comprar');
-    if (!buyBox) return;
-    const observer = new IntersectionObserver(([entry]) => setAboveBuyBar(!entry.isIntersecting), {
-      rootMargin: '-96px 0px 0px 0px',
-    });
-    observer.observe(buyBox);
-    return () => observer.disconnect();
-  }, [isProductDetail]);
 
   if (
     !number ||
@@ -39,11 +23,7 @@ export default function WhatsAppButton({ number }: { number: string }) {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Escríbenos por WhatsApp"
-      className={`fixed right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg transition-[transform,bottom] duration-300 hover:scale-105 active:scale-95 ${
-        isProductDetail && aboveBuyBar
-          ? 'bottom-[calc(6rem+env(safe-area-inset-bottom))] md:bottom-6'
-          : 'bottom-[calc(1.5rem+env(safe-area-inset-bottom))] md:bottom-6'
-      }`}
+      className="fixed bottom-6 right-6 z-40 hidden h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg transition-transform duration-300 hover:scale-105 active:scale-95 md:flex"
     >
       <WhatsAppIcon />
     </a>

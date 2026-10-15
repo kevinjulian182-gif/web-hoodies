@@ -70,7 +70,7 @@ export default function Footer({
   );
 
   return (
-    <footer className="bg-coffee-900 text-cream-100">
+    <footer className="bg-coffee-900 pb-[calc(3.5rem+env(safe-area-inset-bottom))] text-cream-100 md:pb-0">
       <div className="border-b border-cream-50/10">
         <div className="mx-auto max-w-7xl px-6 py-8 grid grid-cols-1 sm:grid-cols-3 gap-6">
           {TRUST_BADGES.map((badge) => (

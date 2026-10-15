@@ -17,10 +17,13 @@ export default function MobileBuyBar({ name, priceCents }: { name: string; price
   }, []);
 
   return (
+    // Sits directly on top of the mobile tab bar (3.5rem + safe area); when
+    // hidden it slides down behind it, so it also fades out to not peek
+    // through the tab bar's translucent background.
     <div
-      style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}
-      className={`fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-4 border-t border-cream-200 bg-cream-50/95 backdrop-blur-sm px-6 pt-4 transition-transform duration-300 md:hidden ${
-        visible ? 'translate-y-0' : 'translate-y-full'
+      aria-hidden={!visible}
+      className={`fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-40 flex items-center justify-between gap-4 border-t border-cream-200 bg-cream-50 px-6 py-3 transition-[transform,opacity] duration-300 md:hidden ${
+        visible ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-full opacity-0'
       }`}
     >
       <div className="min-w-0">
