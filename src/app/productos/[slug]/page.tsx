@@ -64,9 +64,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   ]);
 
   const onSale = isOnSale(product.priceCents, product.compareAtPriceCents);
-  const details = product.details
-    ? product.details.split('\n').map((line) => line.trim()).filter(Boolean)
-    : [];
+  const details = toBullets(product.details);
+  const materials = toBullets(product.materials);
+  const care = toBullets(product.careInstructions);
   const whatsappNumber = getStoreWhatsAppNumber(content);
 
   return (
@@ -140,70 +140,52 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             <AddToCartButton product={product} whatsappNumber={whatsappNumber} />
           </div>
 
-          <ul className="mt-8 space-y-3 border-t border-cream-200 pt-6">
-            <li className="flex items-start gap-3 text-sm text-coffee-700">
-              <CheckIcon />
-              <span>
-                <strong className="font-medium text-coffee-900">Pago contra entrega:</strong> revisa tu
-                pedido y paga en efectivo o con tarjeta cuando lo recibas.
-              </span>
-            </li>
-            <li className="flex items-start gap-3 text-sm text-coffee-700">
-              <CheckIcon />
-              <span>
-                <strong className="font-medium text-coffee-900">Garantía de cambio:</strong> si no te
-                queda bien, la cambias sin costo dentro de los primeros 5 días hábiles.
-              </span>
-            </li>
-            <li className="flex items-start gap-3 text-sm text-coffee-700">
-              <CheckIcon />
-              <span>
-                <strong className="font-medium text-coffee-900">Envíos a toda Colombia:</strong> 2-5 días
-                hábiles según tu ciudad.
-              </span>
-            </li>
+          <ul className="mt-8 divide-y divide-cream-200 rounded-2xl border border-cream-200">
+            <TrustRow title="Pago contra entrega">Revisa tu pedido y paga en efectivo o con tarjeta al recibirlo.</TrustRow>
+            <TrustRow title="Garantía de cambio">Si no te queda bien, la cambias sin costo dentro de 5 días hábiles.</TrustRow>
+            <TrustRow title="Envíos a toda Colombia">2-5 días hábiles según tu ciudad.</TrustRow>
           </ul>
-
-          <ul className="mt-6 space-y-5 border-t border-cream-200 pt-6 text-sm text-coffee-700">
-            {details.length > 0 && (
-              <li className="flex items-start gap-3">
-                <TagIcon />
-                <span>
-                  <strong className="block font-medium text-coffee-900">Detalles del producto</strong>
-                  <span className="mt-1 block leading-relaxed text-coffee-600">{details.join(' · ')}</span>
-                </span>
-              </li>
-            )}
-            <li className="flex items-start gap-3">
-              <FabricIcon />
-              <span>
-                <strong className="block font-medium text-coffee-900">Materiales</strong>
-                <span className="mt-1 block leading-relaxed text-coffee-600">
-                  {product.materials || 'Algodón pesado y felpa francesa de gramaje alto.'}
-                </span>
-              </span>
-            </li>
-            <li className="flex items-start gap-3">
-              <DropletIcon />
-              <span>
-                <strong className="block font-medium text-coffee-900">Talla y cuidado</strong>
-                <span className="mt-1 block leading-relaxed text-coffee-600">
-                  {product.careInstructions ||
-                    'Guía de tallas en formato US. Si dudas entre dos tallas, elige la más grande para un calce más relajado. Lava en frío, del revés y evita la secadora para conservar la impresión y el bordado.'}
-                </span>
-              </span>
-            </li>
-          </ul>
-
-          {product.description && (
-            <div className="mt-6 border-t border-cream-200 pt-6">
-              <h2 className="text-sm font-medium text-coffee-900">Descripción</h2>
-              <p className="mt-2 text-sm leading-relaxed text-coffee-600">{product.description}</p>
-            </div>
-          )}
         </div>
       </div>
       </ProductColorProvider>
+
+      {/* Product info gets the full page width instead of being stacked in
+          the narrow buy column, where it left the rest of the row empty. */}
+      <section className="border-t border-cream-200">
+        <div className="mx-auto grid max-w-6xl gap-10 px-6 py-14 md:grid-cols-[1fr_1.35fr] md:gap-16 md:py-20">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-coffee-500">Sobre la prenda</p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tightest text-coffee-900 md:text-3xl">{product.name}</h2>
+            {product.description && (
+              <p className="mt-5 text-base leading-relaxed text-coffee-700 md:text-lg">{product.description}</p>
+            )}
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {details.length > 0 && (
+              <InfoCard icon={<TagIcon />} title="Detalles" className="sm:col-span-2">
+                <ul className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
+                  {details.map((d) => (
+                    <li key={d} className="flex items-start gap-2.5">
+                      <span className="mt-[0.55em] h-1 w-1 shrink-0 rounded-full bg-coffee-400" aria-hidden="true" />
+                      <span className="first-letter:uppercase">{d}</span>
+                    </li>
+                  ))}
+                </ul>
+              </InfoCard>
+            )}
+            <InfoCard icon={<FabricIcon />} title="Materiales">
+              <BulletText items={materials} fallback="Algodón pesado y felpa francesa de gramaje alto." />
+            </InfoCard>
+            <InfoCard icon={<DropletIcon />} title="Talla y cuidado">
+              <BulletText
+                items={care}
+                fallback="Si dudas entre dos tallas, elige la más grande para un calce más relajado. Lava en frío, del revés y evita la secadora."
+              />
+            </InfoCard>
+          </div>
+        </div>
+      </section>
 
       <ReviewsSection title={content['pdp.reviews_title']} reviews={reviews} />
       <ComparisonTable current={product} others={related.slice(0, 3)} />
@@ -291,5 +273,65 @@ function DropletIcon() {
     >
       <path d="M12 3s6.5 7.2 6.5 11.5a6.5 6.5 0 0 1-13 0C5.5 10.2 12 3 12 3Z" strokeLinejoin="round" />
     </svg>
+  );
+}
+
+// Admin text fields are typed with auto-bullets ("• ..." per line) and
+// sometimes several on one line ("• Algodón 80% • Poliéster 20%"); split on
+// both and strip the bullet characters so the UI draws its own markers.
+function toBullets(text: string | null): string[] {
+  if (!text) return [];
+  return text
+    .split(/\n|\s[•·]\s/)
+    .map((line) => line.replace(/^[\s•·*-]+/, '').trim())
+    .filter(Boolean);
+}
+
+function InfoCard({
+  icon,
+  title,
+  className = '',
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={`rounded-2xl bg-cream-100/60 p-5 md:p-6 ${className}`}>
+      <div className="mb-3 flex items-center gap-2.5 text-coffee-900">
+        {icon}
+        <h3 className="text-sm font-semibold">{title}</h3>
+      </div>
+      <div className="text-sm leading-relaxed text-coffee-700">{children}</div>
+    </div>
+  );
+}
+
+function BulletText({ items, fallback }: { items: string[]; fallback: string }) {
+  if (items.length === 0) return <p>{fallback}</p>;
+  if (items.length === 1) return <p className="first-letter:uppercase">{items[0]}</p>;
+  return (
+    <ul className="space-y-1.5">
+      {items.map((item) => (
+        <li key={item} className="flex items-start gap-2.5">
+          <span className="mt-[0.55em] h-1 w-1 shrink-0 rounded-full bg-coffee-400" aria-hidden="true" />
+          <span className="first-letter:uppercase">{item}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function TrustRow({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <li className="flex items-start gap-3 px-4 py-3.5 text-sm">
+      <CheckIcon />
+      <span className="text-coffee-600">
+        <strong className="block font-medium text-coffee-900">{title}</strong>
+        {children}
+      </span>
+    </li>
   );
 }

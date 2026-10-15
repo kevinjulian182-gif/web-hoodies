@@ -29,6 +29,27 @@ export function getStoreWhatsAppNumber(content: Pick<SiteContent, 'site.whatsapp
   return normalizePhone(content['site.whatsapp_number'] || process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '');
 }
 
+/** Pre-written order message for shoppers who'd rather buy over WhatsApp
+ * than through the checkout: one line per cart item plus the subtotal. */
+export function buildWhatsAppOrderMessage(
+  items: { name: string; size: string; color?: string; quantity: number; priceCents: number }[],
+  subtotalCents: number
+): string {
+  const lines = items.map(
+    (i) =>
+      `• ${i.quantity} x ${i.name} — Talla ${i.size}${i.color ? `, ${i.color}` : ''} (${formatCOP(i.priceCents * i.quantity)})`
+  );
+  return [
+    'Hola, quiero hacer este pedido por WhatsApp:',
+    '',
+    ...lines,
+    '',
+    `Subtotal: ${formatCOP(subtotalCents)}`,
+    '',
+    'Mi nombre y ciudad de envío:',
+  ].join('\n');
+}
+
 export function buildOrderConfirmationMessage(order: {
   customerName: string;
   totalCents: number;
