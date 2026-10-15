@@ -37,9 +37,9 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: content['site.title'],
     description: content['site.description'],
-    icons: content['site.favicon_url'] ? { icon: content['site.favicon_url'] } : undefined,
+    icons: { icon: content['site.favicon_url'] || '/icon.svg' },
     openGraph: {
-      siteName: 'AFRA',
+      siteName: 'Paramo',
       title: content['site.title'],
       description: content['site.description'],
       locale: 'es_CO',

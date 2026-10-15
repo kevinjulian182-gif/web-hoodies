@@ -9,6 +9,7 @@ import { useCart } from '@/lib/cart';
 import { formatCOP } from '@/lib/format';
 import { COLOMBIA_DEPARTMENTS } from '@/lib/colombia';
 import WompiCheckoutButton from '@/components/WompiCheckoutButton';
+import Logo from '@/components/Logo';
 import { autoBulletize, pasteBulletedText } from '@/lib/textareaBullets';
 
 type CheckoutData = {
@@ -119,8 +120,8 @@ export default function CheckoutPage() {
   return (
     <div className="min-h-dvh bg-cream-50 px-6 py-12 md:py-16">
       <div className="mx-auto max-w-5xl">
-        <Link href="/" className="block text-center text-lg font-semibold tracking-tightest text-coffee-900 mb-8">
-          AFRA°
+        <Link href="/" aria-label="Paramo — inicio" className="mx-auto mb-8 block w-fit text-coffee-900">
+          <Logo className="h-[17px] w-auto" />
         </Link>
 
         <div className="mx-auto mb-10 flex max-w-sm items-center justify-center">

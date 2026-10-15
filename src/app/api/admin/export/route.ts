@@ -23,7 +23,7 @@ export async function GET() {
   ]);
 
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = 'AFRA';
+  workbook.creator = 'Paramo';
   workbook.created = new Date();
 
   const salesSheet = workbook.addWorksheet('Ventas');
@@ -104,7 +104,7 @@ export async function GET() {
   return new NextResponse(buffer, {
     headers: {
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'Content-Disposition': `attachment; filename="afra-reporte-${new Date().toISOString().slice(0, 10)}.xlsx"`,
+      'Content-Disposition': `attachment; filename="paramo-reporte-${new Date().toISOString().slice(0, 10)}.xlsx"`,
     },
   });
 }

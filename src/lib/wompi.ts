@@ -40,5 +40,5 @@ export async function verifyWompiWebhook(event: WompiEvent): Promise<boolean> {
 }
 
 export function generateOrderReference() {
-  return `AFRA-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
+  return `PARAMO-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
 }

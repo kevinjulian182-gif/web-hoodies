@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { formatCOP } from '@/lib/format';
+import Logo from '@/components/Logo';
 
 type OrderItem = {
   id: string;
@@ -64,7 +65,7 @@ export default function VoucherPage() {
 
       <div className="mx-auto max-w-xl rounded-2xl border-2 border-dashed border-coffee-900 bg-cream-50 p-8 print:rounded-none print:border-4 print:border-solid">
         <div className="flex items-center justify-between border-b-2 border-coffee-900 pb-4">
-          <p className="text-2xl font-semibold tracking-tightest text-coffee-900">AFRA°</p>
+          <Logo className="h-6 w-auto text-coffee-900" />
           <p className="text-xs font-medium uppercase tracking-[0.15em] text-coffee-500">Guía de envío</p>
         </div>
 

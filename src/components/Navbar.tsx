@@ -8,6 +8,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useCart } from '@/lib/cart';
 import { useWishlist } from '@/lib/wishlist';
 import SearchOverlay from '@/components/SearchOverlay';
+import Logo from '@/components/Logo';
 
 const LINKS = [
   { href: '/productos', label: 'Catálogo' },
@@ -18,9 +19,9 @@ const LINKS = [
 
 function Wordmark({ logoUrl, className }: { logoUrl?: string; className: string }) {
   if (logoUrl) {
-    return <Image src={logoUrl} alt="AFRA" width={140} height={40} className="h-8 w-auto object-contain" />;
+    return <Image src={logoUrl} alt="Paramo" width={140} height={40} className="h-8 w-auto object-contain" />;
   }
-  return <span className={className}>AFRA°</span>;
+  return <Logo className={`block h-[17px] w-auto transition-colors ${className}`} />;
 }
 
 type SocialLinks = {
@@ -79,11 +80,8 @@ export default function Navbar({
         }`}
       >
         <nav className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
-          <Link href="/">
-            <Wordmark
-              logoUrl={logoUrl}
-              className={`text-lg font-semibold tracking-tightest ${overHero ? 'text-cream-50' : 'text-coffee-900'}`}
-            />
+          <Link href="/" aria-label="Paramo — inicio">
+            <Wordmark logoUrl={logoUrl} className={overHero ? 'text-cream-50' : 'text-coffee-900'} />
           </Link>
 
           <div className="hidden md:flex items-center gap-10 text-sm font-medium text-coffee-700">
@@ -180,8 +178,8 @@ export default function Navbar({
           >
             <div className="flex h-full flex-col">
               <div className="mx-auto flex h-16 w-full max-w-7xl shrink-0 items-center justify-between px-6">
-                <Link href="/">
-                  <Wordmark logoUrl={logoUrl} className="text-lg font-semibold tracking-tightest text-coffee-900" />
+                <Link href="/" aria-label="Paramo — inicio">
+                  <Wordmark logoUrl={logoUrl} className="text-coffee-900" />
                 </Link>
                 <button aria-label="Cerrar menú" onClick={() => setMenuOpen(false)} className="text-coffee-900">
                   <CloseIcon />
@@ -257,7 +255,7 @@ export default function Navbar({
                     initial={{ y: 16, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.18, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                    href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hola, tengo una pregunta sobre un producto de AFRA.')}`}
+                    href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hola, tengo una pregunta sobre un producto de Paramo.')}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="mt-8 flex items-center justify-center gap-2 rounded-full bg-coffee-900 py-3.5 text-sm font-medium text-cream-50 transition-colors active:scale-[0.98] hover:bg-coffee-800"

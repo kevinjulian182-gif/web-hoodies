@@ -126,7 +126,7 @@ export default function CartDrawer({
                   <p className="mt-3 text-center text-xs text-coffee-500">Envío y descuentos se calculan en el pago.</p>
                   {whatsappNumber && (
                     <a
-                      href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hola, tengo una duda sobre mi pedido en AFRA.')}`}
+                      href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hola, tengo una duda sobre mi pedido en Paramo.')}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="mt-3 flex items-center justify-center gap-1.5 text-xs font-medium text-coffee-600 transition-colors hover:text-coffee-900"

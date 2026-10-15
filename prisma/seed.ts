@@ -229,7 +229,7 @@ const BLOG_POSTS: Array<{ title: string; slug: string; excerpt: string; content:
     slug: 'garantia-y-politica-de-cambios',
     excerpt: 'Qué cubre la garantía, cuánto tiempo tienes para pedir un cambio y cómo iniciar el proceso en minutos.',
     coverSeed: 'warranty-guide',
-    content: `Toda prenda que compras en AFRA tiene garantía. Si algo sale mal — un defecto de fábrica, una talla que no calza, un color distinto al que esperabas — lo resolvemos sin que tengas que pelear por ello.
+    content: `Toda prenda que compras en Paramo tiene garantía. Si algo sale mal — un defecto de fábrica, una talla que no calza, un color distinto al que esperabas — lo resolvemos sin que tengas que pelear por ello.
 
 Tienes hasta 5 días hábiles desde que recibes tu pedido para solicitar un cambio o devolución, conforme al derecho de retracto del Estatuto del Consumidor. La prenda debe conservar sus etiquetas originales y no haber sido usada, para que podamos procesarla sin demoras.
 
@@ -261,7 +261,7 @@ Esa moderación fue justo lo que la volvió icónica. En un mercado saturado de 
 
 La marca popularizó también la silueta oversized con mangas caídas y capuchas 3D — un patrón de corte que hoy copian marcas de fast fashion en todo el mundo, casi siempre peor.
 
-Hoy Essentials es de las colecciones más buscadas en la reventa, y en AFRA la manejamos porque representa exactamente lo que creemos: menos ruido, más calidad.`,
+Hoy Essentials es de las colecciones más buscadas en la reventa, y en Paramo la manejamos porque representa exactamente lo que creemos: menos ruido, más calidad.`,
   },
   {
     title: 'Guía de tallas: cómo elegir el fit correcto en streetwear oversized',
@@ -288,7 +288,7 @@ El proceso es simple. Confirmas tu pedido en el sitio sin pagar nada por adelant
 
 Para la tienda también tiene sentido: reduce las devoluciones por desconfianza y genera una primera compra sin fricción para quien todavía no conoce la marca. Es, en resumen, un método pensado para un mercado donde comprar ropa de marcas internacionales por internet todavía genera dudas — y donde la confianza se construye pedido a pedido.
 
-En AFRA ofrecemos pago contra entrega en todo el país junto con pago en línea para quien lo prefiera, precisamente para que la forma de pagar nunca sea la razón por la que alguien no se anima a comprar.`,
+En Paramo ofrecemos pago contra entrega en todo el país junto con pago en línea para quien lo prefiera, precisamente para que la forma de pagar nunca sea la razón por la que alguien no se anima a comprar.`,
     coverSeed: 'cod-delivery',
   },
   {

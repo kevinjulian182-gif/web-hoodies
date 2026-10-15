@@ -298,7 +298,7 @@ export default function AdminContentPage() {
                         />
                         <p className="mt-1.5 text-xs text-coffee-500">
                           {field.key === 'site.logo_url'
-                            ? 'Opcional. Si subes un logo, reemplaza el texto "AFRA°" del menú. Quítalo para volver al texto.'
+                            ? 'Opcional. Si subes un logo, reemplaza el logo PARAMO del menú. Quítalo para volver al logo por defecto.'
                             : 'Usa una imagen cuadrada (idealmente 512×512px). Se aplica en la pestaña del navegador.'}
                         </p>
                       </div>

@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma';
 // Cached statically — a blog post only changes when an admin saves one,
 // and that save calls revalidateBlogListing() to bust this immediately.
 export const metadata: Metadata = {
-  title: 'Blog — AFRA',
+  title: 'Blog — Paramo',
   description: 'Guías de cuidado, garantía e historia del streetwear que vendemos.',
 };
 

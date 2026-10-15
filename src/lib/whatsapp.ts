@@ -53,7 +53,7 @@ export function buildOrderConfirmationMessage(order: {
   return [
     `👋 ¡Hola ${order.customerName}!`,
     ``,
-    `Gracias por comprar en AFRA°.`,
+    `Gracias por comprar en Paramo.`,
     ``,
     `📦 Pedido confirmado:`,
     productsLine,

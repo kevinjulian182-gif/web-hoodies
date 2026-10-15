@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import Logo from '@/components/Logo';
 
 const COLUMNS = [
   {
@@ -83,7 +84,7 @@ export default function Footer({
 
       <div className="mx-auto max-w-7xl px-6 py-16 grid md:grid-cols-[1.5fr_1fr_1fr] gap-12">
         <div>
-          <p className="text-2xl font-semibold tracking-tightest text-cream-50">AFRA°</p>
+          <Logo className="h-6 w-auto text-cream-50" />
           <p className="mt-4 text-sm text-cream-100/60 max-w-xs leading-relaxed">{tagline}</p>
           {socialLinks.length > 0 && (
             <div className="mt-5 flex items-center gap-3">
@@ -103,7 +104,7 @@ export default function Footer({
           )}
           {whatsappNumber && (
             <a
-              href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hola, tengo una pregunta sobre un producto de AFRA.')}`}
+              href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hola, tengo una pregunta sobre un producto de Paramo.')}`}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-cream-100/80 transition-colors hover:text-cream-50"
@@ -134,7 +135,7 @@ export default function Footer({
 
       <div className="border-t border-cream-50/10">
         <div className="mx-auto max-w-7xl px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-cream-100/40">
-          <p>© {copyrightYear} AFRA. Todos los derechos reservados.</p>
+          <p>© {copyrightYear} Paramo. Todos los derechos reservados.</p>
           <div className="flex items-center gap-4">
             <Link href="/terminos" className="hover:text-cream-100/70 transition-colors">
               Términos y condiciones

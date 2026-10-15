@@ -23,7 +23,7 @@ export async function sendOrderConfirmationEmail(order: OrderWithItems) {
   const isCod = order.paymentMethod === 'COD';
 
   await resend.emails.send({
-    from: 'AFRA <pedidos@afra.co>',
+    from: 'Paramo <pedidos@wearparamo.com>',
     to: order.customerEmail,
     subject: isCod ? 'Tu pedido ha sido confirmado' : 'Tu compra ha sido exitosa',
     html: `

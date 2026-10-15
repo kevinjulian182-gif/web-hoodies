@@ -10,9 +10,9 @@ import CatalogClient from './CatalogClient';
 export const revalidate = 60;
 
 export const metadata: Metadata = {
-  title: 'Catálogo — AFRA',
+  title: 'Catálogo — Paramo',
   description:
-    'Explora el catálogo completo de streetwear premium de AFRA: Nike, Adidas, Supreme y más, con garantía y envíos a toda Colombia.',
+    'Explora el catálogo completo de streetwear premium de Paramo: Nike, Adidas, Supreme y más, con garantía y envíos a toda Colombia.',
 };
 
 export default async function CatalogPage() {
