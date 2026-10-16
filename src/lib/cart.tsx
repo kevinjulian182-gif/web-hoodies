@@ -64,7 +64,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       ? items.map((i) => (i === existing ? { ...i, quantity: i.quantity + item.quantity } : i))
       : [...items, item];
     persist(next);
-    if (options?.openDrawer !== false) setIsOpen(true);
+    // Only the first add (empty cart) pops the drawer open, to show where
+    // the cart lives; later adds just confirm on the button and bump the
+    // badge instead of interrupting browsing every time.
+    if (options?.openDrawer !== false && items.length === 0) setIsOpen(true);
   };
 
   const removeItem = (productId: string, size: string, color?: string) => {

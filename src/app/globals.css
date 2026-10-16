@@ -2,16 +2,97 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Fallback palette (as "R G B" triplets, matching Tailwind's rgb(var(..) /
+   <alpha-value>) opacity syntax). Admin > Contenido > Colores overrides
+   these at runtime via an inline <style> tag in the root layout — this
+   block only matters before that tag loads or if it's ever absent. */
+:root {
+  --color-cream-50: 251 246 236;
+  --color-cream-100: 247 238 219;
+  --color-cream-200: 242 226 194;
+  --color-cream-300: 234 208 156;
+  --color-coffee-400: 165 112 76;
+  --color-coffee-500: 131 89 61;
+  --color-coffee-600: 104 71 48;
+  --color-coffee-700: 79 54 36;
+  --color-coffee-800: 58 40 27;
+  --color-coffee-900: 41 28 19;
+}
+
 html {
+  /* Light-only, matching the color-scheme meta in layout.tsx: native form
+     controls, scrollbars and autofill stay light under OS dark mode. */
+  color-scheme: only light;
   scroll-behavior: smooth;
+  /* No font inflation when the phone rotates to landscape. */
+  -webkit-text-size-adjust: 100%;
+  /* The gray/blue flash Safari/Chrome paint on every tap — the single
+     loudest "this is a website" tell on mobile. Replaced by each
+     element's own :active state instead. */
+  -webkit-tap-highlight-color: transparent;
+  /* Paired with body below: on iOS, overflow on body alone doesn't stop the
+     page from panning sideways. clip (not hidden) keeps both from becoming
+     scroll containers, which would break position: sticky. */
+  overflow-x: clip;
+  /* No page-level pull-to-refresh/rubber-band; the cart drawer and search
+     overlay opt back into their own contained bounce below. */
+  overscroll-behavior: none;
 }
 
 body {
   @apply bg-cream-50 text-coffee-900 antialiased;
+  /* Safety net: a single element that's a hair too wide (a full-bleed
+     section, an untruncated long word) shouldn't be able to open a
+     page-level horizontal scrollbar on mobile. */
+  overflow-x: hidden;
+  overflow-x: clip;
+}
+
+/* iOS Safari zooms the page on focus for any input under 16px and never
+   zooms back out on blur. 16px is the minimum, not a design choice.
+   !important because every input in the app carries a Tailwind text-sm
+   utility, which otherwise outranks a plain element selector; scoped to
+   coarse pointers so desktop keeps the smaller type scale. */
+@media (pointer: coarse) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+button,
+a,
+[role='button'] {
+  /* Skip the ~300ms double-tap-zoom wait before the click fires. */
+  touch-action: manipulation;
+}
+
+button,
+[role='button'] {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 ::selection {
   @apply bg-coffee-800 text-cream-50;
+}
+
+html.custom-cursor,
+html.custom-cursor * {
+  cursor: none !important;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid theme('colors.coffee.700');
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -22,5 +103,146 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* Diagonal shine sliding across the free-shipping progress bar fill. */
+@keyframes shipping-bar-shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+
+.shipping-bar-shimmer {
+  animation: shipping-bar-shimmer 1.8s ease-in-out infinite;
+}
+
+/* Shared rendering for rich text from the blog's Tiptap editor — the admin
+   toolbar (.prose-editor) and the public post page (.blog-content) use the
+   same tag styling so what you see while writing is what ships. */
+.prose-editor,
+.blog-content {
+  line-height: 1.75;
+}
+.prose-editor p,
+.blog-content p {
+  margin-top: 1.1em;
+}
+.prose-editor p:first-child,
+.blog-content p:first-child {
+  margin-top: 0;
+}
+.prose-editor h2,
+.blog-content h2 {
+  @apply text-xl font-semibold tracking-tightest text-coffee-900;
+  margin-top: 1.4em;
+  margin-bottom: 0.4em;
+}
+.prose-editor h3,
+.blog-content h3 {
+  @apply text-lg font-semibold tracking-tightest text-coffee-900;
+  margin-top: 1.2em;
+  margin-bottom: 0.4em;
+}
+.prose-editor ul,
+.blog-content ul {
+  list-style: disc;
+  margin-top: 1em;
+  padding-left: 1.4em;
+}
+.prose-editor ol,
+.blog-content ol {
+  list-style: decimal;
+  margin-top: 1em;
+  padding-left: 1.4em;
+}
+.prose-editor li,
+.blog-content li {
+  margin-top: 0.35em;
+}
+.prose-editor blockquote,
+.blog-content blockquote {
+  @apply border-cream-300 text-coffee-600;
+  border-left-width: 3px;
+  padding-left: 1em;
+  margin: 1.2em 0;
+  font-style: italic;
+}
+.prose-editor strong,
+.blog-content strong {
+  @apply text-coffee-900 font-semibold;
+}
+
+@layer utilities {
+  /* Horizontally scrollable chip rows on mobile: swipeable, no visible bar. */
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  /* Soft fade at both ends of a swipeable row, hinting there's more to
+     scroll. The -webkit- prefix is still needed by Samsung Internet and
+     older Android Chrome; off from md up, where the rows wrap instead. */
+  .edge-fade {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 16px, #000 calc(100% - 16px), transparent);
+    mask-image: linear-gradient(to right, transparent, #000 16px, #000 calc(100% - 16px), transparent);
+  }
+  @media (min-width: 768px) {
+    .edge-fade {
+      -webkit-mask-image: none;
+      mask-image: none;
+    }
+  }
+}
+
+/* Entrance animations done in CSS rather than Framer Motion's `initial`:
+   Framer renders `initial` as inline opacity:0 in the server HTML, so the
+   content stays invisible until the JS bundle downloads and hydrates —
+   seconds on a mid-range Android, never if an old browser can't run it.
+   CSS animations start as soon as the HTML paints. `backwards` fill keeps
+   no transform behind once done (a lingering transform would turn the
+   element into a containing block for fixed-position descendants). */
+@keyframes afra-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(var(--afra-fade-from, 16px));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.animate-fade-up {
+  animation: afra-fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+.animate-page-in {
+  --afra-fade-from: 8px;
+  animation: afra-fade-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+/* Safety net for the scroll-reveal sections still animated by Framer
+   (whileInView): if the page hasn't hydrated 1.2s after load, fade them in
+   with CSS anyway. A CSS animation overrides the non-!important inline
+   opacity:0; once hydrated, data-hydrated removes this and Framer takes
+   over as usual. Elements meant to stay hidden opt out with
+   data-keep-hidden. */
+@keyframes afra-unhide {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+html:not([data-hydrated]) [style*='opacity:0']:not([data-keep-hidden]) {
+  animation: afra-unhide 0.4s ease-out 1.2s forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up,
+  .animate-page-in {
+    animation: none;
   }
 }

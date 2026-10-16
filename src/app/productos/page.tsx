@@ -1,25 +1,37 @@
-import ProductGrid from '@/components/ProductGrid';
+import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { prisma } from '@/lib/prisma';
+import CatalogClient from './CatalogClient';
 
-export const dynamic = 'force-dynamic';
+// Cached and served statically between revalidations — product/brand
+// edits invalidate this immediately via revalidateProductListings(), the
+// 60s window self-heals stock changes from checkout without needing every
+// write path wired to revalidate.
+export const revalidate = 60;
 
-export default async function CatalogPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ marca?: string }>;
-}) {
-  const { marca } = await searchParams;
-  const products = await prisma.product.findMany({
-    where: { active: true },
-    orderBy: { createdAt: 'desc' },
-  });
+export const metadata: Metadata = {
+  title: 'Catálogo — AFRA',
+  description:
+    'Explora el catálogo completo de streetwear premium de AFRA: Nike, Adidas, Supreme y más, con garantía y envíos a toda Colombia.',
+};
+
+export default async function CatalogPage() {
+  const [products, brands] = await Promise.all([
+    prisma.product.findMany({
+      where: { active: true },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.brand.findMany({ select: { name: true, logoUrl: true }, orderBy: { name: 'asc' } }),
+  ]);
 
   return (
     <div className="pt-8">
-      <h1 className="font-display mx-auto max-w-7xl px-6 text-4xl italic font-semibold text-coffee-900">
+      <h1 className="mx-auto max-w-screen-2xl px-6 text-3xl md:px-10 font-semibold tracking-tightest text-coffee-900">
         Catálogo
       </h1>
-      <ProductGrid products={products} initialBrand={marca} />
+      <Suspense fallback={null}>
+        <CatalogClient products={products} brandLogos={brands} />
+      </Suspense>
     </div>
   );
 }
