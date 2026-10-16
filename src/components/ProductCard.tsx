@@ -72,7 +72,7 @@ export default function ProductCard({
         {/* Desktop: a warm spotlight tile that lifts on hover, with the quick
             add sliding up from inside the photo. Phones keep the plain tile
             and the always-visible button below (no hover on touch). */}
-        <div className="relative aspect-[4/5] overflow-hidden rounded-2xl border border-cream-200/70 bg-cream-50 transition-[transform,box-shadow,border-color] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] md:border-transparent md:bg-[radial-gradient(110%_85%_at_50%_35%,rgb(var(--color-cream-50))_0%,rgb(var(--color-cream-100))_70%,rgb(var(--color-cream-200)/0.7)_100%)] md:group-hover:-translate-y-1.5 md:group-hover:shadow-[0_24px_48px_-20px_rgba(54,37,25,0.45)]">
+        <div className="relative aspect-[3/4] overflow-hidden rounded-2xl border border-cream-200/70 bg-cream-50 transition-[transform,box-shadow,border-color] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] md:border-transparent md:bg-[radial-gradient(110%_85%_at_50%_35%,rgb(var(--color-cream-50))_0%,rgb(var(--color-cream-100))_70%,rgb(var(--color-cream-200)/0.7)_100%)] md:group-hover:-translate-y-1.5 md:group-hover:shadow-[0_24px_48px_-20px_rgba(54,37,25,0.45)]">
           {displayImages[0] && (
             <Image
               src={displayImages[0]}
