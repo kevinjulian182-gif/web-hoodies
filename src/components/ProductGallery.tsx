@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useProductColor } from '@/lib/productColor';
@@ -32,26 +32,56 @@ export default function ProductGallery({
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const current = media[active];
 
+  // The main frame is a native scroll-snap carousel: every photo is mounted
+  // (and loading) up front, side by side, so changing photos is the
+  // browser's own scroll — no waiting on an exit animation and then on a
+  // fresh image download, which is what made it stutter.
+  const trackRef = useRef<HTMLDivElement>(null);
+  const scrollToIndex = (i: number, smooth = true) => {
+    const el = trackRef.current;
+    if (!el) return;
+    el.scrollTo({ left: i * el.clientWidth, behavior: smooth ? 'smooth' : 'auto' });
+  };
+  const goTo = (i: number, smooth = true) => {
+    if (media.length === 0) return;
+    const next = ((i % media.length) + media.length) % media.length;
+    setActive(next);
+    scrollToIndex(next, smooth);
+  };
+
+  // Swipes (and smooth scrolls from thumbnail taps) update the counter and
+  // the highlighted thumbnail as each photo settles into view.
+  const frameRef = useRef(0);
+  const onTrackScroll = () => {
+    cancelAnimationFrame(frameRef.current);
+    frameRef.current = requestAnimationFrame(() => {
+      const el = trackRef.current;
+      if (!el || el.clientWidth === 0) return;
+      const i = Math.round(el.scrollLeft / el.clientWidth);
+      setActive((prev) => (prev === i ? prev : Math.min(Math.max(i, 0), media.length - 1)));
+    });
+  };
 
   // Jump back to the first photo whenever the color switch actually swaps
   // the image set, so you don't land on an out-of-range index or on photo
   // #3 of a different colorway.
   useEffect(() => {
     setActive(0);
+    scrollToIndex(0, false);
   }, [selectedColor]);
 
-  const goTo = (i: number) => setActive(((i % media.length) + media.length) % media.length);
-
-  // Swipe support for the main image on mobile — the thumbnail strip is the
-  // only way to change photos otherwise, and tapping tiny thumbnails isn't
-  // how anyone actually browses a product's photos on a phone.
-  const SWIPE_THRESHOLD = 50;
-  const handleDragEnd = (_: unknown, info: { offset: { x: number }; velocity: { x: number } }) => {
-    if (media.length < 2) return;
-    const swipedLeft = info.offset.x < -SWIPE_THRESHOLD || info.velocity.x < -500;
-    const swipedRight = info.offset.x > SWIPE_THRESHOLD || info.velocity.x > 500;
-    if (swipedLeft) goTo(active + 1);
-    else if (swipedRight) goTo(active - 1);
+  // Lightbox swipe: a plain touch gesture, no drag physics needed.
+  const touchStartX = useRef<number | null>(null);
+  const onLightboxTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0]?.clientX ?? null;
+  };
+  const onLightboxTouchEnd = (e: React.TouchEvent) => {
+    const start = touchStartX.current;
+    touchStartX.current = null;
+    const end = e.changedTouches[0]?.clientX;
+    if (start == null || end == null || media.length < 2) return;
+    if (end - start < -50) goTo(active + 1, false);
+    else if (end - start > 50) goTo(active - 1, false);
   };
 
   // Lightbox: Escape to close, arrow keys to browse, body scroll locked
@@ -60,8 +90,8 @@ export default function ProductGallery({
     if (!lightboxOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setLightboxOpen(false);
-      else if (e.key === 'ArrowRight') goTo(active + 1);
-      else if (e.key === 'ArrowLeft') goTo(active - 1);
+      else if (e.key === 'ArrowRight') goTo(active + 1, false);
+      else if (e.key === 'ArrowLeft') goTo(active - 1, false);
     };
     window.addEventListener('keydown', onKeyDown);
     document.body.style.overflow = 'hidden';
@@ -89,7 +119,7 @@ export default function ProductGallery({
             {media.map((item, i) => (
               <button
                 key={`${item.type}-${item.src}`}
-                onClick={() => setActive(i)}
+                onClick={() => goTo(i)}
                 aria-label={`Ver foto ${i + 1} de ${media.length}`}
                 aria-current={active === i}
                 className={`relative aspect-[4/5] h-20 shrink-0 overflow-hidden rounded-lg border bg-cream-50 transition-all duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] md:h-auto md:w-full ${
@@ -126,52 +156,67 @@ export default function ProductGallery({
         )}
 
         {/* Fixed 4:5 frame: every photo, whatever its proportions, is fitted
-            whole inside the same box (object-contain), so the page never
-            jumps between photos and nothing is cropped or stretched. */}
-        <div className="relative aspect-[4/5] min-w-0 w-full flex-1 self-start overflow-hidden rounded-2xl border border-cream-200/70 bg-white touch-pan-y">
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={active}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-              drag={media.length > 1 && current?.type === 'image' ? 'x' : false}
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.5}
-              onDragEnd={handleDragEnd}
-              className="absolute inset-0"
-            >
-              {current?.type === 'image' && (
-                <button
-                  type="button"
-                  onClick={() => setLightboxOpen(true)}
-                  aria-label="Ampliar foto"
-                  className="group/zoom absolute inset-0 h-full w-full cursor-zoom-in"
-                >
-                  <Image
-                    src={current.src}
-                    alt={name}
-                    fill
-                    className="pointer-events-none object-contain"
-                    priority
-                    sizes="(max-width: 768px) 100vw, 50vw"
-                  />
-                  <span className="pointer-events-none absolute bottom-3 right-3 hidden h-9 w-9 items-center justify-center rounded-full bg-cream-50/90 text-coffee-900 opacity-0 shadow-sm transition-opacity duration-150 group-hover/zoom:opacity-100 md:flex">
-                    <ZoomIcon />
-                  </span>
-                </button>
-              )}
-              {current?.type === 'video' && (
-                <video
-                  src={current.src}
-                  controls
-                  playsInline
-                  className="h-full w-full object-contain"
-                />
-              )}
-            </motion.div>
-          </AnimatePresence>
+            whole inside the same box (object-contain), so nothing is cropped
+            or stretched and the box never changes size. */}
+        <div className="group/frame relative aspect-[4/5] min-w-0 w-full flex-1 self-start overflow-hidden rounded-2xl border border-cream-200/70 bg-white">
+          <div
+            ref={trackRef}
+            onScroll={onTrackScroll}
+            className="flex h-full w-full snap-x snap-mandatory overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {media.map((item, i) => (
+              <div key={`${item.type}-${item.src}`} className="relative h-full w-full shrink-0 snap-center snap-always">
+                {item.type === 'image' ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActive(i);
+                      setLightboxOpen(true);
+                    }}
+                    aria-label="Ampliar foto"
+                    className="group/zoom absolute inset-0 h-full w-full cursor-zoom-in"
+                  >
+                    <Image
+                      src={item.src}
+                      alt={i === 0 ? name : `${name} — foto ${i + 1}`}
+                      fill
+                      className="pointer-events-none object-contain"
+                      priority={i === 0}
+                      loading={i === 0 ? undefined : 'eager'}
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                    />
+                    <span className="pointer-events-none absolute bottom-3 right-3 hidden h-9 w-9 items-center justify-center rounded-full bg-cream-50/90 text-coffee-900 opacity-0 shadow-sm transition-opacity duration-150 group-hover/zoom:opacity-100 md:flex">
+                      <ZoomIcon />
+                    </span>
+                  </button>
+                ) : (
+                  <video src={item.src} controls playsInline preload="metadata" className="h-full w-full object-contain" />
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop has no swipe: prev/next appear on hover. */}
+          {media.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={() => goTo(active - 1)}
+                aria-label="Foto anterior"
+                className="absolute left-3 top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-cream-50/90 text-coffee-900 opacity-0 shadow-sm transition-opacity duration-150 focus-visible:opacity-100 group-hover/frame:opacity-100 md:flex"
+              >
+                <ChevronIcon direction="left" />
+              </button>
+              <button
+                type="button"
+                onClick={() => goTo(active + 1)}
+                aria-label="Siguiente foto"
+                className="absolute right-3 top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-cream-50/90 text-coffee-900 opacity-0 shadow-sm transition-opacity duration-150 focus-visible:opacity-100 group-hover/frame:opacity-100 md:flex"
+              >
+                <ChevronIcon direction="right" />
+              </button>
+            </>
+          )}
 
           {media.length > 1 && (
             <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-coffee-900/70 px-2.5 py-1 text-[11px] font-medium text-cream-50 backdrop-blur-sm">
@@ -209,7 +254,7 @@ export default function ProductGallery({
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    goTo(active - 1);
+                    goTo(active - 1, false);
                   }}
                   aria-label="Foto anterior"
                   className="absolute left-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-cream-50/10 text-cream-50 transition-colors hover:bg-cream-50/20 md:left-4"
@@ -220,7 +265,7 @@ export default function ProductGallery({
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    goTo(active + 1);
+                    goTo(active + 1, false);
                   }}
                   aria-label="Siguiente foto"
                   className="absolute right-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-cream-50/10 text-cream-50 transition-colors hover:bg-cream-50/20 md:right-4"
@@ -237,11 +282,9 @@ export default function ProductGallery({
               exit={{ opacity: 0, scale: 0.97 }}
               transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
               onClick={(e) => e.stopPropagation()}
-              drag={media.length > 1 ? 'x' : false}
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.5}
-              onDragEnd={handleDragEnd}
-              className="relative h-[80vh] w-[90vw] max-w-4xl touch-pan-y"
+              onTouchStart={onLightboxTouchStart}
+              onTouchEnd={onLightboxTouchEnd}
+              className="relative h-[80vh] w-[90vw] max-w-4xl"
             >
               <Image
                 src={current.src}
