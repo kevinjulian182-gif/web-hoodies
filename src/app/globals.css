@@ -20,6 +20,9 @@
 }
 
 html {
+  /* Light-only, matching the color-scheme meta in layout.tsx: native form
+     controls, scrollbars and autofill stay light under OS dark mode. */
+  color-scheme: only light;
   scroll-behavior: smooth;
   /* No font inflation when the phone rotates to landscape. */
   -webkit-text-size-adjust: 100%;

@@ -27,10 +27,11 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: 'cover',
   interactiveWidget: 'resizes-content',
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#FDFCFA' },
-    { media: '(prefers-color-scheme: dark)', color: '#1C1611' },
-  ],
+  // The store is designed light-only: "only light" tells Chrome (Android
+  // auto-dark), Samsung Internet and Safari not to invert or darken it, and
+  // the browser chrome stays cream even when the phone is in dark mode.
+  colorScheme: 'only light',
+  themeColor: '#FDFCFA',
 };
 
 export async function generateMetadata(): Promise<Metadata> {
