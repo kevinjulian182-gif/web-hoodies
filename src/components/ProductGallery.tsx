@@ -32,16 +32,6 @@ export default function ProductGallery({
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const current = media[active];
 
-  // Each frame takes its photo's own proportions (read once the file loads)
-  // instead of forcing every photo into 4:5 — square, landscape and tall
-  // shots all show whole. 4:5 is only the placeholder until then.
-  const [ratios, setRatios] = useState<Record<string, number>>({});
-  const DEFAULT_RATIO = 4 / 5;
-  const ratioOf = (src: string) => ratios[src] ?? DEFAULT_RATIO;
-  const recordRatio = (src: string, w: number, h: number) => {
-    if (!w || !h) return;
-    setRatios((prev) => (prev[src] === w / h ? prev : { ...prev, [src]: w / h }));
-  };
 
   // Jump back to the first photo whenever the color switch actually swaps
   // the image set, so you don't land on an out-of-range index or on photo
@@ -92,15 +82,17 @@ export default function ProductGallery({
           than its real aspect ratio. */}
       <div className="flex min-w-0 flex-col-reverse gap-3 self-start md:flex-row md:gap-4">
         {media.length > 1 && (
-          <div className="flex min-w-0 items-start gap-2.5 overflow-x-auto p-1 [scrollbar-width:none] md:max-h-[82vh] md:w-[5.5rem] md:shrink-0 md:flex-col md:overflow-x-visible md:overflow-y-auto">
+          // Desktop: the column stretches to the frame's height and its inner
+          // strip scrolls, so many photos never make it taller than the frame.
+          <div className="min-w-0 md:relative md:w-[5.5rem] md:shrink-0">
+          <div className="flex min-w-0 items-start gap-2.5 overflow-x-auto p-1 [scrollbar-width:none] md:absolute md:inset-0 md:flex-col md:overflow-x-visible md:overflow-y-auto">
             {media.map((item, i) => (
               <button
                 key={`${item.type}-${item.src}`}
                 onClick={() => setActive(i)}
                 aria-label={`Ver foto ${i + 1} de ${media.length}`}
                 aria-current={active === i}
-                style={{ aspectRatio: ratioOf(item.src) }}
-                className={`relative h-20 max-w-[8rem] shrink-0 md:max-w-none overflow-hidden rounded-lg border bg-cream-50 transition-all duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] md:h-auto md:w-full ${
+                className={`relative aspect-[4/5] h-20 shrink-0 overflow-hidden rounded-lg border bg-cream-50 transition-all duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] md:h-auto md:w-full ${
                   active === i
                     ? 'border-coffee-900 ring-2 ring-coffee-900 ring-offset-2 ring-offset-cream-50'
                     : 'border-cream-200 opacity-70 hover:opacity-100 hover:border-coffee-300'
@@ -113,7 +105,6 @@ export default function ProductGallery({
                     fill
                     className="object-cover"
                     sizes="128px"
-                    onLoad={(e) => recordRatio(item.src, e.currentTarget.naturalWidth, e.currentTarget.naturalHeight)}
                   />
                 ) : (
                   <>
@@ -122,7 +113,6 @@ export default function ProductGallery({
                       className="h-full w-full object-cover"
                       muted
                       preload="metadata"
-                      onLoadedMetadata={(e) => recordRatio(item.src, e.currentTarget.videoWidth, e.currentTarget.videoHeight)}
                     />
                     <span className="absolute inset-0 flex items-center justify-center bg-coffee-900/30">
                       <PlayIcon />
@@ -132,12 +122,13 @@ export default function ProductGallery({
               </button>
             ))}
           </div>
+          </div>
         )}
 
-        <div
-          style={{ aspectRatio: current ? ratioOf(current.src) : DEFAULT_RATIO }}
-          className="relative max-h-[70vh] min-w-0 w-full flex-1 self-start overflow-hidden rounded-2xl border border-cream-200/70 bg-cream-50 touch-pan-y md:max-h-[82vh]"
-        >
+        {/* Fixed 4:5 frame: every photo, whatever its proportions, is fitted
+            whole inside the same box (object-contain), so the page never
+            jumps between photos and nothing is cropped or stretched. */}
+        <div className="relative aspect-[4/5] min-w-0 w-full flex-1 self-start overflow-hidden rounded-2xl border border-cream-200/70 bg-white touch-pan-y">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={active}
@@ -164,7 +155,6 @@ export default function ProductGallery({
                     fill
                     className="pointer-events-none object-contain"
                     priority
-                    onLoad={(e) => recordRatio(current.src, e.currentTarget.naturalWidth, e.currentTarget.naturalHeight)}
                     sizes="(max-width: 768px) 100vw, 50vw"
                   />
                   <span className="pointer-events-none absolute bottom-3 right-3 hidden h-9 w-9 items-center justify-center rounded-full bg-cream-50/90 text-coffee-900 opacity-0 shadow-sm transition-opacity duration-150 group-hover/zoom:opacity-100 md:flex">
@@ -177,7 +167,6 @@ export default function ProductGallery({
                   src={current.src}
                   controls
                   playsInline
-                  onLoadedMetadata={(e) => recordRatio(current.src, e.currentTarget.videoWidth, e.currentTarget.videoHeight)}
                   className="h-full w-full object-contain"
                 />
               )}

@@ -9,7 +9,7 @@ export default function SizeChartEditor({
   value,
   onChange,
   title = 'Tabla de tallas (opcional)',
-  hint = 'Aparece como “Guía de tallas” en la página del producto. Si la dejas vacía, se usa la guía general de la tienda (Contenido → Guía de tallas).',
+  hint = 'Aparece como “Guía de tallas” en la página del producto. Si la dejas vacía, se usa la guía general de la tienda (Contenido → Guía de tallas) o, para pantalones, shorts, gorras y medias, una guía genérica según el tipo de prenda.',
 }: {
   sizes: string[];
   value: SizeChart;

@@ -2,19 +2,17 @@
 
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import type { SizeChart } from '@/lib/sizeChart';
+import type { ResolvedSizeGuide } from '@/lib/sizeChart';
 
 // "Guía de tallas" link + its table: a bottom sheet on phones (thumb reach,
 // swipe-friendly), a centered dialog from md up. The size currently picked
 // in the buy box is highlighted so the shopper reads their own row first.
 export default function SizeGuide({
-  chart,
-  sizes,
+  guide,
   selectedSize,
   onSelectSize,
 }: {
-  chart: SizeChart;
-  sizes: string[];
+  guide: ResolvedSizeGuide;
   selectedSize: string;
   onSelectSize: (size: string) => void;
 }) {
@@ -33,7 +31,7 @@ export default function SizeGuide({
     };
   }, [open]);
 
-  const rows = sizes.filter((s) => chart.rows[s]?.some((v) => v.trim() !== ''));
+  const canPick = guide.rows.some((row) => row.productSize);
 
   return (
     <>
@@ -75,7 +73,9 @@ export default function SizeGuide({
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h2 className="text-xl font-semibold tracking-tightest text-coffee-900">Guía de tallas</h2>
-                  <p className="mt-1 text-xs text-coffee-500">Toca una fila para elegir esa talla.</p>
+                  <p className="mt-1 text-xs text-coffee-500">
+                    {canPick ? 'Toca una fila para elegir esa talla.' : 'Medidas de referencia para este tipo de prenda.'}
+                  </p>
                 </div>
                 <button
                   type="button"
@@ -94,7 +94,7 @@ export default function SizeGuide({
                   <thead>
                     <tr className="bg-cream-100/70 text-left text-[10px] uppercase tracking-[0.06em] text-coffee-600 md:text-[11px] md:tracking-[0.08em]">
                       <th className="px-3 py-3 font-medium md:px-4">Talla</th>
-                      {chart.columns.map((column, i) => (
+                      {guide.columns.map((column, i) => (
                         <th key={i} className="whitespace-nowrap px-3 py-3 font-medium md:px-4">
                           {column}
                         </th>
@@ -102,24 +102,30 @@ export default function SizeGuide({
                     </tr>
                   </thead>
                   <tbody>
-                    {rows.map((size) => {
-                      const selected = size === selectedSize;
+                    {guide.rows.map((row) => {
+                      const pickable = Boolean(row.productSize);
+                      const selected = pickable && row.productSize === selectedSize;
                       return (
                         <tr
-                          key={size}
+                          key={row.label}
                           onClick={() => {
-                            onSelectSize(size);
+                            if (!row.productSize) return;
+                            onSelectSize(row.productSize);
                             setOpen(false);
                           }}
                           aria-selected={selected}
-                          className={`cursor-pointer border-t border-cream-200 transition-colors ${
-                            selected ? 'bg-coffee-900 text-cream-50' : 'text-coffee-800 hover:bg-cream-100'
+                          className={`border-t border-cream-200 transition-colors ${
+                            selected
+                              ? 'cursor-pointer bg-coffee-900 text-cream-50'
+                              : pickable
+                                ? 'cursor-pointer text-coffee-800 hover:bg-cream-100'
+                                : 'text-coffee-600'
                           }`}
                         >
-                          <td className="px-3 py-3 font-semibold md:px-4">{size}</td>
-                          {chart.columns.map((_, i) => (
+                          <td className="px-3 py-3 font-semibold md:px-4">{row.label}</td>
+                          {guide.columns.map((_, i) => (
                             <td key={i} className="px-3 py-3 md:px-4">
-                              {chart.rows[size]?.[i] || '—'}
+                              {row.values[i]?.trim() || '—'}
                             </td>
                           ))}
                         </tr>
@@ -129,7 +135,7 @@ export default function SizeGuide({
                 </table>
               </div>
 
-              {chart.note && <p className="mt-4 text-sm leading-relaxed text-coffee-600">{chart.note}</p>}
+              {guide.note && <p className="mt-4 text-sm leading-relaxed text-coffee-600">{guide.note}</p>}
             </motion.div>
             </div>
           </>

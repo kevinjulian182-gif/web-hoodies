@@ -9,7 +9,7 @@ import { useProductColor } from '@/lib/productColor';
 import { variantKey, COMMON_SIZES, type VariantStock } from '@/lib/variants';
 import { buildWhatsAppLink, buildWhatsAppOrderMessage } from '@/lib/whatsapp';
 import { WhatsAppGlyph } from '@/components/CartDrawer';
-import { parseSizeChart, hasSizeChartData, type SizeChart } from '@/lib/sizeChart';
+import { resolveSizeGuide, type SizeChart } from '@/lib/sizeChart';
 import SizeGuide from '@/components/SizeGuide';
 import type { Product } from '@prisma/client';
 
@@ -40,10 +40,9 @@ export default function AddToCartButton({
   // normally until someone edits it in the new admin stock matrix.
   const colorImages = parseColorImages(product.colorImages);
   // The product's own chart wins; otherwise the store-wide guide from
-  // Admin > Contenido > Guía de tallas, limited to this product's sizes.
-  const ownChart = parseSizeChart(product.sizeChart);
-  const sizeChart = hasSizeChartData(ownChart, product.sizes) ? ownChart : fallbackSizeChart ?? null;
-  const showSizeGuide = hasSizeChartData(sizeChart, product.sizes);
+  // Admin > Contenido > Guía de tallas, then a generic one for the garment
+  // type — so every product with sizes has a guide.
+  const sizeGuide = resolveSizeGuide(product, fallbackSizeChart ?? null);
   const colorHex = parseColorHex(product.colorHex);
   const selectedVariant = product.variants.find((v) => variantKey(v.size, v.color) === variantKey(size, color || null));
   const availableStock = product.variants.length > 0 ? selectedVariant?.stock ?? 0 : product.stock;
@@ -106,13 +105,19 @@ export default function AddToCartButton({
         </div>
       )}
 
+      {/* The size guide is always reachable, even on a product with no
+          size options (one-size items get the reference chart). */}
+      {product.sizes.length === 0 && (
+        <div className="mb-6 flex justify-end">
+          <SizeGuide guide={sizeGuide} selectedSize={size} onSelectSize={setSize} />
+        </div>
+      )}
+
       {product.sizes.length > 0 && (
       <>
       <div className="mb-2 flex items-center justify-between">
         <span className="text-xs uppercase tracking-wide text-coffee-500">Talla</span>
-        {showSizeGuide && (
-          <SizeGuide chart={sizeChart} sizes={product.sizes} selectedSize={size} onSelectSize={setSize} />
-        )}
+        <SizeGuide guide={sizeGuide} selectedSize={size} onSelectSize={setSize} />
       </div>
       <div className="flex flex-wrap gap-2 mb-6">
         {sizesToShow.map((s) => {
