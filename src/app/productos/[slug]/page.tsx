@@ -103,7 +103,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       </nav>
 
       <ProductColorProvider defaultColor={product.colors[0] ?? ''} validColors={product.colors}>
-      <div className="mx-auto max-w-6xl px-6 pb-16 pt-6 grid md:grid-cols-2 gap-16">
+      <div className="mx-auto max-w-6xl px-4 pb-16 pt-4 grid grid-cols-1 gap-8 sm:px-6 md:grid-cols-2 md:gap-16 md:pt-6">
         <ProductGallery
           images={product.images}
           colorImages={parseColorImages(product.colorImages)}
@@ -111,11 +111,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           name={`${product.brand} ${product.name}`}
         />
 
-        <div id="comprar" className="md:sticky md:top-24 md:self-start max-w-md scroll-mt-24">
+        <div id="comprar" className="min-w-0 md:sticky md:top-24 md:self-start md:max-w-md scroll-mt-24">
           <div className="flex items-start justify-between gap-4">
-            <div>
+            <div className="min-w-0">
               <p className="text-xs uppercase tracking-[0.2em] text-coffee-600">{product.brand}</p>
-              <h1 className="mt-1 text-3xl md:text-4xl font-semibold tracking-tightest text-coffee-900">
+              <h1 className="mt-1 text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tightest text-coffee-900 [overflow-wrap:anywhere] [text-wrap:balance]">
                 {product.name}
               </h1>
             </div>
@@ -125,7 +125,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               className="mt-1 shrink-0 text-coffee-700 hover:text-coffee-900 transition-colors"
             />
           </div>
-          <div className="mt-4 flex items-center gap-3">
+          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1">
             <p className={`text-xl font-medium ${onSale ? 'text-red-700' : 'text-coffee-800'}`}>
               {formatCOP(product.priceCents)}
             </p>
@@ -154,7 +154,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       {/* Product info gets the full page width instead of being stacked in
           the narrow buy column, where it left the rest of the row empty. */}
       <section className="border-t border-cream-200">
-        <div className="mx-auto grid max-w-6xl gap-10 px-6 py-14 md:grid-cols-[1fr_1.35fr] md:gap-16 md:py-20">
+        <div className="mx-auto grid grid-cols-1 max-w-6xl gap-10 px-6 py-14 md:grid-cols-[1fr_1.35fr] md:gap-16 md:py-20">
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-coffee-500">Sobre la prenda</p>
             <h2 className="mt-2 text-2xl font-semibold tracking-tightest text-coffee-900 md:text-3xl">{product.name}</h2>
@@ -163,10 +163,10 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             )}
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {details.length > 0 && (
               <InfoCard icon={<TagIcon />} title="Detalles" className="sm:col-span-2">
-                <ul className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
+                <ul className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
                   {details.map((d) => (
                     <li key={d} className="flex items-start gap-2.5">
                       <span className="mt-[0.55em] h-1 w-1 shrink-0 rounded-full bg-coffee-400" aria-hidden="true" />

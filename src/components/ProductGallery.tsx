@@ -32,6 +32,17 @@ export default function ProductGallery({
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const current = media[active];
 
+  // Each frame takes its photo's own proportions (read once the file loads)
+  // instead of forcing every photo into 4:5 — square, landscape and tall
+  // shots all show whole. 4:5 is only the placeholder until then.
+  const [ratios, setRatios] = useState<Record<string, number>>({});
+  const DEFAULT_RATIO = 4 / 5;
+  const ratioOf = (src: string) => ratios[src] ?? DEFAULT_RATIO;
+  const recordRatio = (src: string, w: number, h: number) => {
+    if (!w || !h) return;
+    setRatios((prev) => (prev[src] === w / h ? prev : { ...prev, [src]: w / h }));
+  };
+
   // Jump back to the first photo whenever the color switch actually swaps
   // the image set, so you don't land on an out-of-range index or on photo
   // #3 of a different colorway.
@@ -79,26 +90,40 @@ export default function ProductGallery({
           self-start: without it, the PDP's grid stretches this column to match
           the buy panel's height, which then stretches the image frame taller
           than its real aspect ratio. */}
-      <div className="flex flex-col-reverse gap-3 self-start md:flex-row md:gap-4">
+      <div className="flex min-w-0 flex-col-reverse gap-3 self-start md:flex-row md:gap-4">
         {media.length > 1 && (
-          <div className="flex gap-2.5 overflow-x-auto pb-1 md:w-20 md:shrink-0 md:flex-col md:overflow-x-visible md:overflow-y-auto md:pb-0">
+          <div className="flex min-w-0 items-start gap-2.5 overflow-x-auto p-1 [scrollbar-width:none] md:max-h-[82vh] md:w-[5.5rem] md:shrink-0 md:flex-col md:overflow-x-visible md:overflow-y-auto">
             {media.map((item, i) => (
               <button
                 key={`${item.type}-${item.src}`}
                 onClick={() => setActive(i)}
                 aria-label={`Ver foto ${i + 1} de ${media.length}`}
                 aria-current={active === i}
-                className={`relative aspect-[4/5] h-20 shrink-0 overflow-hidden rounded-lg border bg-cream-50 transition-all duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] md:h-auto md:w-full ${
+                style={{ aspectRatio: ratioOf(item.src) }}
+                className={`relative h-20 max-w-[8rem] shrink-0 md:max-w-none overflow-hidden rounded-lg border bg-cream-50 transition-all duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] md:h-auto md:w-full ${
                   active === i
                     ? 'border-coffee-900 ring-2 ring-coffee-900 ring-offset-2 ring-offset-cream-50'
                     : 'border-cream-200 opacity-70 hover:opacity-100 hover:border-coffee-300'
                 }`}
               >
                 {item.type === 'image' ? (
-                  <Image src={item.src} alt={`${name} — foto ${i + 1}`} fill className="object-cover" sizes="80px" />
+                  <Image
+                    src={item.src}
+                    alt={`${name} — foto ${i + 1}`}
+                    fill
+                    className="object-cover"
+                    sizes="128px"
+                    onLoad={(e) => recordRatio(item.src, e.currentTarget.naturalWidth, e.currentTarget.naturalHeight)}
+                  />
                 ) : (
                   <>
-                    <video src={item.src} className="h-full w-full object-cover" muted />
+                    <video
+                      src={item.src}
+                      className="h-full w-full object-cover"
+                      muted
+                      preload="metadata"
+                      onLoadedMetadata={(e) => recordRatio(item.src, e.currentTarget.videoWidth, e.currentTarget.videoHeight)}
+                    />
                     <span className="absolute inset-0 flex items-center justify-center bg-coffee-900/30">
                       <PlayIcon />
                     </span>
@@ -109,7 +134,10 @@ export default function ProductGallery({
           </div>
         )}
 
-        <div className="relative aspect-[4/5] flex-1 overflow-hidden rounded-2xl border border-cream-200/70 bg-cream-50 touch-pan-y">
+        <div
+          style={{ aspectRatio: current ? ratioOf(current.src) : DEFAULT_RATIO }}
+          className="relative max-h-[70vh] min-w-0 w-full flex-1 self-start overflow-hidden rounded-2xl border border-cream-200/70 bg-cream-50 touch-pan-y md:max-h-[82vh]"
+        >
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={active}
@@ -136,6 +164,7 @@ export default function ProductGallery({
                     fill
                     className="pointer-events-none object-contain"
                     priority
+                    onLoad={(e) => recordRatio(current.src, e.currentTarget.naturalWidth, e.currentTarget.naturalHeight)}
                     sizes="(max-width: 768px) 100vw, 50vw"
                   />
                   <span className="pointer-events-none absolute bottom-3 right-3 hidden h-9 w-9 items-center justify-center rounded-full bg-cream-50/90 text-coffee-900 opacity-0 shadow-sm transition-opacity duration-150 group-hover/zoom:opacity-100 md:flex">
@@ -148,6 +177,7 @@ export default function ProductGallery({
                   src={current.src}
                   controls
                   playsInline
+                  onLoadedMetadata={(e) => recordRatio(current.src, e.currentTarget.videoWidth, e.currentTarget.videoHeight)}
                   className="h-full w-full object-contain"
                 />
               )}

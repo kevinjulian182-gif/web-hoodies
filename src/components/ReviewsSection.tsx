@@ -37,7 +37,7 @@ export default function ReviewsSection({ title, reviews }: { title: string; revi
           </span>
         </motion.div>
 
-        <div className="mt-8 grid gap-6 sm:grid-cols-2">
+        <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
           {reviews.map((review, i) => (
             <motion.div
               key={review.id}

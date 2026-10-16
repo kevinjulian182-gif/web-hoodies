@@ -82,7 +82,7 @@ export default function Footer({
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-6 py-16 grid md:grid-cols-[1.5fr_1fr_1fr] gap-12">
+      <div className="mx-auto max-w-7xl px-6 py-16 grid grid-cols-1 md:grid-cols-[1.5fr_1fr_1fr] gap-12">
         <div>
           <Logo className="h-7 w-auto text-cream-50" />
           <p className="mt-4 text-sm text-cream-100/60 max-w-xs leading-relaxed">{tagline}</p>

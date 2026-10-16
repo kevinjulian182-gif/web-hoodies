@@ -27,6 +27,10 @@ html {
      loudest "this is a website" tell on mobile. Replaced by each
      element's own :active state instead. */
   -webkit-tap-highlight-color: transparent;
+  /* Paired with body below: on iOS, overflow on body alone doesn't stop the
+     page from panning sideways. clip (not hidden) keeps both from becoming
+     scroll containers, which would break position: sticky. */
+  overflow-x: clip;
   /* No page-level pull-to-refresh/rubber-band; the cart drawer and search
      overlay opt back into their own contained bounce below. */
   overscroll-behavior: none;
@@ -38,6 +42,7 @@ body {
      section, an untruncated long word) shouldn't be able to open a
      page-level horizontal scrollbar on mobile. */
   overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* iOS Safari zooms the page on focus for any input under 16px and never

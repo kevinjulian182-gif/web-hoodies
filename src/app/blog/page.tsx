@@ -20,7 +20,7 @@ export default async function BlogPage() {
         Guías de cuidado, garantía e historia detrás de las marcas que vendemos.
       </p>
 
-      <div className="mt-14 grid gap-12 md:grid-cols-2">
+      <div className="mt-14 grid grid-cols-1 gap-12 md:grid-cols-2">
         {posts.map((post) => (
           <Link key={post.id} href={`/blog/${post.slug}`} className="group block">
             <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-cream-50">

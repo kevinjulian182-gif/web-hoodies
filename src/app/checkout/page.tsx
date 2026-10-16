@@ -155,7 +155,7 @@ export default function CheckoutPage() {
           Paso {step} de 4 · <span className="font-medium text-coffee-800">{STEP_LABELS[step]}</span>
         </p>
 
-        <div className="grid gap-4 md:grid-cols-[1fr_360px] md:items-start md:gap-8">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_360px] md:items-start md:gap-8">
           <div className="order-2 md:order-1">
             {step === 1 && (
               <motion.form
@@ -394,7 +394,7 @@ export default function CheckoutPage() {
                   <p className="mb-3 text-xs font-medium uppercase tracking-[0.15em] text-coffee-500">
                     Elige cómo pagar
                   </p>
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <PaymentOption
                       selected={paymentMethod === 'WOMPI'}
                       onClick={() => setPaymentMethod('WOMPI')}
