@@ -1,16 +1,24 @@
-// AFRA wordmark: geometric uniform-weight letters with both A's drawn as
-// bare peaks (Λ). Pure SVG in currentColor so it stays crisp at any size
+// AFRA identity: a heavy geometric wordmark bookended by two solid peaks —
+// each A is a filled triangle with a notch cut from its base instead of a
+// crossbar. The notched peak alone is the brand mark (favicon, app icon,
+// small spaces). Pure SVG in currentColor so it stays crisp at any size
 // and follows whatever text color its container sets.
-export default function Logo({ className }: { className?: string }) {
+const PEAK = '0,100 46,0 92,100 62,100 46,64 30,100';
+
+export default function Logo({ className, variant = 'full' }: { className?: string; variant?: 'full' | 'mark' }) {
+  if (variant === 'mark') {
+    return (
+      <svg viewBox="0 0 92 100" role="img" aria-label="AFRA" className={className} fill="currentColor">
+        <polygon points={PEAK} />
+      </svg>
+    );
+  }
   return (
-    <svg viewBox="0 0 334 100" role="img" aria-label="AFRA" className={className} fill="currentColor">
-      <g fill="none" stroke="currentColor" strokeWidth="9">
-        <path d="M98.5 0V100M94 4.5H149M94 50H141" />
-        <path d="M177.5 0V100M177.5 4.5H209a22.75 22.75 0 0 1 0 45.5H177.5" />
-      </g>
-      <polygon points="0,100 35,0 70,100 60.5,100 35,27.14 9.5,100" />
-      <polygon points="204,50 214,50 240,100 230,100" />
-      <polygon points="264,100 299,0 334,100 324.5,100 299,27.14 273.5,100" />
+    <svg viewBox="0 0 372 100" role="img" aria-label="AFRA" className={className} fill="currentColor">
+      <polygon points={PEAK} />
+      <path d="M112 0H170V18H130V41H160V59H130V100H112Z" />
+      <path d="M188 0H230A30 30 0 0 1 238 58.9L264 100H243L219 60H206V100H188ZM206 18V42H230A12 12 0 0 0 230 18Z" />
+      <polygon points={PEAK} transform="translate(280 0)" />
     </svg>
   );
 }
