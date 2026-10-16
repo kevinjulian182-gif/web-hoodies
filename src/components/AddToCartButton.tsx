@@ -9,7 +9,7 @@ import { useProductColor } from '@/lib/productColor';
 import { variantKey, COMMON_SIZES, type VariantStock } from '@/lib/variants';
 import { buildWhatsAppLink, buildWhatsAppOrderMessage } from '@/lib/whatsapp';
 import { WhatsAppGlyph } from '@/components/CartDrawer';
-import { parseSizeChart, hasSizeChartData } from '@/lib/sizeChart';
+import { parseSizeChart, hasSizeChartData, type SizeChart } from '@/lib/sizeChart';
 import SizeGuide from '@/components/SizeGuide';
 import type { Product } from '@prisma/client';
 
@@ -20,9 +20,11 @@ type PublicProduct = Omit<Product, 'costCents'> & { variants: VariantStock[] };
 export default function AddToCartButton({
   product,
   whatsappNumber,
+  fallbackSizeChart,
 }: {
   product: PublicProduct;
   whatsappNumber?: string;
+  fallbackSizeChart?: SizeChart | null;
 }) {
   const { addItem } = useCart();
   const [size, setSize] = useState(product.sizes[0] ?? '');
@@ -37,7 +39,10 @@ export default function AddToCartButton({
   // existed) falls back to the old product-wide total so it keeps selling
   // normally until someone edits it in the new admin stock matrix.
   const colorImages = parseColorImages(product.colorImages);
-  const sizeChart = parseSizeChart(product.sizeChart);
+  // The product's own chart wins; otherwise the store-wide guide from
+  // Admin > Contenido > Guía de tallas, limited to this product's sizes.
+  const ownChart = parseSizeChart(product.sizeChart);
+  const sizeChart = hasSizeChartData(ownChart, product.sizes) ? ownChart : fallbackSizeChart ?? null;
   const showSizeGuide = hasSizeChartData(sizeChart, product.sizes);
   const colorHex = parseColorHex(product.colorHex);
   const selectedVariant = product.variants.find((v) => variantKey(v.size, v.color) === variantKey(size, color || null));

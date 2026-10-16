@@ -16,6 +16,7 @@ import { getSiteContent, getFaqItems } from '@/lib/content';
 import { parseColorImages } from '@/lib/colors';
 import { ProductColorProvider } from '@/lib/productColor';
 import { getStoreWhatsAppNumber } from '@/lib/whatsapp';
+import { parseSizeChart } from '@/lib/sizeChart';
 
 // Cached per slug and served statically between revalidations — product
 // edits and new reviews invalidate this specific page immediately via
@@ -68,6 +69,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const materials = toBullets(product.materials);
   const care = toBullets(product.careInstructions);
   const whatsappNumber = getStoreWhatsAppNumber(content);
+  const generalSizeChart = parseGeneralSizeChart(content['sizeguide.chart']);
 
   return (
     <div>
@@ -137,7 +139,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             )}
           </div>
           <div className="mt-8">
-            <AddToCartButton product={product} whatsappNumber={whatsappNumber} />
+            <AddToCartButton product={product} whatsappNumber={whatsappNumber} fallbackSizeChart={generalSizeChart} />
           </div>
 
           <ul className="mt-8 divide-y divide-cream-200 rounded-2xl border border-cream-200">
@@ -334,4 +336,12 @@ function TrustRow({ title, children }: { title: string; children: React.ReactNod
       </span>
     </li>
   );
+}
+
+function parseGeneralSizeChart(raw: string) {
+  try {
+    return parseSizeChart(JSON.parse(raw));
+  } catch {
+    return null;
+  }
 }

@@ -8,10 +8,14 @@ export default function SizeChartEditor({
   sizes,
   value,
   onChange,
+  title = 'Tabla de tallas (opcional)',
+  hint = 'Aparece como “Guía de tallas” en la página del producto. Si la dejas vacía, se usa la guía general de la tienda (Contenido → Guía de tallas).',
 }: {
   sizes: string[];
   value: SizeChart;
   onChange: (next: SizeChart) => void;
+  title?: string;
+  hint?: string;
 }) {
   const setColumn = (index: number, name: string) =>
     onChange({ ...value, columns: value.columns.map((c, i) => (i === index ? name : c)) });
@@ -35,10 +39,8 @@ export default function SizeChartEditor({
   return (
     <div>
       <div className="mb-1.5">
-        <p className="text-xs font-medium text-coffee-600">Tabla de tallas (opcional)</p>
-        <p className="text-xs text-coffee-400">
-          Aparece como &ldquo;Guía de tallas&rdquo; en la página del producto. Si la dejas vacía, no se muestra.
-        </p>
+        <p className="text-xs font-medium text-coffee-600">{title}</p>
+        <p className="text-xs text-coffee-400">{hint}</p>
       </div>
 
       {sizes.length === 0 ? (

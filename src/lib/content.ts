@@ -104,6 +104,9 @@ export const CONTENT_DEFAULTS = {
   'cta.body': 'Explora el catálogo completo y paga contra entrega en toda Colombia. Sin adelantos, sin riesgos.',
   'cta.button_text': 'Ver catálogo',
   'cta.button_href': '/productos',
+  // Store-wide size guide shown on every product without its own chart
+  // (Product.sizeChart). Same shape as SizeChart in lib/sizeChart.ts.
+  'sizeguide.chart': JSON.stringify({"columns": ["Pecho (cm)", "Largo (cm)", "Manga (cm)"], "rows": {"XS": ["50", "67", "60"], "S": ["53", "69", "61"], "M": ["56", "71", "62"], "L": ["59", "73", "63"], "XL": ["62", "75", "64"], "XXL": ["65", "77", "65"]}, "note": "Medidas aproximadas de la prenda en plano; pueden variar un poco según la marca. Si estás entre dos tallas, elige la más grande para un calce más relajado."}),
   'catalog.show_colors_on_card': 'false',
   'catalog.show_sizes_on_card': 'false',
   'shipping.free_threshold': '250000',
@@ -209,7 +212,7 @@ export const CONTENT_FIELDS: Array<{
   label: string;
   section: string;
   multiline?: boolean;
-  type?: 'text' | 'video' | 'image' | 'images' | 'boolean' | 'color' | 'number';
+  type?: 'text' | 'video' | 'image' | 'images' | 'boolean' | 'color' | 'number' | 'sizechart';
 }> = [
   {
     key: 'theme.coffee_color',
@@ -272,6 +275,7 @@ export const CONTENT_FIELDS: Array<{
   { key: 'nosotros.value2_body', label: 'Valor 2 — texto', section: 'Sobre nosotros', multiline: true },
   { key: 'nosotros.value3_title', label: 'Valor 3 — título', section: 'Sobre nosotros' },
   { key: 'nosotros.value3_body', label: 'Valor 3 — texto', section: 'Sobre nosotros', multiline: true },
+  { key: 'sizeguide.chart', label: 'Tabla general de tallas', section: 'Guía de tallas', type: 'sizechart' },
   {
     key: 'catalog.show_colors_on_card',
     label: 'Mostrar selector de color en las tarjetas de producto',

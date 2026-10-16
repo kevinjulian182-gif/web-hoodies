@@ -8,6 +8,9 @@ import SectionManager from '@/components/admin/SectionManager';
 import RepeatableListEditor from '@/components/admin/RepeatableListEditor';
 import BlogManager from '@/components/admin/BlogManager';
 import { autoBulletize, pasteBulletedText } from '@/lib/textareaBullets';
+import SizeChartEditor from '@/components/admin/SizeChartEditor';
+import { parseSizeChart, SUGGESTED_SIZE_COLUMNS } from '@/lib/sizeChart';
+import { COMMON_SIZES } from '@/lib/variants';
 
 const SECTION_PREVIEW_PATH: Record<string, string> = {
   'Colores': '/',
@@ -16,6 +19,7 @@ const SECTION_PREVIEW_PATH: Record<string, string> = {
   'Sección editorial': '/',
   'Sección de confianza': '/',
   'Catálogo': '/productos',
+  'Guía de tallas': '/productos',
   'Envío gratis': '/',
   'Cómo trabajamos': '/',
   'Envíos seguros': '/',
@@ -33,6 +37,8 @@ const SECTION_HINTS: Record<string, string> = {
   'Portada (Hero)': 'Lo primero que ve un visitante. Usa un video O un carrusel de imágenes de fondo, no ambos.',
   'Sección editorial': 'El bloque de storytelling debajo de la portada.',
   'Sección de confianza': 'Los tres argumentos de venta que aparecen en el inicio y en Sobre nosotros.',
+  'Guía de tallas':
+    'Se muestra como “Guía de tallas” en todos los productos que no tengan su propia tabla. Viene con medidas típicas de hoodie: ajústalas a tus prendas. Vacíala para no mostrar guía general.',
   'Catálogo': 'Controla qué se muestra en las tarjetas de producto (inicio, catálogo, promos, favoritos).',
   'Envío gratis': 'El monto que el cliente debe superar en el carrito para desbloquear envío gratis. La barra de progreso aparece en el carrito. Pon 0 para desactivarla.',
   'Cómo trabajamos': 'Los 4 pasos del proceso de compra, en el inicio.',
@@ -71,7 +77,7 @@ const NAV_GROUPS: { label: string; tabs: string[] }[] = [
       'Newsletter (inicio)',
     ],
   },
-  { label: 'Catálogo', tabs: ['Catálogo', 'Envío gratis'] },
+  { label: 'Catálogo', tabs: ['Catálogo', 'Guía de tallas', 'Envío gratis'] },
   { label: 'Páginas', tabs: ['Sobre nosotros'] },
   { label: 'Blog', tabs: [BLOG_TAB] },
 ];
@@ -221,7 +227,7 @@ export default function AdminContentPage() {
               <div className="space-y-5">
                 {activeFields.map((field) => (
                   <div key={field.key}>
-                    {field.type !== 'boolean' && (
+                    {field.type !== 'boolean' && field.type !== 'sizechart' && (
                       <div className="mb-1.5 flex items-center justify-between">
                         <label className="block text-xs font-medium text-coffee-600">{field.label}</label>
                         {field.type !== 'video' &&
@@ -237,7 +243,26 @@ export default function AdminContentPage() {
                           )}
                       </div>
                     )}
-                    {field.type === 'boolean' ? (
+                    {field.type === 'sizechart' ? (
+                      <div>
+                        <SizeChartEditor
+                          title={field.label}
+                          hint="Filas XS a XXL; cada producto muestra solo las tallas que tiene."
+                          sizes={COMMON_SIZES}
+                          value={parseStoredChart(values[field.key])}
+                          onChange={(chart) => handleChange(field.key, JSON.stringify(chart))}
+                        />
+                        {values[field.key] !== CONTENT_DEFAULTS[field.key] && (
+                          <button
+                            type="button"
+                            onClick={() => handleReset(field.key)}
+                            className="mt-2 text-[11px] text-coffee-400 hover:text-coffee-700"
+                          >
+                            Restablecer medidas sugeridas
+                          </button>
+                        )}
+                      </div>
+                    ) : field.type === 'boolean' ? (
                       <label className="flex items-center gap-2.5 text-sm text-coffee-800">
                         <input
                           type="checkbox"
@@ -403,4 +428,12 @@ function SectionHeader({ title, hint, previewPath }: { title: string; hint?: str
       )}
     </div>
   );
+}
+
+function parseStoredChart(raw: string) {
+  try {
+    return parseSizeChart(JSON.parse(raw)) ?? { columns: SUGGESTED_SIZE_COLUMNS, rows: {}, note: '' };
+  } catch {
+    return { columns: SUGGESTED_SIZE_COLUMNS, rows: {}, note: '' };
+  }
 }
