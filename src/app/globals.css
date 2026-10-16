@@ -176,4 +176,17 @@ select:focus-visible,
   .scrollbar-none::-webkit-scrollbar {
     display: none;
   }
+  /* Soft fade at both ends of a swipeable row, hinting there's more to
+     scroll. The -webkit- prefix is still needed by Samsung Internet and
+     older Android Chrome; off from md up, where the rows wrap instead. */
+  .edge-fade {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 16px, #000 calc(100% - 16px), transparent);
+    mask-image: linear-gradient(to right, transparent, #000 16px, #000 calc(100% - 16px), transparent);
+  }
+  @media (min-width: 768px) {
+    .edge-fade {
+      -webkit-mask-image: none;
+      mask-image: none;
+    }
+  }
 }
