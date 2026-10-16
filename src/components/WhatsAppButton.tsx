@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 
-const MESSAGE = encodeURIComponent('Hola, tengo una pregunta sobre un producto de Paramo.');
+const MESSAGE = encodeURIComponent('Hola, tengo una pregunta sobre un producto de AFRA.');
 
 export default function WhatsAppButton({ number }: { number: string }) {
   const pathname = usePathname();

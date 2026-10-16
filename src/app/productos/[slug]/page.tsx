@@ -42,9 +42,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const product = await prisma.product.findUnique({ where: { slug } });
-  if (!product) return { title: 'Producto no encontrado — Paramo' };
+  if (!product) return { title: 'Producto no encontrado — AFRA' };
   return {
-    title: `${product.name} — ${product.brand} — Paramo`,
+    title: `${product.name} — ${product.brand} — AFRA`,
     description: `${product.description} Pago contra entrega y envíos a toda Colombia.`,
     openGraph: product.images[0] ? { images: [product.images[0]] } : undefined,
   };

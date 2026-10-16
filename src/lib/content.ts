@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 export const CONTENT_DEFAULTS = {
   'theme.coffee_color': '#291C13',
   'theme.cream_color': '#FBF6EC',
-  'site.title': 'Paramo — Streetwear de lujo',
+  'site.title': 'AFRA — Streetwear de lujo',
   'site.description': 'Hoodies, sudaderas y chaquetas de las marcas más exclusivas.',
   'hero.eyebrow': 'Colección permanente',
   'hero.title_line1': 'Streetwear',
@@ -12,7 +12,7 @@ export const CONTENT_DEFAULTS = {
   'hero.cta': 'Explorar colección',
   'hero.video_url': '',
   'hero.images': '[]',
-  'spotlight.eyebrow': 'La filosofía Paramo',
+  'spotlight.eyebrow': 'La filosofía AFRA',
   'spotlight.title': 'No seguimos tendencias.',
   'spotlight.title_line2': 'Las curamos.',
   'spotlight.body':
@@ -30,7 +30,7 @@ export const CONTENT_DEFAULTS = {
   'nosotros.title_line1': 'Streetwear que se gana',
   'nosotros.title_line2': 'su lugar en tu clóset.',
   'nosotros.intro':
-    'Paramo nació de una obsesión simple: reunir en un solo lugar las piezas de streetwear que de verdad valen la pena, sin relleno. Curamos, no acumulamos.',
+    'AFRA nació de una obsesión simple: reunir en un solo lugar las piezas de streetwear que de verdad valen la pena, sin relleno. Curamos, no acumulamos.',
   'nosotros.value1_title': 'Curaduría exigente',
   'nosotros.value1_body':
     'No vendemos de todo. Cada marca y cada pieza pasa un filtro estricto de diseño, calidad y relevancia cultural antes de entrar al catálogo.',

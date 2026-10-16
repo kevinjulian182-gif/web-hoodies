@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Política de privacidad — Paramo',
-  description: 'Cómo Paramo recopila, usa y protege tus datos personales.',
+  title: 'Política de privacidad — AFRA',
+  description: 'Cómo AFRA recopila, usa y protege tus datos personales.',
 };
 
 export default function PrivacidadPage() {
@@ -15,7 +15,7 @@ export default function PrivacidadPage() {
         <section>
           <h2 className="text-lg font-medium text-coffee-900">1. Datos que recopilamos</h2>
           <p className="mt-2">
-            Cuando compras en Paramo o te suscribes a nuestro boletín, recopilamos tu nombre, correo
+            Cuando compras en AFRA o te suscribes a nuestro boletín, recopilamos tu nombre, correo
             electrónico, dirección de envío, ciudad y número de teléfono, únicamente para procesar
             tu pedido y contactarte sobre su estado.
           </p>

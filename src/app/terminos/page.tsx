@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Términos y condiciones — Paramo',
-  description: 'Condiciones de compra, envío, pago contra entrega y devoluciones en Paramo.',
+  title: 'Términos y condiciones — AFRA',
+  description: 'Condiciones de compra, envío, pago contra entrega y devoluciones en AFRA.',
 };
 
 export default function TerminosPage() {
@@ -13,9 +13,9 @@ export default function TerminosPage() {
 
       <div className="mt-10 space-y-8 text-coffee-700 leading-relaxed">
         <section>
-          <h2 className="text-lg font-medium text-coffee-900">1. Sobre Paramo</h2>
+          <h2 className="text-lg font-medium text-coffee-900">1. Sobre AFRA</h2>
           <p className="mt-2">
-            Paramo es una tienda en línea de streetwear que opera en Colombia. Al comprar en este
+            AFRA es una tienda en línea de streetwear que opera en Colombia. Al comprar en este
             sitio aceptas los términos descritos a continuación.
           </p>
         </section>

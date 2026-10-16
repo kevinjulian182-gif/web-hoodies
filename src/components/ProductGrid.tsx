@@ -18,7 +18,7 @@ type GridView = { mobile: 1 | 2; desktop: 2 | 3 | 4 };
 const MOBILE_COLS = [1, 2] as const;
 const DESKTOP_COLS = [2, 3, 4] as const;
 const DEFAULT_VIEW: GridView = { mobile: 1, desktop: 3 };
-const VIEW_STORAGE_KEY = 'paramo-grid-view-v2';
+const VIEW_STORAGE_KEY = 'afra-grid-view';
 const MOBILE_GRID: Record<GridView['mobile'], string> = { 1: 'grid-cols-1', 2: 'grid-cols-2' };
 const DESKTOP_GRID: Record<GridView['desktop'], string> = {
   2: 'md:grid-cols-2',

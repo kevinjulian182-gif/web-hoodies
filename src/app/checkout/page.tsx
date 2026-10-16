@@ -132,8 +132,8 @@ export default function CheckoutPage() {
   return (
     <div className="min-h-dvh bg-cream-50 px-4 pb-12 pt-6 sm:px-6 md:py-16">
       <div className="mx-auto max-w-5xl">
-        <Link href="/" aria-label="Paramo — inicio" className="mx-auto mb-6 block w-fit text-coffee-900 md:mb-8">
-          <Logo className="h-[17px] w-auto" />
+        <Link href="/" aria-label="AFRA — inicio" className="mx-auto mb-6 block w-fit text-coffee-900 md:mb-8">
+          <Logo className="h-5 w-auto" />
         </Link>
 
         <div className="mx-auto mb-2 flex max-w-sm items-center justify-center sm:mb-10">

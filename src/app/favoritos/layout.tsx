@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Favoritos — Paramo',
-  description: 'Las piezas de streetwear que estás siguiendo de cerca en Paramo.',
+  title: 'Favoritos — AFRA',
+  description: 'Las piezas de streetwear que estás siguiendo de cerca en AFRA.',
   robots: { index: false, follow: true },
 };
 

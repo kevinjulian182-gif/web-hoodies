@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma';
 export const revalidate = 60;
 
 export const metadata: Metadata = {
-  title: 'Promos — Paramo',
+  title: 'Promos — AFRA',
   description: 'Piezas premium de streetwear con descuento por tiempo limitado, pago contra entrega y garantía en toda Colombia.',
 };
 

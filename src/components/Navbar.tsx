@@ -19,9 +19,9 @@ const LINKS = [
 
 function Wordmark({ logoUrl, className }: { logoUrl?: string; className: string }) {
   if (logoUrl) {
-    return <Image src={logoUrl} alt="Paramo" width={140} height={40} className="h-8 w-auto object-contain" />;
+    return <Image src={logoUrl} alt="AFRA" width={140} height={40} className="h-8 w-auto object-contain" />;
   }
-  return <Logo className={`block h-[17px] w-auto transition-colors ${className}`} />;
+  return <Logo className={`block h-5 w-auto transition-colors ${className}`} />;
 }
 
 type SocialLinks = {
@@ -80,7 +80,7 @@ export default function Navbar({
         }`}
       >
         <nav className="mx-auto flex h-16 max-w-screen-2xl items-center justify-center px-6 md:justify-between md:px-10">
-          <Link href="/" aria-label="Paramo — inicio">
+          <Link href="/" aria-label="AFRA — inicio">
             <Wordmark logoUrl={logoUrl} className={overHero ? 'text-cream-50' : 'text-coffee-900'} />
           </Link>
 
@@ -171,7 +171,7 @@ export default function Navbar({
           >
             <div className="flex h-full flex-col">
               <div className="mx-auto flex h-16 w-full max-w-7xl shrink-0 items-center justify-between px-6">
-                <Link href="/" aria-label="Paramo — inicio">
+                <Link href="/" aria-label="AFRA — inicio">
                   <Wordmark logoUrl={logoUrl} className="text-coffee-900" />
                 </Link>
                 <button aria-label="Cerrar menú" onClick={() => setMenuOpen(false)} className="text-coffee-900">
@@ -323,7 +323,7 @@ function MobileTabBar({
         </button>
         {whatsappNumber && (
           <a
-            href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hola, tengo una pregunta sobre un producto de Paramo.')}`}
+            href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hola, tengo una pregunta sobre un producto de AFRA.')}`}
             target="_blank"
             rel="noopener noreferrer"
             className={`${tab} ${tone(false)}`}

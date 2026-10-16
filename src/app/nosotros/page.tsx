@@ -5,8 +5,8 @@ import { getSiteContent } from '@/lib/content';
 // Cached statically — content edits call revalidateSite(), which busts
 // the whole layout tree this page lives under.
 export const metadata: Metadata = {
-  title: 'Sobre nosotros — Paramo',
-  description: 'La historia y los valores detrás de Paramo, streetwear de élite.',
+  title: 'Sobre nosotros — AFRA',
+  description: 'La historia y los valores detrás de AFRA, streetwear de élite.',
 };
 
 const STATS = [

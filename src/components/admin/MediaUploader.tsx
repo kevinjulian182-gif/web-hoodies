@@ -187,7 +187,7 @@ export default function MediaUploader({
   const downloadFile = async (url: string, index: number) => {
     const extFromUrl = url.split('?')[0].split('.').pop();
     const ext = extFromUrl && extFromUrl.length <= 4 ? extFromUrl : kind === 'image' ? 'jpg' : 'mp4';
-    const filename = `paramo-${kind}-${index + 1}.${ext}`;
+    const filename = `afra-${kind}-${index + 1}.${ext}`;
     try {
       const res = await fetch(url);
       if (!res.ok) throw new Error();

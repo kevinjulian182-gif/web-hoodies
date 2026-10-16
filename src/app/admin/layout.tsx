@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { getSession } from '@/lib/auth';
 
 export const metadata: Metadata = {
-  title: 'Panel Admin — Paramo',
+  title: 'Panel Admin — AFRA',
   robots: { index: false, follow: false },
 };
 

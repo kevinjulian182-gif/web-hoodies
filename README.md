@@ -1,4 +1,4 @@
-# Paramo
+# AFRA
 
 E-commerce de streetwear premium (Next.js 16 App Router + TypeScript + Tailwind + Prisma/PostgreSQL).
 
