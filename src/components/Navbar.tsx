@@ -288,7 +288,7 @@ function MobileTabBar({
   return (
     <nav
       aria-label="Navegación principal"
-      className="fixed inset-x-0 bottom-0 z-[55] border-t border-cream-200 bg-cream-50/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
+      className="fixed inset-x-0 bottom-0 z-[55] border-t border-cream-200 bg-cream-50 pb-[env(safe-area-inset-bottom)] md:hidden"
     >
       <div className="mx-auto flex h-14 max-w-md items-stretch">
         <button onClick={onMenu} aria-expanded={menuOpen} className={`${tab} ${tone(menuOpen)}`}>

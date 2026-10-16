@@ -190,3 +190,51 @@ select:focus-visible,
     }
   }
 }
+
+/* Entrance animations done in CSS rather than Framer Motion's `initial`:
+   Framer renders `initial` as inline opacity:0 in the server HTML, so the
+   content stays invisible until the JS bundle downloads and hydrates —
+   seconds on a mid-range Android, never if an old browser can't run it.
+   CSS animations start as soon as the HTML paints. `backwards` fill keeps
+   no transform behind once done (a lingering transform would turn the
+   element into a containing block for fixed-position descendants). */
+@keyframes afra-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(var(--afra-fade-from, 16px));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.animate-fade-up {
+  animation: afra-fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+.animate-page-in {
+  --afra-fade-from: 8px;
+  animation: afra-fade-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+/* Safety net for the scroll-reveal sections still animated by Framer
+   (whileInView): if the page hasn't hydrated 1.2s after load, fade them in
+   with CSS anyway. A CSS animation overrides the non-!important inline
+   opacity:0; once hydrated, data-hydrated removes this and Framer takes
+   over as usual. Elements meant to stay hidden opt out with
+   data-keep-hidden. */
+@keyframes afra-unhide {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+html:not([data-hydrated]) [style*='opacity:0']:not([data-keep-hidden]) {
+  animation: afra-unhide 0.4s ease-out 1.2s forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up,
+  .animate-page-in {
+    animation: none;
+  }
+}

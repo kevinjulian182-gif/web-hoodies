@@ -6,6 +6,7 @@ import { CatalogSettingsProvider } from '@/lib/catalogSettings';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import PageTransition from '@/components/PageTransition';
+import HydrationFlag from '@/components/HydrationFlag';
 import CartDrawer from '@/components/CartDrawer';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import CustomCursor from '@/components/CustomCursor';
@@ -102,6 +103,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               />
               <WhatsAppButton number={whatsappNumber} />
               <CustomCursor />
+              <HydrationFlag />
             </CatalogSettingsProvider>
           </WishlistProvider>
         </CartProvider>

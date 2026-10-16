@@ -110,7 +110,7 @@ export default function ProductGallery({
         )}
 
         <div className="relative aspect-[4/5] flex-1 overflow-hidden rounded-2xl border border-cream-200/70 bg-cream-50 touch-pan-y">
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={active}
               initial={{ opacity: 0 }}

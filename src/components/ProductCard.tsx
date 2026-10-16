@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
 import { formatCOP } from '@/lib/format';
 import { colorToHex, parseColorImages, parseColorHex } from '@/lib/colors';
 import { isOnSale, discountPercent } from '@/lib/discount';
@@ -68,12 +67,7 @@ export default function ProductCard({
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 32 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, delay: (index % 4) * 0.08, ease: [0.16, 1, 0.3, 1] }}
-      className="h-full"
-    >
+    <div className="animate-fade-up h-full" style={{ animationDelay: `${(index % 4) * 80}ms` }}>
       <Link href={href} className="group flex h-full flex-col">
         {/* Desktop: a warm spotlight tile that lifts on hover, with the quick
             add sliding up from inside the photo. Phones keep the plain tile
@@ -217,7 +211,7 @@ export default function ProductCard({
           </button>
         </div>
       </Link>
-    </motion.div>
+    </div>
   );
 }
 

@@ -2,7 +2,6 @@
 
 import { useLayoutEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { motion } from 'framer-motion';
 
 // No AnimatePresence here on purpose: with mode="wait" this component held
 // the OLD page in an exit animation and only mounted the new page once that
@@ -25,17 +24,19 @@ export default function PageTransition({ children }: { children: React.ReactNode
   // smooth scroll-behavior CSS and visibly animates the reset instead of
   // skipping it.
   useLayoutEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    try {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    } catch {
+      // Older Safari/Android WebViews reject the 'instant' enum value.
+      window.scrollTo(0, 0);
+    }
   }, [pathname]);
 
   return (
-    <motion.div
-      key={pathname}
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-    >
+    // CSS animation, not Framer: see .animate-page-in in globals.css — the
+    // page must be visible from the server HTML, not after hydration.
+    <div key={pathname} className="animate-page-in">
       {children}
-    </motion.div>
+    </div>
   );
 }

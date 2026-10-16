@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
 import ProductCard from '@/components/ProductCard';
 import { expandByColor } from '@/lib/colorVariants';
 import { isOnSale } from '@/lib/discount';
@@ -281,11 +280,11 @@ export default function ProductGrid({
           </button>
         </div>
       ) : (
-        <motion.div layout className={`grid gap-x-4 gap-y-12 sm:gap-x-6 md:gap-y-16 lg:gap-x-8 ${MOBILE_GRID[view.mobile]} ${DESKTOP_GRID[view.desktop]}`}>
+        <div className={`grid gap-x-4 gap-y-12 sm:gap-x-6 md:gap-y-16 lg:gap-x-8 ${MOBILE_GRID[view.mobile]} ${DESKTOP_GRID[view.desktop]}`}>
           {cards.map((card, i) => (
             <ProductCard key={card.cardKey} product={card} index={i} fixedColor={card.displayColor ?? undefined} />
           ))}
-        </motion.div>
+        </div>
       )}
     </div>
   );
