@@ -122,7 +122,7 @@ export default function ProductGallery({
                 onClick={() => goTo(i)}
                 aria-label={`Ver foto ${i + 1} de ${media.length}`}
                 aria-current={active === i}
-                className={`relative aspect-[4/5] h-20 shrink-0 overflow-hidden rounded-lg border bg-cream-50 transition-all duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] md:h-auto md:w-full ${
+                className={`relative aspect-[3/4] h-20 shrink-0 overflow-hidden rounded-lg border bg-cream-50 transition-all duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] md:h-auto md:w-full ${
                   active === i
                     ? 'border-coffee-900 ring-2 ring-coffee-900 ring-offset-2 ring-offset-cream-50'
                     : 'border-cream-200 opacity-70 hover:opacity-100 hover:border-coffee-300'
@@ -155,10 +155,10 @@ export default function ProductGallery({
           </div>
         )}
 
-        {/* Fixed 4:5 frame: every photo, whatever its proportions, is fitted
+        {/* Fixed 3:4 frame (same as the product cards): every photo, whatever its proportions, is fitted
             whole inside the same box (object-contain), so nothing is cropped
             or stretched and the box never changes size. */}
-        <div className="group/frame relative aspect-[4/5] min-w-0 w-full flex-1 self-start overflow-hidden rounded-2xl border border-cream-200/70 bg-white">
+        <div className="group/frame relative aspect-[3/4] min-w-0 w-full flex-1 self-start overflow-hidden rounded-2xl border border-cream-200/70 bg-white">
           <div
             ref={trackRef}
             onScroll={onTrackScroll}
