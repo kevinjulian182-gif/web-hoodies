@@ -5,6 +5,8 @@ import Link from 'next/link';
 import ProductCard from '@/components/ProductCard';
 import { expandByColor } from '@/lib/colorVariants';
 import { isOnSale } from '@/lib/discount';
+import { normalizeSize } from '@/lib/sizeChart';
+import { COMMON_SIZES } from '@/lib/variants';
 import type { Product } from '@prisma/client';
 
 type PublicProduct = Omit<Product, 'costCents'>;
@@ -40,19 +42,49 @@ function dedupeLabels(values: (string | null)[]): string[] {
   return Array.from(seen.values()).sort((a, b) => a.localeCompare(b));
 }
 
+// Size options in shop order: the letter scale first (XS → XXXL), then
+// waist/numeric sizes ascending, then anything else (Única, S/M…).
+const LETTER_ORDER = [...COMMON_SIZES, 'XXXL'].map(normalizeSize);
+function sortSizes(labels: string[]): string[] {
+  const rank = (label: string) => {
+    const key = normalizeSize(label);
+    const letter = LETTER_ORDER.indexOf(key);
+    if (letter >= 0) return [0, letter] as const;
+    const num = Number(key.replace(',', '.'));
+    if (Number.isFinite(num)) return [1, num] as const;
+    return [2, 0] as const;
+  };
+  return [...labels].sort((a, b) => {
+    const [ga, va] = rank(a);
+    const [gb, vb] = rank(b);
+    return ga - gb || va - vb || a.localeCompare(b);
+  });
+}
+function dedupeSizes(values: string[]): string[] {
+  const seen = new Map<string, string>();
+  for (const raw of values) {
+    const label = raw.trim();
+    if (label && !seen.has(normalizeSize(label))) seen.set(normalizeSize(label), label);
+  }
+  return sortSizes(Array.from(seen.values()));
+}
+
 const catalogHref = (params: Record<string, string>) => `/productos?${new URLSearchParams(params).toString()}`;
 
 export default function ProductGrid({
   products,
   initialBrand,
   initialCategory,
+  initialSize,
   brandLogos = [],
   linkMode = false,
   allCategories,
+  allSizes,
 }: {
   products: PublicProduct[];
   initialBrand?: string;
   initialCategory?: string;
+  initialSize?: string;
   brandLogos?: BrandLogo[];
   // Home page: the grid only holds a handful of products, so instead of
   // filtering them (and greying out every brand/type not in that handful)
@@ -61,6 +93,8 @@ export default function ProductGrid({
   // Category options to show in linkMode (the whole catalog's, not just
   // the handful of products rendered here).
   allCategories?: (string | null)[];
+  // Same for sizes in linkMode.
+  allSizes?: string[];
 }) {
   // The brand row lists the brands managed in Admin > Productos > Gestionar
   // marcas (same list "Compra por marca" and the logos draw from), falling
@@ -91,7 +125,24 @@ export default function ProductGrid({
   const [activeCategory, setActiveCategory] = useState<string | null>(
     initialCategory ? categories.find((c) => norm(c) === norm(initialCategory)) ?? null : null
   );
+  const sizes = useMemo(
+    () => dedupeSizes(linkMode && allSizes ? allSizes : products.flatMap((p) => p.sizes)),
+    [products, linkMode, allSizes]
+  );
+  // Sizes are multi-select ("S or M"), stored by normalized key so 2XL and
+  // XXL count as the same size.
+  const [activeSizes, setActiveSizes] = useState<string[]>(
+    initialSize ? sizes.filter((sz) => normalizeSize(sz) === normalizeSize(initialSize)).map(normalizeSize) : []
+  );
+  const toggleSize = (size: string) => {
+    const key = normalizeSize(size);
+    setActiveSizes((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
+  };
   const [promoOnly, setPromoOnly] = useState(false);
+  // Phones: size/brand/deals fold behind "Más filtros" so the panel doesn't
+  // fill the whole screen before the first product. Opens by itself when
+  // one of them arrives preset from the URL.
+  const [moreOpen, setMoreOpen] = useState(Boolean(initialSize || initialBrand));
   const [view, setView] = useState<GridView>(DEFAULT_VIEW);
 
   useEffect(() => {
@@ -124,22 +175,34 @@ export default function ProductGrid({
   const matchesBrand = (p: PublicProduct, brand: string | null) => !brand || norm(p.brand) === norm(brand);
   const matchesCategory = (p: PublicProduct, category: string | null) => !category || norm(p.category) === norm(category);
   const matchesPromo = (p: PublicProduct) => !promoOnly || isPromo(p);
+  const matchesSizes = (p: PublicProduct, keys: string[]) =>
+    keys.length === 0 || p.sizes.some((sz) => keys.includes(normalizeSize(sz)));
 
   // In the catalog, an option that would lead to an empty grid (a managed
   // brand with no stock yet, or a brand + garment combo that doesn't exist)
   // is shown disabled instead of letting the shopper tap into a blank page.
   // Never in linkMode: there every option opens the full catalog.
   const brandHasResults = (brand: string) =>
-    linkMode || products.some((p) => matchesBrand(p, brand) && matchesCategory(p, activeCategory) && matchesPromo(p));
+    linkMode ||
+    products.some((p) => matchesBrand(p, brand) && matchesCategory(p, activeCategory) && matchesSizes(p, activeSizes) && matchesPromo(p));
   const categoryHasResults = (category: string) =>
-    linkMode || products.some((p) => matchesBrand(p, activeBrand) && matchesCategory(p, category) && matchesPromo(p));
+    linkMode ||
+    products.some((p) => matchesBrand(p, activeBrand) && matchesCategory(p, category) && matchesSizes(p, activeSizes) && matchesPromo(p));
+  const sizeHasResults = (size: string) =>
+    linkMode ||
+    products.some(
+      (p) => matchesBrand(p, activeBrand) && matchesCategory(p, activeCategory) && matchesSizes(p, [normalizeSize(size)]) && matchesPromo(p)
+    );
 
-  const filtered = products.filter((p) => matchesBrand(p, activeBrand) && matchesCategory(p, activeCategory) && matchesPromo(p));
+  const filtered = products.filter(
+    (p) => matchesBrand(p, activeBrand) && matchesCategory(p, activeCategory) && matchesSizes(p, activeSizes) && matchesPromo(p)
+  );
   const cards = expandByColor(filtered);
-  const hasActiveFilter = activeBrand !== null || activeCategory !== null || promoOnly;
+  const hasActiveFilter = activeBrand !== null || activeCategory !== null || activeSizes.length > 0 || promoOnly;
   const clearFilters = () => {
     setActiveBrand(null);
     setActiveCategory(null);
+    setActiveSizes([]);
     setPromoOnly(false);
   };
 
@@ -149,13 +212,20 @@ export default function ProductGrid({
 
   const showBrandRow = brands.length > 1;
   const showCategoryRow = categories.length > 1;
-  const showFilters = showBrandRow || showCategoryRow || showPromoToggle;
+  const showSizeRow = sizes.length > 1;
+  const showFilters = showBrandRow || showCategoryRow || showSizeRow || showPromoToggle;
+  const moreRows = [showSizeRow, showBrandRow, showPromoToggle].filter(Boolean).length;
+  const moreActive = activeSizes.length + (activeBrand ? 1 : 0) + (promoOnly ? 1 : 0);
+  const moreRowClass = moreOpen ? '' : 'hidden md:grid';
 
   return (
     <div className="mx-auto max-w-screen-2xl px-6 pb-16 pt-10 md:px-10 md:pb-20 md:pt-12">
       {showFilters && (
-        <div className="mb-8 rounded-3xl border border-cream-200 bg-white/50 p-4 md:mb-12 md:p-6">
-          <div className="space-y-6">
+        <div className="mb-8 rounded-3xl border border-cream-200 bg-white/50 md:mb-12">
+          {/* One row per filter, in the order people narrow down clothes:
+              what garment → their size → brand → deals. Label above the
+              options on phones, in a fixed left column from md up. */}
+          <div className="divide-y divide-cream-200">
             {showCategoryRow && (
               <FilterRow label="Tipo de prenda" activeKey={norm(activeCategory)}>
                 <CategoryTile
@@ -182,8 +252,62 @@ export default function ProductGrid({
               </FilterRow>
             )}
 
+            {moreRows > 0 && (
+              <button
+                type="button"
+                onClick={() => setMoreOpen((open) => !open)}
+                aria-expanded={moreOpen}
+                className="flex w-full items-center justify-between px-4 py-3.5 text-left text-[11px] font-semibold uppercase tracking-[0.15em] text-coffee-800 transition-colors active:bg-cream-100 md:hidden"
+              >
+                <span className="flex items-center gap-2">
+                  <SlidersIcon />
+                  {moreOpen ? 'Menos filtros' : 'Más filtros'}
+                  <span className="font-normal normal-case tracking-normal text-coffee-500">
+                    {[showSizeRow && 'talla', showBrandRow && 'marca', showPromoToggle && 'ofertas'].filter(Boolean).join(', ')}
+                  </span>
+                </span>
+                <span className="flex items-center gap-2">
+                  {moreActive > 0 && (
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-coffee-900 px-1.5 text-[10px] tracking-normal text-cream-50">
+                      {moreActive}
+                    </span>
+                  )}
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    aria-hidden="true"
+                    className={`transition-transform duration-200 ${moreOpen ? 'rotate-180' : ''}`}
+                  >
+                    <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+              </button>
+            )}
+
+            {showSizeRow && (
+              <FilterRow className={moreRowClass} label="Talla" hint={linkMode ? undefined : 'Puedes elegir varias'} activeKey={activeSizes.join('|')}>
+                {sizes.map((size) => {
+                  const active = !linkMode && activeSizes.includes(normalizeSize(size));
+                  return (
+                    <SizeChip
+                      key={size}
+                      label={size}
+                      active={active}
+                      disabled={!active && !sizeHasResults(size)}
+                      href={linkMode ? catalogHref({ talla: size }) : undefined}
+                      onClick={() => toggleSize(size)}
+                    />
+                  );
+                })}
+              </FilterRow>
+            )}
+
             {showBrandRow && (
-              <FilterRow label="Marca" activeKey={norm(activeBrand)}>
+              <FilterRow className={moreRowClass} label="Marca" activeKey={norm(activeBrand)}>
                 <BrandTile
                   label="Todas"
                   active={!linkMode && activeBrand === null}
@@ -207,36 +331,58 @@ export default function ProductGrid({
                 })}
               </FilterRow>
             )}
+
+            {showPromoToggle && (
+              <FilterRow className={moreRowClass} label="Ofertas" activeKey={promoOnly ? 'on' : ''}>
+                <Tap
+                  href={linkMode ? '/promos' : undefined}
+                  onClick={() => setPromoOnly((on) => !on)}
+                  pressed={linkMode ? undefined : promoOnly}
+                  className={`flex h-10 shrink-0 items-center gap-2 rounded-full border pl-1.5 pr-4 text-[11px] font-medium uppercase tracking-[0.1em] transition-[background-color,border-color,color,transform] duration-200 active:scale-[0.96] ${
+                    promoOnly
+                      ? 'border-red-700 bg-red-700 text-cream-50'
+                      : 'border-red-700/30 bg-white text-red-700 hover:border-red-700'
+                  }`}
+                >
+                  <span
+                    className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-semibold tracking-normal transition-colors ${
+                      promoOnly ? 'bg-cream-50 text-red-700' : 'bg-red-700 text-cream-50'
+                    }`}
+                    aria-hidden="true"
+                  >
+                    %
+                  </span>
+                  Solo promociones
+                  {!linkMode && <span className={promoOnly ? 'text-cream-50/80' : 'text-red-700/60'}>{promoCount}</span>}
+                </Tap>
+              </FilterRow>
+            )}
           </div>
 
-          <div className="mt-5 flex min-h-9 flex-wrap items-center justify-between gap-3 border-t border-cream-200 pt-4 text-xs text-coffee-500">
-            {showPromoToggle ? (
-              <Tap
-                href={linkMode ? '/promos' : undefined}
-                onClick={() => setPromoOnly((on) => !on)}
-                pressed={linkMode ? undefined : promoOnly}
-                className={`flex h-9 shrink-0 items-center gap-2 rounded-full border pl-1.5 pr-3.5 text-[11px] font-medium uppercase tracking-[0.1em] transition-[background-color,border-color,color,transform] duration-200 active:scale-[0.96] ${
-                  promoOnly
-                    ? 'border-red-700 bg-red-700 text-cream-50'
-                    : 'border-red-700/30 text-red-700 hover:border-red-700'
-                }`}
-              >
-                <span
-                  className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold tracking-normal transition-colors ${
-                    promoOnly ? 'bg-cream-50 text-red-700' : 'bg-red-700 text-cream-50'
-                  }`}
-                  aria-hidden="true"
+          {/* Status bar: what's applied on the left, result count and grid
+              density on the right. */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-b-3xl border-t border-cream-200 bg-cream-100/50 px-4 py-3 text-xs text-coffee-500 md:px-6">
+            {hasActiveFilter ? (
+              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                {activeCategory && <ActivePill label={activeCategory} onRemove={() => setActiveCategory(null)} />}
+                {sizes
+                  .filter((sz) => activeSizes.includes(normalizeSize(sz)))
+                  .map((sz) => (
+                    <ActivePill key={sz} label={`Talla ${sz}`} onRemove={() => toggleSize(sz)} />
+                  ))}
+                {activeBrand && <ActivePill label={activeBrand} onRemove={() => setActiveBrand(null)} />}
+                {promoOnly && <ActivePill label="Promociones" onRemove={() => setPromoOnly(false)} />}
+                <button
+                  onClick={clearFilters}
+                  className="rounded-full px-2 py-1.5 font-medium text-coffee-800 underline decoration-coffee-300 underline-offset-4 transition-colors hover:text-coffee-900 hover:decoration-coffee-900"
                 >
-                  %
-                </span>
-                Promociones
-                {!linkMode && <span className={promoOnly ? 'text-cream-50/80' : 'text-red-700/60'}>{promoCount}</span>}
-              </Tap>
+                  Limpiar todo
+                </button>
+              </div>
             ) : (
-              <span />
+              <p className="flex-1">{linkMode ? 'Elige un filtro para ver el catálogo completo.' : 'Sin filtros aplicados.'}</p>
             )}
             <div className="ml-auto flex items-center gap-3">
-              <ViewToggle view={view} onChange={changeView} />
               {linkMode ? (
                 <Link
                   href="/productos"
@@ -245,27 +391,14 @@ export default function ProductGrid({
                   Ver todo el catálogo
                 </Link>
               ) : (
-                <p aria-live="polite" className="whitespace-nowrap">
+                <p aria-live="polite" className="whitespace-nowrap font-medium text-coffee-800">
                   {cards.length} {cards.length === 1 ? 'producto' : 'productos'}
                 </p>
               )}
+              <span className="h-5 w-px bg-cream-300" aria-hidden="true" />
+              <ViewToggle view={view} onChange={changeView} />
             </div>
           </div>
-
-          {hasActiveFilter && (
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-              <span className="text-coffee-500">Filtrando por:</span>
-              {activeCategory && <ActivePill label={activeCategory} onRemove={() => setActiveCategory(null)} />}
-              {activeBrand && <ActivePill label={activeBrand} onRemove={() => setActiveBrand(null)} />}
-              {promoOnly && <ActivePill label="Promociones" onRemove={() => setPromoOnly(false)} />}
-              <button
-                onClick={clearFilters}
-                className="ml-1 rounded-full px-2 py-1.5 font-medium text-coffee-800 underline decoration-coffee-300 underline-offset-4 transition-colors hover:text-coffee-900 hover:decoration-coffee-900"
-              >
-                Limpiar todo
-              </button>
-            </div>
-          )}
         </div>
       )}
 
@@ -336,7 +469,19 @@ function Tap({
 // several rows that push the products below the fold); from md up it wraps.
 // The row scrolls the selected option into view so a filter preset from the
 // URL (?marca= / ?tipo=) isn't hidden off-screen to the right.
-function FilterRow({ label, activeKey, children }: { label: string; activeKey: string; children: ReactNode }) {
+function FilterRow({
+  label,
+  hint,
+  activeKey,
+  className = '',
+  children,
+}: {
+  className?: string;
+  label: string;
+  hint?: string;
+  activeKey: string;
+  children: ReactNode;
+}) {
   const scrollerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -349,8 +494,11 @@ function FilterRow({ label, activeKey, children }: { label: string; activeKey: s
   }, [activeKey]);
 
   return (
-    <div>
-      <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-coffee-500">{label}</p>
+    <div className={`px-4 py-4 md:grid md:grid-cols-[9rem_1fr] md:items-center md:gap-6 md:px-6 md:py-5 ${className}`}>
+      <div className="mb-3 flex items-baseline gap-2 md:mb-0 md:flex-col md:gap-1">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-coffee-600">{label}</p>
+        {hint && <p className="text-[11px] text-coffee-400">{hint}</p>}
+      </div>
       <div
         ref={scrollerRef}
         role="group"
@@ -472,6 +620,40 @@ function BrandTile({
           </svg>
         </span>
       )}
+    </Tap>
+  );
+}
+
+function SizeChip({
+  label,
+  active,
+  disabled = false,
+  href,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  disabled?: boolean;
+  href?: string;
+  onClick: () => void;
+}) {
+  return (
+    <Tap
+      href={href}
+      onClick={onClick}
+      pressed={href ? undefined : active}
+      disabled={disabled}
+      title={disabled ? `Talla ${label} — sin productos con estos filtros` : `Talla ${label}`}
+      ariaLabel={`Talla ${label}`}
+      className={`flex h-11 min-w-[2.75rem] shrink-0 snap-start items-center justify-center rounded-full border px-3 text-sm font-medium tabular-nums transition-[background-color,border-color,color,opacity,transform] duration-200 active:scale-[0.94] disabled:pointer-events-none ${
+        active
+          ? 'border-coffee-900 bg-coffee-900 text-cream-50'
+          : disabled
+            ? 'border-dashed border-cream-300 bg-transparent text-coffee-300'
+            : 'border-cream-200 bg-white text-coffee-800 hover:border-coffee-400'
+      }`}
+    >
+      {label}
     </Tap>
   );
 }
@@ -620,6 +802,16 @@ function GarmentIcon({ category }: { category: string }) {
           <circle cx="8" cy="8" r="1.4" />
         </>
       )}
+    </svg>
+  );
+}
+
+function SlidersIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <path d="M4 7h10M18 7h2M4 17h4M12 17h8" strokeLinecap="round" />
+      <circle cx="16" cy="7" r="2" />
+      <circle cx="10" cy="17" r="2" />
     </svg>
   );
 }

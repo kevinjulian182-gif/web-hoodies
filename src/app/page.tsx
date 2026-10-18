@@ -36,7 +36,8 @@ function renderSection(
   promoProducts: PublicProduct[],
   brandLogos: { name: string; logoUrl: string | null }[],
   isFirst: boolean,
-  allCategories: (string | null)[]
+  allCategories: (string | null)[],
+  allSizes: string[]
 ) {
   switch (id) {
     case 'hero':
@@ -69,7 +70,7 @@ function renderSection(
         />
       );
     case 'products':
-      return <ProductGrid key={id} products={products} brandLogos={brandLogos} linkMode allCategories={allCategories} />;
+      return <ProductGrid key={id} products={products} brandLogos={brandLogos} linkMode allCategories={allCategories} allSizes={allSizes} />;
     case 'promos':
       if (promoProducts.length === 0) return null;
       return (
@@ -83,7 +84,7 @@ function renderSection(
               Ver todas →
             </Link>
           </div>
-          <ProductGrid products={promoProducts} brandLogos={brandLogos} linkMode allCategories={allCategories} />
+          <ProductGrid products={promoProducts} brandLogos={brandLogos} linkMode allCategories={allCategories} allSizes={allSizes} />
         </div>
       );
     case 'trust':
@@ -220,5 +221,5 @@ export default async function HomePage() {
   const promoProducts = allActive.filter((p) => p.isPromo).slice(0, 4);
   const order = getHomeSectionOrder(content);
 
-  return <>{order.map((id, index) => renderSection(id, content, products, promoProducts, brandLogos, index === 0, allActive.map((p) => p.category)))}</>;
+  return <>{order.map((id, index) => renderSection(id, content, products, promoProducts, brandLogos, index === 0, allActive.map((p) => p.category), allActive.flatMap((p) => p.sizes)))}</>;
 }

@@ -22,14 +22,16 @@ export default function CatalogClient({
   const searchParams = useSearchParams();
   const marca = searchParams.get('marca') ?? undefined;
   const tipo = searchParams.get('tipo') ?? undefined;
-  // Keyed on the params so arriving at a new ?marca=/?tipo= while already
+  const talla = searchParams.get('talla') ?? undefined;
+  // Keyed on the params so arriving at a new ?marca=/?tipo=/?talla= while already
   // on the catalog re-applies them instead of keeping the old filters.
   return (
     <ProductGrid
-      key={`${marca ?? ''}|${tipo ?? ''}`}
+      key={`${marca ?? ''}|${tipo ?? ''}|${talla ?? ''}`}
       products={products}
       initialBrand={marca}
       initialCategory={tipo}
+      initialSize={talla}
       brandLogos={brandLogos}
     />
   );
