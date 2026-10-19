@@ -145,7 +145,7 @@ export const CONTENT_DEFAULTS = {
 export const HOME_SECTIONS = [
   { id: 'hero', label: 'Portada (Hero)' },
   { id: 'spotlight', label: 'Sección editorial' },
-  { id: 'products', label: 'Catálogo destacado' },
+  { id: 'products', label: 'Catálogo (todos los productos)' },
   { id: 'promos', label: 'Promociones' },
   { id: 'brands', label: 'Compra por marca' },
   { id: 'trust', label: 'Sección de confianza' },

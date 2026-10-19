@@ -71,7 +71,8 @@ function renderSection(
         />
       );
     case 'products':
-      return <ProductGrid key={id} products={products} brandLogos={brandLogos} linkMode allCategories={allCategories} allSizes={allSizes} />;
+      // The whole catalog, with filters that work right here on the home page.
+      return <ProductGrid key={id} products={products} brandLogos={brandLogos} />;
     case 'promos':
       if (promoProducts.length === 0) return null;
       return (
@@ -216,7 +217,7 @@ export default async function HomePage() {
 
   // Same order the admin set in Productos › Ordenar (new, unplaced ones first).
   const allActive = sortByAdminOrder(unorderedActive, content['catalog.product_order']);
-  const products = allActive.slice(0, 8);
+  const products = allActive;
   const promoProducts = allActive.filter((p) => p.isPromo).slice(0, 4);
   const order = getHomeSectionOrder(content);
 
