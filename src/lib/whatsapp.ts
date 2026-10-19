@@ -33,7 +33,8 @@ export function getStoreWhatsAppNumber(content: Pick<SiteContent, 'site.whatsapp
  * than through the checkout: one line per cart item plus the subtotal. */
 export function buildWhatsAppOrderMessage(
   items: { name: string; size: string; color?: string; quantity: number; priceCents: number }[],
-  subtotalCents: number
+  subtotalCents: number,
+  customer?: { name: string; city?: string; reference?: string }
 ): string {
   const lines = items.map(
     (i) =>
@@ -46,7 +47,13 @@ export function buildWhatsAppOrderMessage(
     '',
     `Subtotal: ${formatCOP(subtotalCents)}`,
     '',
-    'Mi nombre y ciudad de envío:',
+    ...(customer
+      ? [
+          customer.reference ? `Pedido: ${customer.reference}` : null,
+          `Nombre: ${customer.name}`,
+          customer.city ? `Ciudad: ${customer.city}` : null,
+        ].filter((line): line is string => line !== null)
+      : ['Mi nombre y ciudad de envío:']),
   ].join('\n');
 }
 

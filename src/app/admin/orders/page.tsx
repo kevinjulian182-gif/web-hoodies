@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { formatCOP } from '@/lib/format';
 import { buildOrderConfirmationMessage, buildWhatsAppLink } from '@/lib/whatsapp';
+import { isWhatsAppOrder, PLACEHOLDER_ADDRESS } from '@/lib/orderSource';
 
 type Order = {
   id: string;
@@ -93,14 +94,20 @@ export default function OrdersPage() {
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="min-w-0">
                 <p className="font-medium text-coffee-900">{order.customerName}</p>
-                <p className="text-sm text-coffee-600">{order.customerEmail}</p>
+                {order.customerEmail && <p className="text-sm text-coffee-600">{order.customerEmail}</p>}
                 <p className="text-xs text-coffee-500">{order.wompiReference}</p>
+                {order.shippingAddress === PLACEHOLDER_ADDRESS ? (
+                  <p className="mt-1.5 text-xs text-coffee-600">
+                    {order.shippingCity} · {order.shippingPhone} — dirección por confirmar en el chat
+                  </p>
+                ) : (
                 <p className="mt-1.5 text-xs text-coffee-600">
                   {order.shippingAddress}
                   {order.shippingAddressComplement && `, ${order.shippingAddressComplement}`} —{' '}
                   {order.shippingCity}
                   {order.shippingDepartment && `, ${order.shippingDepartment}`} · {order.shippingPhone}
                 </p>
+                )}
                 {order.deliveryNotes && (
                   <p className="mt-1 text-xs italic text-amber-700">Nota: {order.deliveryNotes}</p>
                 )}
@@ -120,6 +127,9 @@ export default function OrdersPage() {
                 >
                   {STATUS_LABEL[order.status]}
                 </span>
+                {isWhatsAppOrder(order.wompiReference) ? (
+                  <span className="rounded-full bg-[#25D366]/15 px-3 py-1 text-xs font-medium text-[#128C4B]">Pedido por WhatsApp</span>
+                ) : (
                 <span
                   className={`text-xs px-3 py-1 rounded-full ${
                     order.paymentMethod === 'COD' ? 'bg-amber-50 text-amber-700' : 'bg-cream-200 text-coffee-700'
@@ -127,6 +137,7 @@ export default function OrdersPage() {
                 >
                   {PAYMENT_LABEL[order.paymentMethod]}
                 </span>
+                )}
               </div>
               {(order.status === 'PAID' || (order.paymentMethod === 'COD' && order.status === 'PENDING')) && (
                 <div className="flex gap-2">

@@ -7,7 +7,8 @@ import { useCart } from '@/lib/cart';
 import { colorToHex, parseColorImages, parseColorHex } from '@/lib/colors';
 import { useProductColor } from '@/lib/productColor';
 import { variantKey, COMMON_SIZES, type VariantStock } from '@/lib/variants';
-import { buildWhatsAppLink, buildWhatsAppOrderMessage } from '@/lib/whatsapp';
+import { buildWhatsAppLink } from '@/lib/whatsapp';
+import WhatsAppOrderButton from '@/components/WhatsAppOrderButton';
 import { WhatsAppGlyph } from '@/components/CartDrawer';
 import { resolveSizeGuide, type SizeChart } from '@/lib/sizeChart';
 import SizeGuide from '@/components/SizeGuide';
@@ -226,21 +227,14 @@ export default function AddToCartButton({
           </a>
         ) : (
           <>
-            <a
-              href={buildWhatsAppLink(
-                whatsappNumber,
-                buildWhatsAppOrderMessage(
-                  [{ name: product.name, size, color: color || undefined, quantity: 1, priceCents: product.priceCents }],
-                  product.priceCents
-                )
-              )}
-              target="_blank"
-              rel="noopener noreferrer"
+            <WhatsAppOrderButton
+              whatsappNumber={whatsappNumber}
+              items={[{ productId: product.id, name: product.name, size, color: color || undefined, quantity: 1, priceCents: product.priceCents }]}
               className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-[#25D366]/60 py-3.5 text-sm font-medium text-[#128C4B] transition-colors hover:bg-[#25D366]/10 active:scale-[0.98]"
             >
               <WhatsAppGlyph />
               Pedir por WhatsApp
-            </a>
+            </WhatsAppOrderButton>
             <a
               href={buildWhatsAppLink(
                 whatsappNumber,

@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCart, type CartItem } from '@/lib/cart';
-import { buildWhatsAppLink, buildWhatsAppOrderMessage } from '@/lib/whatsapp';
+import WhatsAppOrderButton from '@/components/WhatsAppOrderButton';
 import { formatCOP } from '@/lib/format';
 
 export default function CartDrawer({
@@ -126,15 +126,14 @@ export default function CartDrawer({
                   </Link>
                   <div className={`mt-2.5 grid gap-2.5 ${whatsappNumber ? 'grid-cols-2' : 'grid-cols-1'}`}>
                     {whatsappNumber && (
-                      <a
-                        href={buildWhatsAppLink(whatsappNumber, buildWhatsAppOrderMessage(items, subtotalCents))}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <WhatsAppOrderButton
+                        whatsappNumber={whatsappNumber}
+                        items={items}
                         className="flex items-center justify-center gap-1.5 rounded-full border border-[#25D366]/60 py-3.5 text-center text-sm font-medium text-[#128C4B] transition-colors hover:bg-[#25D366]/10 active:scale-[0.98]"
                       >
                         <WhatsAppGlyph />
                         Pedir por WhatsApp
-                      </a>
+                      </WhatsAppOrderButton>
                     )}
                     <button
                       onClick={closeCart}

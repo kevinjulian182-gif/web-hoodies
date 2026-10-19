@@ -2,6 +2,7 @@ import { formatCOP } from '@/lib/format';
 import { getConfigValue } from '@/lib/config';
 import { getSiteContent } from '@/lib/content';
 import { getStoreWhatsAppNumber } from '@/lib/whatsapp';
+import { isWhatsAppOrder, PLACEHOLDER_ADDRESS } from '@/lib/orderSource';
 
 // Internal heads-up to the store's own WhatsApp (the number set in Admin >
 // Contenido) whenever an order is confirmed. Sent through a personal-use
@@ -29,6 +30,7 @@ type OrderForAlert = {
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://wearafra.com').replace(/\/$/, '');
 
 export function buildStoreOrderAlert(order: OrderForAlert): string {
+  const viaWhatsApp = isWhatsAppOrder(order.wompiReference);
   const address = [
     order.shippingAddress,
     order.shippingAddressComplement,
@@ -42,7 +44,9 @@ export function buildStoreOrderAlert(order: OrderForAlert): string {
       `• ${i.quantity}x ${i.product.name} — Talla ${i.size}${i.color ? `, ${i.color}` : ''} (${formatCOP(i.priceCents * i.quantity)})`
   );
   return [
-    `🛍️ *Nuevo pedido en AFRA* (${order.wompiReference})`,
+    viaWhatsApp
+      ? `📲 *Pedido por WhatsApp en AFRA* (${order.wompiReference})\nEl cliente va a escribirte para confirmarlo.`
+      : `🛍️ *Nuevo pedido en AFRA* (${order.wompiReference})`,
     '',
     ...items,
     '',
@@ -50,12 +54,12 @@ export function buildStoreOrderAlert(order: OrderForAlert): string {
       ? `Subtotal: ${formatCOP(order.subtotalCents)} · Descuento${order.couponCode ? ` (${order.couponCode})` : ''}: -${formatCOP(order.discountCents)}`
       : null,
     `*Total: ${formatCOP(order.totalCents)}*`,
-    order.paymentMethod === 'COD' ? '💵 Pago contra entrega' : '✅ Pagado con Wompi',
+    viaWhatsApp ? '💬 Pago y envío por acordar en el chat' : order.paymentMethod === 'COD' ? '💵 Pago contra entrega' : '✅ Pagado con Wompi',
     '',
     `👤 ${order.customerName}`,
     `📞 ${order.shippingPhone}`,
-    `✉️ ${order.customerEmail}`,
-    `📍 ${address}`,
+    order.customerEmail ? `✉️ ${order.customerEmail}` : null,
+    order.shippingAddress === PLACEHOLDER_ADDRESS ? `📍 ${order.shippingCity}` : `📍 ${address}`,
     order.deliveryNotes ? `📝 ${order.deliveryNotes}` : null,
     '',
     `Ver pedidos: ${SITE_URL}/admin/orders`,
