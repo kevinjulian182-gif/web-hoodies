@@ -87,7 +87,7 @@ export function buildStockRestoreOps(
 // WhatsApp alike). Orders from before that rule only took stock when paid
 // (Wompi) or shipped (WhatsApp); this date tells the two apart, since the
 // Order table has no column for it.
-export const STOCK_AT_ORDER_SINCE = new Date('2026-10-19T08:17:00Z');
+export const STOCK_AT_ORDER_SINCE = new Date('2026-10-19T08:07:00Z');
 
 /** Minutes a Wompi order keeps its units while waiting for the payment.
  * A shopper who closes Wompi without paying never triggers a webhook, so
