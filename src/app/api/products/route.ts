@@ -4,16 +4,18 @@ import { prisma, prismaInternal } from '@/lib/prisma';
 import { getSession, requireRole } from '@/lib/auth';
 import { revalidateProductListings, revalidateProduct } from '@/lib/revalidate';
 import { sizeChartSchema, toSizeChartData } from '@/lib/sizeChartSchema';
+import { getSiteContent } from '@/lib/content';
+import { sortByAdminOrder } from '@/lib/productOrder';
 
 export async function GET() {
   const session = await getSession();
   const isStaff = requireRole(session, ['ADMIN', 'SUPER_ADMIN']);
   const products = await (isStaff ? prismaInternal : prisma).product.findMany({
     where: isStaff ? {} : { active: true },
-    orderBy: { createdAt: 'desc' },
     include: { variants: true },
   });
-  return NextResponse.json(products);
+  const content = await getSiteContent();
+  return NextResponse.json(sortByAdminOrder(products, content['catalog.product_order']));
 }
 
 const productSchema = z.object({

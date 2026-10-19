@@ -177,6 +177,12 @@ export default function AdminProductsPage() {
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'low'>('all');
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<'name' | 'description' | 'brand' | 'price' | 'images' | 'sizes', string>>>({});
+  // "Ordenar" mode: a draft of the store order (product ids), saved as one
+  // SiteContent value that every listing sorts by.
+  const [ordering, setOrdering] = useState(false);
+  const [orderDraft, setOrderDraft] = useState<string[]>([]);
+  const [orderSaving, setOrderSaving] = useState(false);
+  const [dragId, setDragId] = useState<string | null>(null);
   // Snapshot of the form when the editor opened, to tell real edits apart.
   const [initialFormJson, setInitialFormJson] = useState('');
   const [importing, setImporting] = useState(false);
@@ -483,6 +489,35 @@ export default function AdminProductsPage() {
     load();
     loadBrands();
     loadCategories();
+  };
+
+  const startOrdering = () => {
+    setOrderDraft(products.map((p) => p.id));
+    setOrdering(true);
+  };
+  const moveTo = (id: string, target: number) =>
+    setOrderDraft((prev) => {
+      const from = prev.indexOf(id);
+      if (from < 0) return prev;
+      const next = [...prev];
+      next.splice(from, 1);
+      next.splice(Math.max(0, Math.min(target, next.length)), 0, id);
+      return next;
+    });
+  const saveOrder = async () => {
+    setOrderSaving(true);
+    const res = await fetch('/api/admin/content', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 'catalog.product_order': JSON.stringify(orderDraft) }),
+    });
+    setOrderSaving(false);
+    if (!res.ok) {
+      alert('No se pudo guardar el orden');
+      return;
+    }
+    setOrdering(false);
+    load();
   };
 
   const toggleActive = async (p: Product) => {
@@ -950,6 +985,15 @@ export default function AdminProductsPage() {
             <MenuItem onClick={() => { setShowBrandManager((v) => !v); setShowCategoryManager(false); }}>Gestionar marcas</MenuItem>
             <MenuItem onClick={() => { setShowCategoryManager((v) => !v); setShowBrandManager(false); }}>Gestionar categorías</MenuItem>
           </Menu>
+          {!ordering && products.length > 1 && (
+            <button
+              onClick={startOrdering}
+              className="flex items-center gap-1.5 rounded-full border border-cream-200 bg-white px-4 py-2 text-sm text-coffee-800 transition-colors hover:border-coffee-400"
+            >
+              <GripIcon />
+              Ordenar
+            </button>
+          )}
           <Menu label={importing ? 'Importando…' : 'Excel'}>
             <MenuItem href="/api/admin/export">Exportar a Excel</MenuItem>
             <label className="block w-full cursor-pointer rounded-lg px-3 py-2 text-left text-sm text-coffee-800 hover:bg-cream-100">
@@ -1118,6 +1162,120 @@ export default function AdminProductsPage() {
         </div>
       )}
 
+      {ordering && (
+        <div className="mb-6">
+          <div className="sticky top-[6.25rem] z-20 -mx-4 mb-4 flex flex-wrap items-center gap-3 border-b border-cream-200 bg-cream-50/95 px-4 py-3 backdrop-blur md:top-0 md:-mx-8 md:px-8">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-coffee-900">Ordenar productos</p>
+              <p className="text-xs text-coffee-500">
+                Arrastra las filas, usa las flechas o escribe la posición. Así se verán en el inicio, el catálogo y promos.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setOrdering(false)}
+              className="rounded-full px-4 py-2 text-sm text-coffee-600 hover:text-coffee-900"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={saveOrder}
+              disabled={orderSaving}
+              className="rounded-full bg-coffee-900 px-5 py-2 text-sm font-medium text-cream-50 transition-[background-color,transform] hover:bg-coffee-800 active:scale-[0.97] disabled:opacity-60"
+            >
+              {orderSaving ? 'Guardando…' : 'Guardar orden'}
+            </button>
+          </div>
+
+          <ol className="overflow-hidden rounded-2xl border border-cream-200 bg-white">
+            {orderDraft.map((id, index) => {
+              const p = products.find((x) => x.id === id);
+              if (!p) return null;
+              return (
+                <li
+                  key={id}
+                  draggable
+                  onDragStart={(e) => {
+                    setDragId(id);
+                    e.dataTransfer.effectAllowed = 'move';
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    if (dragId && dragId !== id) moveTo(dragId, index);
+                  }}
+                  onDragEnd={() => setDragId(null)}
+                  className={`flex items-center gap-3 border-b border-cream-100 px-3 py-2.5 last:border-0 ${
+                    dragId === id ? 'bg-cream-100 opacity-60' : 'bg-white'
+                  }`}
+                >
+                  <span className="hidden cursor-grab text-coffee-300 active:cursor-grabbing md:block" aria-hidden="true">
+                    <GripIcon />
+                  </span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={orderDraft.length}
+                    aria-label={`Posición de ${p.name}`}
+                    key={`${id}-${index}`}
+                    defaultValue={index + 1}
+                    onBlur={(e) => {
+                      const n = Number(e.target.value);
+                      if (Number.isFinite(n) && n >= 1 && n - 1 !== index) moveTo(id, n - 1);
+                      else e.target.value = String(index + 1);
+                    }}
+                    onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                    className="w-12 shrink-0 rounded-lg border border-cream-200 px-1.5 py-1 text-center text-sm tabular-nums text-coffee-800 focus:border-coffee-700 focus:outline-none"
+                  />
+                  <div className="relative h-12 w-10 shrink-0 overflow-hidden rounded-md bg-cream-100">
+                    {p.images[0] && <AdminThumb src={p.images[0]} alt={p.name} />}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-coffee-900">{p.name}</p>
+                    <p className="truncate text-xs text-coffee-500">
+                      {p.brand}
+                      {!p.active && <span className="ml-1.5 text-coffee-400">· Oculto</span>}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => moveTo(id, 0)}
+                      disabled={index === 0}
+                      aria-label="Mover al inicio"
+                      title="Mover al inicio"
+                      className="hidden h-8 w-8 items-center justify-center rounded-full text-coffee-600 hover:bg-cream-100 disabled:opacity-30 sm:flex"
+                    >
+                      ⤒
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveTo(id, index - 1)}
+                      disabled={index === 0}
+                      aria-label="Subir"
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-coffee-600 hover:bg-cream-100 disabled:opacity-30"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveTo(id, index + 1)}
+                      disabled={index === orderDraft.length - 1}
+                      aria-label="Bajar"
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-coffee-600 hover:bg-cream-100 disabled:opacity-30"
+                    >
+                      ↓
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+      )}
+
+      {!ordering && (
+      <>
       {/* Toolbar: search, status tabs, brand/type selects */}
       <div className="mb-4 space-y-3">
         <div className="flex flex-col gap-3 md:flex-row md:items-center">
@@ -1284,8 +1442,10 @@ export default function AdminProductsPage() {
         </ul>
       </div>
       <p className="mt-3 text-xs text-coffee-500">
-        Mostrando {filtered.length} de {products.length} producto{products.length === 1 ? '' : 's'}
+        Mostrando {filtered.length} de {products.length} producto{products.length === 1 ? '' : 's'} · en el orden de la tienda
       </p>
+      </>
+      )}
     </div>
   );
 }
@@ -1526,6 +1686,19 @@ function MenuItem({
     <button type="button" role="menuitem" onClick={onClick} className={className}>
       {children}
     </button>
+  );
+}
+
+function GripIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <circle cx="9" cy="6" r="1.6" />
+      <circle cx="15" cy="6" r="1.6" />
+      <circle cx="9" cy="12" r="1.6" />
+      <circle cx="15" cy="12" r="1.6" />
+      <circle cx="9" cy="18" r="1.6" />
+      <circle cx="15" cy="18" r="1.6" />
+    </svg>
   );
 }
 

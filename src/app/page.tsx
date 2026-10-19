@@ -18,6 +18,7 @@ import {
   type HomeSectionId,
 } from '@/lib/content';
 import type { Product } from '@prisma/client';
+import { sortByAdminOrder } from '@/lib/productOrder';
 import type { SiteContent } from '@/lib/content';
 
 type PublicProduct = Omit<Product, 'costCents'>;
@@ -207,17 +208,15 @@ function ShieldIcon() {
 }
 
 export default async function HomePage() {
-  const [products, allActive, content, brandLogos] = await Promise.all([
-    prisma.product.findMany({
-      where: { active: true },
-      orderBy: { createdAt: 'desc' },
-      take: 8,
-    }),
+  const [unorderedActive, content, brandLogos] = await Promise.all([
     prisma.product.findMany({ where: { active: true } }),
     getSiteContent(),
     prisma.brand.findMany({ select: { name: true, logoUrl: true }, orderBy: { name: 'asc' } }),
   ]);
 
+  // Same order the admin set in Productos › Ordenar (new, unplaced ones first).
+  const allActive = sortByAdminOrder(unorderedActive, content['catalog.product_order']);
+  const products = allActive.slice(0, 8);
   const promoProducts = allActive.filter((p) => p.isPromo).slice(0, 4);
   const order = getHomeSectionOrder(content);
 

@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { prisma } from '@/lib/prisma';
+import { getSiteContent } from '@/lib/content';
+import { sortByAdminOrder } from '@/lib/productOrder';
 import CatalogClient from './CatalogClient';
 
 // Cached and served statically between revalidations — product/brand
@@ -16,13 +18,15 @@ export const metadata: Metadata = {
 };
 
 export default async function CatalogPage() {
-  const [products, brands] = await Promise.all([
+  const [unordered, brands, content] = await Promise.all([
     prisma.product.findMany({
       where: { active: true },
       orderBy: { createdAt: 'desc' },
     }),
     prisma.brand.findMany({ select: { name: true, logoUrl: true }, orderBy: { name: 'asc' } }),
+    getSiteContent(),
   ]);
+  const products = sortByAdminOrder(unordered, content['catalog.product_order']);
 
   return (
     <div className="pt-8">

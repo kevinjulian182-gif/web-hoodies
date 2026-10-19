@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import ProductGrid from '@/components/ProductGrid';
 import { prisma } from '@/lib/prisma';
+import { getSiteContent } from '@/lib/content';
+import { sortByAdminOrder } from '@/lib/productOrder';
 
 // Cached and served statically between revalidations — see src/app/page.tsx.
 export const revalidate = 60;
@@ -11,13 +13,15 @@ export const metadata: Metadata = {
 };
 
 export default async function PromosPage() {
-  const [products, brandLogos] = await Promise.all([
+  const [unordered, brandLogos, content] = await Promise.all([
     prisma.product.findMany({
       where: { active: true, isPromo: true },
       orderBy: { createdAt: 'desc' },
     }),
     prisma.brand.findMany({ select: { name: true, logoUrl: true }, orderBy: { name: 'asc' } }),
+    getSiteContent(),
   ]);
+  const products = sortByAdminOrder(unordered, content['catalog.product_order']);
 
   return (
     <div className="pt-8">

@@ -107,6 +107,9 @@ export const CONTENT_DEFAULTS = {
   // Store-wide size guide shown on every product without its own chart
   // (Product.sizeChart). Same shape as SizeChart in lib/sizeChart.ts.
   'sizeguide.chart': JSON.stringify({"columns": ["Pecho (cm)", "Largo (cm)", "Manga (cm)"], "rows": {"XS": ["50", "67", "60"], "S": ["53", "69", "61"], "M": ["56", "71", "62"], "L": ["59", "73", "63"], "XL": ["62", "75", "64"], "XXL": ["65", "77", "65"]}, "note": "Medidas aproximadas de la prenda en plano; pueden variar un poco según la marca. Si estás entre dos tallas, elige la más grande para un calce más relajado."}),
+  // Store order of products, set from Admin › Productos › Ordenar: JSON
+  // array of product ids. Not shown in the Contenido editor.
+  'catalog.product_order': '[]',
   'catalog.show_colors_on_card': 'false',
   'catalog.show_sizes_on_card': 'false',
   'shipping.free_threshold': '250000',
