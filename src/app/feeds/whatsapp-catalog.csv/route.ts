@@ -38,6 +38,14 @@ const COLUMNS = [
 type Row = Record<(typeof COLUMNS)[number], string>;
 
 const absolute = (url: string) => (/^https?:\/\//.test(url) ? url : `${SITE_URL}${url.startsWith('/') ? '' : '/'}${url}`);
+// Meta only accepts JPG/PNG: the store's own uploads (WebP, on Vercel
+// Blob) go through the converter; photos hosted elsewhere are left as is.
+const catalogImage = (url: string) => {
+  const full = absolute(url);
+  const host = new URL(full).hostname;
+  const ours = host.endsWith('.blob.vercel-storage.com') || full.startsWith(SITE_URL);
+  return ours ? `${SITE_URL}/feeds/image?src=${encodeURIComponent(full)}` : full;
+};
 const money = (cents: number) => `${Math.round(cents / 100)} COP`;
 const csvCell = (value: string) => `"${value.replace(/[\r\n]+/g, ' ').replace(/"/g, '""')}"`;
 const plain = (text: string) =>
@@ -93,8 +101,8 @@ export async function GET() {
         price: money(onSale ? product.compareAtPriceCents! : product.priceCents),
         sale_price: onSale ? money(product.priceCents) : '',
         link,
-        image_link: absolute(images[0]),
-        additional_image_link: images.slice(1, 10).map(absolute).join(','),
+        image_link: catalogImage(images[0]),
+        additional_image_link: images.slice(1, 10).map(catalogImage).join(','),
         brand: product.brand,
         item_group_id: product.colors.length > 1 ? product.id : '',
         color: color ?? '',
