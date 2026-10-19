@@ -139,10 +139,6 @@ export default function ProductGrid({
     setActiveSizes((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
   };
   const [promoOnly, setPromoOnly] = useState(false);
-  // Phones: size and deals fold behind "Más filtros" so the panel doesn't
-  // fill the whole screen before the first product. Opens by itself when
-  // one of them arrives preset from the URL.
-  const [moreOpen, setMoreOpen] = useState(Boolean(initialSize));
   const [view, setView] = useState<GridView>(DEFAULT_VIEW);
 
   useEffect(() => {
@@ -214,9 +210,6 @@ export default function ProductGrid({
   const showCategoryRow = categories.length > 1;
   const showSizeRow = sizes.length > 1;
   const showFilters = showBrandRow || showCategoryRow || showSizeRow || showPromoToggle;
-  const moreRows = [showSizeRow, showPromoToggle].filter(Boolean).length;
-  const moreActive = activeSizes.length + (promoOnly ? 1 : 0);
-  const moreRowClass = moreOpen ? '' : 'hidden md:grid';
 
   return (
     <div className="mx-auto max-w-screen-2xl px-6 pb-16 pt-10 md:px-10 md:pb-20 md:pt-12">
@@ -277,44 +270,8 @@ export default function ProductGrid({
               </FilterRow>
             )}
 
-            {moreRows > 0 && (
-              <button
-                type="button"
-                onClick={() => setMoreOpen((open) => !open)}
-                aria-expanded={moreOpen}
-                className="flex w-full items-center justify-between px-4 py-3.5 text-left text-[11px] font-semibold uppercase tracking-[0.15em] text-coffee-800 transition-colors active:bg-cream-100 md:hidden"
-              >
-                <span className="flex items-center gap-2">
-                  <SlidersIcon />
-                  {moreOpen ? 'Menos filtros' : 'Más filtros'}
-                  <span className="font-normal normal-case tracking-normal text-coffee-500">
-                    {[showSizeRow && 'talla', showPromoToggle && 'ofertas'].filter(Boolean).join(', ')}
-                  </span>
-                </span>
-                <span className="flex items-center gap-2">
-                  {moreActive > 0 && (
-                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-coffee-900 px-1.5 text-[10px] tracking-normal text-cream-50">
-                      {moreActive}
-                    </span>
-                  )}
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    aria-hidden="true"
-                    className={`transition-transform duration-200 ${moreOpen ? 'rotate-180' : ''}`}
-                  >
-                    <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </span>
-              </button>
-            )}
-
             {showSizeRow && (
-              <FilterRow className={moreRowClass} label="Talla" hint={linkMode ? undefined : 'Puedes elegir varias'} activeKey={activeSizes.join('|')}>
+              <FilterRow label="Talla" hint={linkMode ? undefined : 'Puedes elegir varias'} activeKey={activeSizes.join('|')}>
                 {sizes.map((size) => {
                   const active = !linkMode && activeSizes.includes(normalizeSize(size));
                   return (
@@ -333,7 +290,7 @@ export default function ProductGrid({
 
 
             {showPromoToggle && (
-              <FilterRow className={moreRowClass} label="Ofertas" activeKey={promoOnly ? 'on' : ''}>
+              <FilterRow label="Ofertas" activeKey={promoOnly ? 'on' : ''}>
                 <Tap
                   href={linkMode ? '/promos' : undefined}
                   onClick={() => setPromoOnly((on) => !on)}
@@ -802,16 +759,6 @@ function GarmentIcon({ category }: { category: string }) {
           <circle cx="8" cy="8" r="1.4" />
         </>
       )}
-    </svg>
-  );
-}
-
-function SlidersIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-      <path d="M4 7h10M18 7h2M4 17h4M12 17h8" strokeLinecap="round" />
-      <circle cx="16" cy="7" r="2" />
-      <circle cx="10" cy="17" r="2" />
     </svg>
   );
 }

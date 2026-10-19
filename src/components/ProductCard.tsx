@@ -133,22 +133,15 @@ export default function ProductCard({
 
         <div className="mt-4">
           <p className="truncate text-[11px] uppercase tracking-[0.15em] text-coffee-500">{product.brand}</p>
-          <h3 className="mt-1 min-h-[2.625rem] text-sm leading-snug text-coffee-700 line-clamp-2 md:min-h-[3rem] md:text-base">
+          <h3 className="mt-1 min-h-[2.625rem] text-sm font-medium leading-snug text-coffee-900 line-clamp-2 md:min-h-[3rem] md:text-base">
             {product.name}
           </h3>
-          {/* Price leads the text block: largest, boldest line on the card. */}
-          <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <p
-              className={`text-lg font-bold leading-none tracking-tight tabular-nums md:text-2xl ${
-                onSale || product.isPromo ? 'text-red-700' : 'text-coffee-900'
-              }`}
-            >
+          <div className="mt-1.5 flex items-center gap-2">
+            <p className={`text-sm font-semibold md:text-[15px] ${onSale || product.isPromo ? 'text-red-700' : 'text-coffee-800'}`}>
               {formatCOP(product.priceCents)}
             </p>
             {onSale && (
-              <p className="text-xs font-medium tabular-nums text-coffee-400 line-through md:text-sm">
-                {formatCOP(product.compareAtPriceCents as number)}
-              </p>
+              <p className="text-xs text-coffee-400 line-through">{formatCOP(product.compareAtPriceCents as number)}</p>
             )}
           </div>
         </div>
