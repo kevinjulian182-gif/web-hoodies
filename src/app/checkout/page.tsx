@@ -114,7 +114,7 @@ function extractError(error: unknown): string {
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, subtotalCents } = useCart();
+  const { items, subtotalCents, hasSoldOut, removeItem } = useCart();
   const { freeShippingThresholdCents, shippingRates } = useCatalogSettings();
 
   const [step, setStep] = useState<Step>(1);
@@ -123,6 +123,9 @@ export default function CheckoutPage() {
   const [touched, setTouched] = useState<Partial<Record<FieldName, boolean>>>({});
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('WOMPI');
   const [checkoutData, setCheckoutData] = useState<CheckoutData | null>(null);
+  // Wompi order created earlier in this visit; if the shopper comes back and
+  // places a new one, the server releases the units this one reserved.
+  const lastWompiRef = useRef<string | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
@@ -244,6 +247,10 @@ export default function CheckoutPage() {
   };
 
   const handleConfirmPayment = async () => {
+    if (hasSoldOut) {
+      setError('Hay productos agotados en tu pedido. Quítalos para continuar.');
+      return;
+    }
     setError('');
     setLoading(true);
     try {
@@ -253,6 +260,7 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           ...form,
           couponCode: coupon?.code,
+          previousReference: lastWompiRef.current ?? undefined,
           paymentMethod,
           items: items.map((i) => ({ productId: i.productId, size: i.size, color: i.color, quantity: i.quantity })),
         }),
@@ -266,6 +274,7 @@ export default function CheckoutPage() {
         router.push(`/checkout/success?ref=${data.reference}&method=cod`);
         return;
       }
+      lastWompiRef.current = data.reference;
       setCheckoutData(data);
     } catch {
       setError('No se pudo conectar. Revisa tu conexión e intenta de nuevo.');
@@ -390,6 +399,30 @@ export default function CheckoutPage() {
       <div className="mx-auto max-w-5xl px-4 pb-16 pt-6 sm:px-6 md:pt-10">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-[1fr_360px] md:items-start lg:gap-12">
           <main className="min-w-0">
+            {hasSoldOut && !checkoutData && (
+              <div role="alert" className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+                <p className="font-semibold">Algunos productos se agotaron mientras comprabas</p>
+                <ul className="mt-2 space-y-1.5">
+                  {items
+                    .filter((i) => i.maxQuantity === 0)
+                    .map((i) => (
+                      <li key={`${i.productId}-${i.size}-${i.color ?? ''}`} className="flex items-center justify-between gap-3">
+                        <span>
+                          {i.name} · Talla {i.size}
+                          {i.color ? ` · ${i.color}` : ''}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeItem(i.productId, i.size, i.color)}
+                          className="shrink-0 font-medium underline underline-offset-2"
+                        >
+                          Quitar
+                        </button>
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            )}
             <Progress step={step} onGoTo={(n) => n < step && !checkoutData && goTo(n)} />
 
             {!checkoutData && (

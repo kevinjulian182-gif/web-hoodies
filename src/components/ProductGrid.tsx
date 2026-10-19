@@ -183,7 +183,9 @@ export default function ProductGrid({
   const filtered = products.filter(
     (p) => matchesBrand(p, activeBrand) && matchesCategory(p, activeCategory) && matchesSizes(p, activeSizes)
   );
-  const cards = expandByColor(filtered);
+  // Sold-out pieces stay visible (people still discover them) but go to the
+  // end, so the first screens are things that can actually be bought.
+  const cards = expandByColor([...filtered.filter((p) => p.stock > 0), ...filtered.filter((p) => p.stock <= 0)]);
   const hasActiveFilter = activeBrand !== null || activeCategory !== null || activeSizes.length > 0;
   const clearFilters = () => {
     setActiveBrand(null);

@@ -78,6 +78,12 @@ export default function WhatsAppOrderButton({
           items: items.map(({ productId, size, color, quantity }) => ({ productId, size, color, quantity })),
         }),
       });
+      if (res.status === 409) {
+        // Out of stock: opening the chat would promise units that don't exist.
+        setError((await res.json()).error);
+        setSending(false);
+        return;
+      }
       if (res.ok) {
         const data = await res.json();
         reference = data.reference;

@@ -219,22 +219,34 @@ export function buildOrderEmail(order: OrderForEmail, whatsappNumber: string) {
   return { subject, html, text };
 }
 
-export async function sendOrderEmail(order: OrderForEmail, to = order.customerEmail): Promise<EmailResult> {
+async function sendEmail(to: string, message: { subject: string; html: string; text: string }): Promise<EmailResult> {
   if (!to) return { ok: false, error: 'El pedido no tiene correo del cliente.' };
   const settings = await getEmailSettings();
   if (!settings.apiKey) return { ok: false, error: 'Falta la API key de Resend (Admin › Cuenta › Confirmación al cliente).' };
-
-  const content = await getSiteContent();
-  const { subject, html, text } = buildOrderEmail(order, getStoreWhatsAppNumber(content));
-
   try {
     // Resend reports failures in the result instead of throwing.
-    const { data, error } = await new Resend(settings.apiKey!).emails.send({ from: settings.from, to, subject, html, text });
+    const { data, error } = await new Resend(settings.apiKey).emails.send({ from: settings.from, to, ...message });
     if (error) return { ok: false, error: explainResendError(error.message) };
     return { ok: true, id: data?.id };
   } catch (err) {
     return { ok: false, error: explainResendError(err instanceof Error ? err.message : String(err)) };
   }
+}
+
+async function logEmailResult(result: EmailResult, to: string, reference: string) {
+  const log: DeliveryLog = {
+    ok: result.ok,
+    to,
+    reference,
+    at: new Date().toISOString(),
+    error: result.ok ? undefined : result.error,
+  };
+  await setConfigValue('EMAIL_LAST_RESULT', JSON.stringify(log)).catch(() => {});
+}
+
+export async function sendOrderEmail(order: OrderForEmail, to = order.customerEmail): Promise<EmailResult> {
+  const content = await getSiteContent();
+  return sendEmail(to, buildOrderEmail(order, getStoreWhatsAppNumber(content)));
 }
 
 /** Confirmation to the shopper once an order is committed (COD at creation,
@@ -243,12 +255,128 @@ export async function sendOrderConfirmationEmail(order: OrderForEmail) {
   if (isWhatsAppOrder(order.wompiReference)) return;
   const result = await sendOrderEmail(order);
   if (!result.ok) console.error(`Correo de confirmación no enviado (${order.wompiReference}): ${result.error}`);
-  const log: DeliveryLog = {
-    ok: result.ok,
-    to: order.customerEmail,
-    reference: order.wompiReference,
-    at: new Date().toISOString(),
-    error: result.ok ? undefined : result.error,
-  };
-  await setConfigValue('EMAIL_LAST_RESULT', JSON.stringify(log)).catch(() => {});
+  await logEmailResult(result, order.customerEmail, order.wompiReference);
 }
+
+// ── Shipped: tracking number ─────────────────────────────────────────────
+
+type ShippedOrder = Pick<
+  OrderForEmail,
+  | 'wompiReference'
+  | 'customerName'
+  | 'customerEmail'
+  | 'shippingAddress'
+  | 'shippingAddressComplement'
+  | 'shippingCity'
+  | 'shippingDepartment'
+  | 'paymentMethod'
+  | 'totalCents'
+> & { trackingNumber: string; carrier: string; items: { quantity: number; size: string; color?: string | null; product: { name: string } }[] };
+
+/** Public tracking page for the carriers the store uses. */
+export function trackingUrl(carrier: string): string | null {
+  return /inter/i.test(carrier) ? 'https://interrapidisimo.com/sigue-tu-envio/' : null;
+}
+
+export function buildShippedEmail(order: ShippedOrder, whatsappNumber: string) {
+  const firstName = esc(order.customerName.trim().split(/\s+/)[0] || order.customerName);
+  const isCod = order.paymentMethod === 'COD';
+  const trackUrl = trackingUrl(order.carrier);
+  const address = [
+    order.shippingAddress,
+    order.shippingAddressComplement,
+    [order.shippingCity, order.shippingDepartment].filter(Boolean).join(', '),
+  ]
+    .filter(Boolean)
+    .map((line) => esc(line!))
+    .join('<br>');
+  const itemsList = order.items
+    .map((i) => `${i.quantity}x ${esc(i.product.name)} · Talla ${esc(i.size)}${i.color ? ` · ${esc(i.color)}` : ''}`)
+    .join('<br>');
+  const waLink = whatsappNumber
+    ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Hola, tengo una pregunta sobre el envío de mi pedido ${order.wompiReference} (guía ${order.trackingNumber})`)}`
+    : '';
+  const subject = `Tu pedido va en camino · Guía ${order.trackingNumber} · AFRA`;
+
+  const html = `<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(subject)}</title></head>
+<body style="margin:0;padding:0;background:#FBF6EC;">
+  <div style="display:none;max-height:0;overflow:hidden;">Tu número de guía es ${esc(order.trackingNumber)}.</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FBF6EC;">
+    <tr><td align="center" style="padding:32px 16px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+        <tr><td style="padding-bottom:24px;text-align:center;">
+          <a href="${SITE_URL}" style="font-size:26px;font-weight:800;letter-spacing:0.18em;color:#291C13;text-decoration:none;">AFRA</a>
+        </td></tr>
+        <tr><td style="background:#FFFFFF;border-radius:20px;padding:32px 28px;">
+          <div style="font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#83593D;">Pedido ${esc(order.wompiReference)}</div>
+          <h1 style="margin:8px 0 0;font-size:26px;line-height:1.25;color:#291C13;letter-spacing:-0.02em;">¡${firstName}, tu pedido va en camino! 🚚</h1>
+          <p style="margin:12px 0 0;font-size:15px;line-height:1.6;color:#4F3624;">Ya lo entregamos a ${esc(order.carrier)}. Con este número de guía puedes seguirlo:</p>
+
+          <div style="margin-top:20px;padding:22px 20px;background:#291C13;border-radius:16px;text-align:center;">
+            <div style="font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#EAD09C;">Número de guía · ${esc(order.carrier)}</div>
+            <div style="margin-top:8px;font-size:28px;font-weight:700;letter-spacing:0.06em;color:#FBF6EC;font-family:ui-monospace,Menlo,Consolas,monospace;">${esc(order.trackingNumber)}</div>
+          </div>
+
+          ${
+            trackUrl
+              ? `<div style="margin-top:20px;text-align:center;">
+                  <a href="${trackUrl}" style="display:inline-block;background:#291C13;color:#FBF6EC;text-decoration:none;font-size:15px;font-weight:600;padding:14px 28px;border-radius:999px;">Rastrear mi pedido</a>
+                  <div style="margin-top:8px;font-size:12px;color:#83593D;">Copia el número de guía y pégalo en la página de ${esc(order.carrier)}.</div>
+                </div>`
+              : ''
+          }
+
+          <div style="margin-top:28px;padding:18px 20px;background:#FBF6EC;border-radius:14px;">
+            <div style="font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#83593D;">Va para</div>
+            <div style="margin-top:6px;font-size:15px;line-height:1.55;color:#291C13;"><strong>${esc(order.customerName)}</strong><br>${address}</div>
+            <div style="margin-top:12px;font-size:14px;line-height:1.55;color:#4F3624;">${itemsList}</div>
+          </div>
+
+          ${
+            isCod
+              ? `<p style="margin:20px 0 0;font-size:15px;line-height:1.6;color:#4F3624;">Recuerda tener listo el pago de <strong>${formatCOP(order.totalCents)}</strong> (efectivo o datáfono) para cuando llegue.</p>`
+              : ''
+          }
+
+          ${
+            waLink
+              ? `<p style="margin:24px 0 0;font-size:14px;color:#4F3624;text-align:center;">¿Alguna duda con el envío? <a href="${waLink}" style="color:#291C13;font-weight:600;">Escríbenos por WhatsApp</a></p>`
+              : ''
+          }
+        </td></tr>
+        <tr><td style="padding:20px 8px 0;text-align:center;font-size:12px;line-height:1.6;color:#83593D;">
+          Recibiste este correo porque hiciste un pedido en <a href="${SITE_URL}" style="color:#83593D;">wearafra.com</a>.
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+
+  const text = [
+    `¡${order.customerName}, tu pedido ${order.wompiReference} va en camino!`,
+    '',
+    `Número de guía (${order.carrier}): ${order.trackingNumber}`,
+    trackUrl ? `Rastréalo en: ${trackUrl}` : null,
+    '',
+    ...order.items.map((i) => `• ${i.quantity}x ${i.product.name} — Talla ${i.size}${i.color ? `, ${i.color}` : ''}`),
+    '',
+    isCod ? `Ten listo el pago de ${formatCOP(order.totalCents)} para cuando llegue.` : null,
+    waLink ? `¿Dudas? ${waLink}` : null,
+  ]
+    .filter((l) => l !== null)
+    .join('\n');
+
+  return { subject, html, text };
+}
+
+/** Tells the shopper their tracking number. Never throws. */
+export async function sendShippedEmail(order: ShippedOrder): Promise<EmailResult> {
+  if (!order.customerEmail) return { ok: false, error: 'El pedido no tiene correo del cliente.' };
+  const content = await getSiteContent();
+  const result = await sendEmail(order.customerEmail, buildShippedEmail(order, getStoreWhatsAppNumber(content)));
+  if (!result.ok) console.error(`Correo de envío no enviado (${order.wompiReference}): ${result.error}`);
+  await logEmailResult(result, order.customerEmail, order.wompiReference);
+  return result;
+}
+

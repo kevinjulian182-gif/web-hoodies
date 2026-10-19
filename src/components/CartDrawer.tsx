@@ -12,7 +12,7 @@ import { useCatalogSettings } from '@/lib/catalogSettings';
 import { minShippingCents, qualifiesForFreeShipping } from '@/lib/pricing';
 
 export default function CartDrawer({ whatsappNumber }: { whatsappNumber?: string }) {
-  const { items, isOpen, closeCart, updateQuantity, removeItem, subtotalCents } = useCart();
+  const { items, isOpen, closeCart, updateQuantity, removeItem, subtotalCents, hasSoldOut } = useCart();
   const { freeShippingThresholdCents, shippingRates } = useCatalogSettings();
   const freeShipping = qualifiesForFreeShipping(subtotalCents, freeShippingThresholdCents);
   const shippingFromCents = minShippingCents(shippingRates);
@@ -136,13 +136,28 @@ export default function CartDrawer({ whatsappNumber }: { whatsappNumber?: string
                       <dd className="text-lg font-semibold tabular-nums text-coffee-900">{formatCOP(subtotalCents)}</dd>
                     </div>
                   </dl>
-                  <Link
-                    href="/checkout"
-                    onClick={closeCart}
-                    className="block w-full rounded-full bg-coffee-900 py-4 text-center text-sm font-medium tracking-wide text-cream-50 hover:bg-coffee-800 transition-colors"
-                  >
-                    Continuar al pago
-                  </Link>
+                  {hasSoldOut ? (
+                    <>
+                      <p role="alert" className="mb-2.5 rounded-xl bg-red-50 px-4 py-2.5 text-center text-xs text-red-700">
+                        Hay productos agotados en tu carrito. Quítalos para continuar.
+                      </p>
+                      <button
+                        type="button"
+                        disabled
+                        className="block w-full cursor-not-allowed rounded-full bg-coffee-900/40 py-4 text-center text-sm font-medium tracking-wide text-cream-50"
+                      >
+                        Continuar al pago
+                      </button>
+                    </>
+                  ) : (
+                    <Link
+                      href="/checkout"
+                      onClick={closeCart}
+                      className="block w-full rounded-full bg-coffee-900 py-4 text-center text-sm font-medium tracking-wide text-cream-50 hover:bg-coffee-800 transition-colors"
+                    >
+                      Continuar al pago
+                    </Link>
+                  )}
                   <div className={`mt-2.5 grid gap-2.5 ${whatsappNumber ? 'grid-cols-2' : 'grid-cols-1'}`}>
                     {whatsappNumber && (
                       <WhatsAppOrderButton
@@ -266,6 +281,8 @@ function CartRow({
   onUpdateQuantity: (quantity: number) => void;
   onRemove: () => void;
 }) {
+  const soldOut = item.maxQuantity === 0;
+  const atMax = item.maxQuantity !== undefined && item.quantity >= item.maxQuantity;
   return (
     <motion.li
       layout
@@ -276,7 +293,15 @@ function CartRow({
       className="flex gap-4 overflow-hidden py-4 first:pt-0 [&:not(:last-child)]:border-b [&:not(:last-child)]:border-cream-200"
     >
       <div className="relative h-24 w-20 shrink-0 overflow-hidden rounded-xl bg-cream-100">
-        {item.image && <Image src={item.image} alt={item.name} fill className="object-cover" sizes="80px" />}
+        {item.image && (
+          <Image
+            src={item.image}
+            alt={item.name}
+            fill
+            className={`object-cover ${soldOut ? 'opacity-50 grayscale' : ''}`}
+            sizes="80px"
+          />
+        )}
       </div>
       <div className="flex flex-1 flex-col justify-between">
         <div className="flex items-start justify-between gap-2">
@@ -295,28 +320,47 @@ function CartRow({
             <CloseIcon size={16} />
           </button>
         </div>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1 rounded-full border border-cream-200">
-            <button
-              aria-label="Reducir cantidad"
-              onClick={() => onUpdateQuantity(item.quantity - 1)}
-              className="flex h-11 w-11 items-center justify-center rounded-full text-coffee-700 transition-colors hover:bg-cream-100 hover:text-coffee-900 active:scale-90"
-            >
-              −
-            </button>
-            <span className="min-w-[1ch] text-sm text-coffee-900">{item.quantity}</span>
-            <button
-              aria-label="Aumentar cantidad"
-              onClick={() => onUpdateQuantity(item.quantity + 1)}
-              className="flex h-11 w-11 items-center justify-center rounded-full text-coffee-700 transition-colors hover:bg-cream-100 hover:text-coffee-900 active:scale-90"
-            >
-              +
+        {soldOut ? (
+          <div className="flex items-center justify-between gap-2">
+            <span className="rounded-md bg-coffee-900 px-2 py-1 text-[11px] font-medium uppercase tracking-wide text-cream-50">
+              Agotado
+            </span>
+            <button onClick={onRemove} className="text-xs font-medium text-coffee-700 underline underline-offset-2">
+              Quitar del carrito
             </button>
           </div>
-          <span className="text-sm font-semibold text-coffee-900">
-            {formatCOP(item.priceCents * item.quantity)}
-          </span>
-        </div>
+        ) : (
+          <div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1 rounded-full border border-cream-200">
+                <button
+                  aria-label="Reducir cantidad"
+                  onClick={() => onUpdateQuantity(item.quantity - 1)}
+                  className="flex h-11 w-11 items-center justify-center rounded-full text-coffee-700 transition-colors hover:bg-cream-100 hover:text-coffee-900 active:scale-90"
+                >
+                  −
+                </button>
+                <span className="min-w-[1ch] text-sm text-coffee-900">{item.quantity}</span>
+                <button
+                  aria-label="Aumentar cantidad"
+                  onClick={() => onUpdateQuantity(item.quantity + 1)}
+                  disabled={atMax}
+                  className="flex h-11 w-11 items-center justify-center rounded-full text-coffee-700 transition-colors hover:bg-cream-100 hover:text-coffee-900 active:scale-90 disabled:cursor-not-allowed disabled:text-coffee-400/50 disabled:hover:bg-transparent disabled:active:scale-100"
+                >
+                  +
+                </button>
+              </div>
+              <span className="text-sm font-semibold text-coffee-900">
+                {formatCOP(item.priceCents * item.quantity)}
+              </span>
+            </div>
+            {atMax && (
+              <p className="mt-1.5 text-[11px] text-coffee-500">
+                {item.maxQuantity === 1 ? 'Es la última unidad disponible.' : `Máximo disponible: ${item.maxQuantity} unidades.`}
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </motion.li>
   );

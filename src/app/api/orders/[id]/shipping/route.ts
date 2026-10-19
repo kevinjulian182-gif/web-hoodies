@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { getSession, requireRole } from '@/lib/auth';
-import { buildStockDecrementOps, type ProductWithVariants } from '@/lib/stock';
-import { isWhatsAppOrder } from '@/lib/orderSource';
+import { orderHoldsStock, takeOrderStock } from '@/lib/stock';
+import { sendShippedEmail } from '@/lib/email';
 import { revalidateProductListings, revalidateProduct } from '@/lib/revalidate';
 
 const schema = z.object({
-  trackingNumber: z.string().min(1),
+  trackingNumber: z.string().trim().min(1),
   carrier: z.string().min(1).default('Inter Rapidísimo'),
 });
 
@@ -23,23 +23,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   const { id } = await params;
+  const existing = await prisma.order.findUnique({ where: { id } });
+  if (!existing) return NextResponse.json({ error: 'Pedido no encontrado' }, { status: 404 });
 
-  // A WhatsApp order was never charged against stock (it was only an intent
-  // until confirmed in the chat): shipping it is when its units leave.
-  const existing = await prisma.order.findUnique({
-    where: { id },
-    include: { items: { include: { product: { include: { variants: true } } } } },
-  });
-  if (existing && isWhatsAppOrder(existing.wompiReference) && existing.status === 'PENDING') {
-    const productMap = new Map<string, ProductWithVariants>(existing.items.map((item) => [item.productId, item.product]));
-    await prisma.$transaction(
-      buildStockDecrementOps(
-        productMap,
-        existing.items.map((item) => ({ productId: item.productId, size: item.size, color: item.color ?? undefined, quantity: item.quantity }))
-      )
-    );
+  // Orders placed before stock was taken at order time (old WhatsApp
+  // orders) take their units when they ship.
+  if (!orderHoldsStock(existing)) {
+    const slugs = await takeOrderStock(id);
     revalidateProductListings();
-    for (const product of productMap.values()) revalidateProduct(product.slug);
+    for (const slug of new Set(slugs)) revalidateProduct(slug);
   }
 
   const order = await prisma.order.update({
@@ -50,7 +42,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       status: 'SHIPPED',
       shippedAt: new Date(),
     },
+    include: { items: { include: { product: { select: { name: true } } } } },
   });
 
-  return NextResponse.json(order);
+  // The customer gets their tracking number by email (only when it's new or
+  // changed, so re-saving the same guide doesn't send it twice).
+  const email =
+    existing.trackingNumber === order.trackingNumber && existing.status === 'SHIPPED'
+      ? null
+      : order.customerEmail
+        ? await sendShippedEmail({ ...order, trackingNumber: order.trackingNumber! })
+        : { ok: false as const, error: 'El pedido no tiene correo del cliente.' };
+
+  return NextResponse.json({ ...order, email });
 }

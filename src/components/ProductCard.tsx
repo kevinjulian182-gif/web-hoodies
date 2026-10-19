@@ -33,6 +33,8 @@ export default function ProductCard({
   const [size, setSize] = useState(product.sizes[0] ?? '');
   const [color, setColor] = useState(fixedColor ?? product.colors[0] ?? '');
   const [added, setAdded] = useState(false);
+  // Briefly shown when this size/color has no more units to add.
+  const [noMore, setNoMore] = useState(false);
 
   // Swap the card's photos to the selected color's set, when the admin
   // added one — otherwise keep showing the product's default images.
@@ -48,11 +50,11 @@ export default function ProductCard({
   const soldOut = product.stock <= 0;
   const promoWithoutMarkdown = product.isPromo && !onSale;
 
-  const handleAdd = (e: React.MouseEvent) => {
+  const handleAdd = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (soldOut) return;
-    addItem({
+    if (soldOut || noMore) return;
+    const result = await addItem({
       productId: product.id,
       name: product.name,
       slug: product.slug,
@@ -62,6 +64,11 @@ export default function ProductCard({
       priceCents: product.priceCents,
       quantity: 1,
     });
+    if (!result.ok) {
+      setNoMore(true);
+      setTimeout(() => setNoMore(false), 2200);
+      return;
+    }
     setAdded(true);
     setTimeout(() => setAdded(false), 1200);
   };
@@ -80,7 +87,7 @@ export default function ProductCard({
               fill
               className={`object-contain transition-[transform,opacity] duration-700 ease-out group-hover:scale-105 md:p-3 ${
                 displayImages[1] ? 'group-hover:opacity-0' : ''
-              } ${soldOut ? 'opacity-50 grayscale' : ''}`}
+              } ${soldOut ? 'opacity-60 grayscale-[70%]' : ''}`}
               sizes="(max-width: 768px) 100vw, 50vw"
             />
           )}
@@ -100,9 +107,7 @@ export default function ProductCard({
             className="absolute right-2.5 top-2.5 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-cream-50/90 text-coffee-900 backdrop-blur-sm transition-transform hover:scale-110"
           />
           <div className="absolute left-2.5 top-2.5 z-10 flex flex-col items-start gap-1.5">
-            {soldOut ? (
-              <Badge className="bg-coffee-900 text-cream-50">Agotado</Badge>
-            ) : (
+            {!soldOut && (
               <>
                 {onSale && (
                   <Badge className="bg-red-800 text-cream-50">
@@ -114,6 +119,17 @@ export default function ProductCard({
             )}
           </div>
 
+          {/* Sold out: a frosted label resting on the photo — clear at a glance,
+              but the garment stays visible and the card keeps its layout. */}
+          {soldOut && (
+            <div className="pointer-events-none absolute inset-x-0 bottom-3 z-10 flex justify-center px-3">
+              <span className="inline-flex items-center gap-2 rounded-full border border-coffee-900/10 bg-cream-50/85 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-coffee-900 shadow-[0_8px_24px_-12px_rgba(41,28,19,0.45)] backdrop-blur-md">
+                <span className="h-1.5 w-1.5 rounded-full bg-red-700" aria-hidden="true" />
+                Agotado
+              </span>
+            </div>
+          )}
+
           {!soldOut && (
             <button
               onClick={handleAdd}
@@ -121,7 +137,7 @@ export default function ProductCard({
               aria-hidden="true"
               className="absolute inset-x-3 bottom-3 z-10 hidden translate-y-[calc(100%+0.75rem)] items-center justify-center gap-2 rounded-full bg-coffee-900/95 py-3 text-[11px] font-medium uppercase tracking-[0.15em] text-cream-50 opacity-0 shadow-lg backdrop-blur-sm transition-[transform,opacity,background-color] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-coffee-800 active:scale-[0.97] group-hover:translate-y-0 group-hover:opacity-100 md:flex"
             >
-              {added ? 'Agregado ✓' : (
+              {noMore ? 'Sin más unidades' : added ? 'Agregado ✓' : (
                 <>
                   <PlusIcon />
                   Agregar al carrito
@@ -137,7 +153,11 @@ export default function ProductCard({
             {product.name}
           </h3>
           <div className="mt-1.5 flex items-center gap-2">
-            <p className={`text-sm font-semibold md:text-[15px] ${onSale || product.isPromo ? 'text-red-700' : 'text-coffee-800'}`}>
+            <p
+              className={`text-sm font-semibold md:text-[15px] ${
+                soldOut ? 'text-coffee-400' : onSale || product.isPromo ? 'text-red-700' : 'text-coffee-800'
+              }`}
+            >
               {formatCOP(product.priceCents)}
             </p>
             {onSale && (
@@ -202,13 +222,19 @@ export default function ProductCard({
               )}
             </div>
           )}
-          <button
-            onClick={handleAdd}
-            disabled={soldOut}
-            className="mt-auto w-full disabled:opacity-40 md:hidden whitespace-nowrap rounded-full bg-coffee-900 px-2 py-3 text-[10px] font-medium uppercase tracking-[0.08em] text-cream-50 transition-[background-color,transform] hover:bg-coffee-800 active:scale-[0.97] sm:py-2.5 sm:text-[11px] sm:tracking-[0.15em]"
-          >
-            {soldOut ? 'Agotado' : added ? 'Agregado ✓' : 'Agregar al carrito'}
-          </button>
+          {soldOut ? (
+            // Still a way forward: the product page offers to ask on WhatsApp.
+            <span className="mt-auto block w-full whitespace-nowrap rounded-full border border-cream-300 px-2 py-3 text-center text-[10px] font-medium uppercase tracking-[0.08em] text-coffee-600 md:hidden sm:py-2.5 sm:text-[11px] sm:tracking-[0.15em]">
+              Agotado · Ver detalles
+            </span>
+          ) : (
+            <button
+              onClick={handleAdd}
+              className="mt-auto w-full md:hidden whitespace-nowrap rounded-full bg-coffee-900 px-2 py-3 text-[10px] font-medium uppercase tracking-[0.08em] text-cream-50 transition-[background-color,transform] hover:bg-coffee-800 active:scale-[0.97] sm:py-2.5 sm:text-[11px] sm:tracking-[0.15em]"
+            >
+              {noMore ? 'Sin más unidades' : added ? 'Agregado ✓' : 'Agregar al carrito'}
+            </button>
+          )}
         </div>
       </Link>
     </div>

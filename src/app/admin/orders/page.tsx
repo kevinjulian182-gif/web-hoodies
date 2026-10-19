@@ -55,15 +55,27 @@ export default function OrdersPage() {
     load();
   }, []);
 
+  const [shipNotice, setShipNotice] = useState<Record<string, { ok: boolean; text: string }>>({});
+
   const handleShip = async (orderId: string) => {
-    const trackingNumber = tracking[orderId];
+    const trackingNumber = tracking[orderId]?.trim();
     if (!trackingNumber) return;
     const res = await fetch(`/api/orders/${orderId}/shipping`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ trackingNumber, carrier: 'Inter Rapidísimo' }),
     });
-    if (res.ok) load();
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.email) {
+      setShipNotice((n) => ({
+        ...n,
+        [orderId]: data.email.ok
+          ? { ok: true, text: `✓ Correo con la guía enviado a ${data.customerEmail}` }
+          : { ok: false, text: `No se envió el correo con la guía: ${data.email.error}` },
+      }));
+    }
+    load();
   };
 
   const handleWhatsAppSent = (order: Order) => {
@@ -157,6 +169,11 @@ export default function OrdersPage() {
               )}
               {order.status === 'SHIPPED' && order.trackingNumber && (
                 <p className="text-xs text-coffee-600">Guía: {order.trackingNumber}</p>
+              )}
+              {shipNotice[order.id] && (
+                <p className={`text-xs ${shipNotice[order.id].ok ? 'text-green-700' : 'text-red-700'}`}>
+                  {shipNotice[order.id].text}
+                </p>
               )}
             </div>
 

@@ -3,7 +3,13 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { buildWompiSignature, generateOrderReference, getWompiPublicKey } from '@/lib/wompi';
 import { notifyOrderConfirmed } from '@/lib/orderNotify';
-import { checkStock, buildStockDecrementOps } from '@/lib/stock';
+import {
+  checkStock,
+  buildStockDecrementOps,
+  orderHoldsStock,
+  releaseOrderStock,
+  releaseStaleReservations,
+} from '@/lib/stock';
 import { revalidateProductListings, revalidateProduct } from '@/lib/revalidate';
 import { getSiteContent, getFreeShippingThresholdCents, getShippingRates } from '@/lib/content';
 import { computeDiscountCents, computeShippingCents } from '@/lib/pricing';
@@ -19,6 +25,9 @@ const schema = z.object({
   shippingPhone: z.string().min(7),
   deliveryNotes: z.string().optional(),
   couponCode: z.string().optional(),
+  // Wompi order this shopper started and then left (changed method/coupon):
+  // its reserved units are released before this one is checked.
+  previousReference: z.string().optional(),
   paymentMethod: z.enum(['WOMPI', 'COD']).default('WOMPI'),
   items: z
     .array(
@@ -37,7 +46,29 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
-  const { items, couponCode, paymentMethod, ...customer } = parsed.data;
+  const { items, couponCode, paymentMethod, previousReference, ...customer } = parsed.data;
+
+  const released = await releaseStaleReservations();
+  if (previousReference) {
+    const previous = await prisma.order.findUnique({ where: { wompiReference: previousReference } });
+    if (
+      previous &&
+      previous.paymentMethod === 'WOMPI' &&
+      previous.status === 'PENDING' &&
+      previous.customerEmail === customer.customerEmail &&
+      orderHoldsStock(previous)
+    ) {
+      const { count } = await prisma.order.updateMany({
+        where: { id: previous.id, status: 'PENDING' },
+        data: { status: 'CANCELLED' },
+      });
+      if (count === 1) released.push(...(await releaseOrderStock(previous.id)));
+    }
+  }
+  if (released.length) {
+    revalidateProductListings();
+    for (const slug of new Set(released)) revalidateProduct(slug);
+  }
 
   const products = await prisma.product.findMany({
     where: { id: { in: items.map((i) => i.productId) }, active: true },
@@ -74,6 +105,25 @@ export async function POST(req: NextRequest) {
   const totalCents = subtotalCents - discountCents + shippingCents;
   const reference = generateOrderReference();
 
+  // Sign before creating anything: a Wompi misconfiguration must not leave
+  // an order behind holding stock the shopper can't pay for.
+  let wompi: { signature: string; publicKey: string } | null = null;
+  if (paymentMethod === 'WOMPI') {
+    try {
+      const [signature, publicKey] = await Promise.all([
+        buildWompiSignature(reference, totalCents, 'COP'),
+        getWompiPublicKey(),
+      ]);
+      wompi = { signature, publicKey };
+    } catch (err) {
+      console.error('Wompi no está configurado:', err);
+      return NextResponse.json(
+        { error: 'El pago en línea no está disponible en este momento. Puedes elegir pago contra entrega.' },
+        { status: 503 }
+      );
+    }
+  }
+
   const order = await prisma.order.create({
     data: {
       ...customer,
@@ -96,13 +146,16 @@ export async function POST(req: NextRequest) {
     include: { items: { include: { product: true } } },
   });
 
+  // Every order takes its units the moment it's placed, so two shoppers
+  // can't buy the last one. A Wompi order that's declined or never paid
+  // gives them back (webhook / releaseStaleReservations).
+  await prisma.$transaction(buildStockDecrementOps(productMap, items));
+  revalidateProductListings();
+  for (const product of productMap.values()) revalidateProduct(product.slug);
+
   // Pago contra entrega: no hay pasarela que confirme el pago, así que el
-  // pedido queda comprometido de una vez (se descuenta stock y se avisa al
-  // cliente) apenas se crea, en vez de esperar un webhook que nunca llega.
+  // pedido queda confirmado (y se avisa al cliente) apenas se crea.
   if (paymentMethod === 'COD') {
-    await prisma.$transaction(buildStockDecrementOps(productMap, items));
-    revalidateProductListings();
-    for (const product of productMap.values()) revalidateProduct(product.slug);
     // Email + WhatsApp to the customer and the store's heads-up run after the
     // response, so the shopper isn't kept waiting; none can fail the order.
     after(() => notifyOrderConfirmed(order));
@@ -115,18 +168,14 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  const [signature, publicKey] = await Promise.all([
-    buildWompiSignature(reference, totalCents, 'COP'),
-    getWompiPublicKey(),
-  ]);
 
   return NextResponse.json({
     orderId: order.id,
     reference,
     amountInCents: totalCents,
     currency: 'COP',
-    signature,
-    publicKey,
+    signature: wompi!.signature,
+    publicKey: wompi!.publicKey,
     paymentMethod,
   });
 }

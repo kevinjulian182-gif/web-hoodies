@@ -27,7 +27,7 @@ export default function AddToCartButton({
   whatsappNumber?: string;
   fallbackSizeChart?: SizeChart | null;
 }) {
-  const { addItem } = useCart();
+  const { addItem, items } = useCart();
   const [size, setSize] = useState(product.sizes[0] ?? '');
   // Shared with ProductGallery (both live under the page's
   // ProductColorProvider) so picking a color here swaps the photos too.
@@ -48,7 +48,18 @@ export default function AddToCartButton({
   const selectedVariant = product.variants.find((v) => variantKey(v.size, v.color) === variantKey(size, color || null));
   const availableStock = product.variants.length > 0 ? selectedVariant?.stock ?? 0 : product.stock;
   const outOfStock = availableStock <= 0;
+  const productSoldOut =
+    product.variants.length > 0 ? product.variants.every((v) => v.stock <= 0) : product.stock <= 0;
   const lowStock = !outOfStock && availableStock <= LOW_STOCK_THRESHOLD;
+  // Units of this exact size+color already in the cart; the cart's own
+  // stock reading (refreshed from the server) is fresher than the page's.
+  const cartLine = items.find(
+    (i) => i.productId === product.id && i.size === size && (i.color ?? '') === (color || '')
+  );
+  const inCart = cartLine?.quantity ?? 0;
+  const stockNow = cartLine?.maxQuantity ?? availableStock;
+  const allInCart = !outOfStock && inCart > 0 && inCart >= stockNow;
+  const [pending, setPending] = useState(false);
 
   // Show the full size scale, not just what this product carries, so
   // shoppers see "L is a thing, just not in this one" instead of wondering
@@ -57,10 +68,11 @@ export default function AddToCartButton({
   // the canonical scale (e.g. "Única") still gets appended, enabled.
   const sizesToShow = [...COMMON_SIZES, ...product.sizes.filter((s) => !COMMON_SIZES.includes(s))];
 
-  const handleAdd = () => {
-    if (outOfStock) return;
+  const handleAdd = async () => {
+    if (outOfStock || allInCart || pending) return;
     const colorImage = colorImages[color]?.[0];
-    addItem({
+    setPending(true);
+    const result = await addItem({
       productId: product.id,
       name: product.name,
       slug: product.slug,
@@ -69,13 +81,28 @@ export default function AddToCartButton({
       color: color || undefined,
       priceCents: product.priceCents,
       quantity: 1,
+      maxQuantity: availableStock,
     });
+    setPending(false);
+    if (!result.ok) return;
     setAdded(true);
     setTimeout(() => setAdded(false), 1600);
   };
 
   return (
     <div>
+      {productSoldOut && (
+        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-cream-300 bg-cream-100/70 p-4">
+          <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-red-700" aria-hidden="true" />
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.14em] text-coffee-900">Agotado por ahora</p>
+            <p className="mt-1 text-sm text-coffee-600">
+              Se vendieron todas las unidades.{whatsappNumber ? ' Escríbenos y te avisamos si vuelve.' : ''}
+            </p>
+          </div>
+        </div>
+      )}
+
       {product.colors.length > 0 && (
         <div className="mb-5">
           <p className="mb-2 text-xs uppercase tracking-wide text-coffee-500">
@@ -171,13 +198,21 @@ export default function AddToCartButton({
         </p>
       )}
 
+      {allInCart && (
+        <p className="mb-3 text-sm text-coffee-700">
+          {stockNow === 1
+            ? 'Ya tienes en tu carrito la última unidad de esta talla.'
+            : `Ya tienes en tu carrito las ${stockNow} unidades disponibles de esta talla.`}
+        </p>
+      )}
+
       <motion.button
         onClick={handleAdd}
-        disabled={outOfStock}
-        whileTap={outOfStock ? undefined : { scale: 0.96 }}
+        disabled={outOfStock || allInCart || pending}
+        whileTap={outOfStock || allInCart ? undefined : { scale: 0.96 }}
         className={`relative w-full overflow-hidden rounded-full py-5 text-base font-semibold tracking-[0.04em] shadow-[0_10px_30px_rgba(54,37,25,0.25)] transition-colors transition-opacity ${
-          outOfStock
-            ? 'cursor-not-allowed bg-coffee-300 text-coffee-50 shadow-none'
+          outOfStock || allInCart
+            ? 'cursor-not-allowed bg-coffee-400/60 text-cream-50 shadow-none'
             : 'bg-coffee-900 text-cream-50 hover:bg-coffee-800'
         }`}
       >
@@ -185,6 +220,10 @@ export default function AddToCartButton({
           {outOfStock ? (
             <motion.span key="oos" className="block">
               Agotado
+            </motion.span>
+          ) : allInCart ? (
+            <motion.span key="max" className="block">
+              Sin más unidades disponibles
             </motion.span>
           ) : added ? (
             <motion.span
@@ -223,7 +262,7 @@ export default function AddToCartButton({
             rel="noopener noreferrer"
             className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-coffee-300 py-3.5 text-sm font-medium text-coffee-800 transition-colors hover:border-coffee-600 hover:bg-cream-100"
           >
-            Agotado en esta talla · Pregúntanos por WhatsApp
+            {productSoldOut ? 'Avísame por WhatsApp cuando vuelva' : 'Agotado en esta talla · Pregúntanos por WhatsApp'}
           </a>
         ) : (
           <>
