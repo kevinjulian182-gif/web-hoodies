@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import ProductCard from '@/components/ProductCard';
 import { expandByColor } from '@/lib/colorVariants';
-import { isOnSale } from '@/lib/discount';
 import { normalizeSize } from '@/lib/sizeChart';
 import { COMMON_SIZES } from '@/lib/variants';
 import type { Product } from '@prisma/client';
@@ -138,7 +137,6 @@ export default function ProductGrid({
     const key = normalizeSize(size);
     setActiveSizes((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
   };
-  const [promoOnly, setPromoOnly] = useState(false);
   const [view, setView] = useState<GridView>(DEFAULT_VIEW);
 
   useEffect(() => {
@@ -160,17 +158,9 @@ export default function ProductGrid({
     }
   };
 
-  // "Promo" covers both ways the admin marks one: the Promo flag (what
-  // /promos lists) and an actual markdown (a "precio antes" above the price).
-  const isPromo = (p: PublicProduct) => p.isPromo || isOnSale(p.priceCents, p.compareAtPriceCents);
-  const promoProducts = products.filter(isPromo);
-  // Counted in cards (one per color), the same unit as the results count.
-  const promoCount = expandByColor(promoProducts).length;
-  const showPromoToggle = promoProducts.length > 0 && promoProducts.length < products.length;
 
   const matchesBrand = (p: PublicProduct, brand: string | null) => !brand || norm(p.brand) === norm(brand);
   const matchesCategory = (p: PublicProduct, category: string | null) => !category || norm(p.category) === norm(category);
-  const matchesPromo = (p: PublicProduct) => !promoOnly || isPromo(p);
   const matchesSizes = (p: PublicProduct, keys: string[]) =>
     keys.length === 0 || p.sizes.some((sz) => keys.includes(normalizeSize(sz)));
 
@@ -180,26 +170,25 @@ export default function ProductGrid({
   // Never in linkMode: there every option opens the full catalog.
   const brandHasResults = (brand: string) =>
     linkMode ||
-    products.some((p) => matchesBrand(p, brand) && matchesCategory(p, activeCategory) && matchesSizes(p, activeSizes) && matchesPromo(p));
+    products.some((p) => matchesBrand(p, brand) && matchesCategory(p, activeCategory) && matchesSizes(p, activeSizes));
   const categoryHasResults = (category: string) =>
     linkMode ||
-    products.some((p) => matchesBrand(p, activeBrand) && matchesCategory(p, category) && matchesSizes(p, activeSizes) && matchesPromo(p));
+    products.some((p) => matchesBrand(p, activeBrand) && matchesCategory(p, category) && matchesSizes(p, activeSizes));
   const sizeHasResults = (size: string) =>
     linkMode ||
     products.some(
-      (p) => matchesBrand(p, activeBrand) && matchesCategory(p, activeCategory) && matchesSizes(p, [normalizeSize(size)]) && matchesPromo(p)
+      (p) => matchesBrand(p, activeBrand) && matchesCategory(p, activeCategory) && matchesSizes(p, [normalizeSize(size)])
     );
 
   const filtered = products.filter(
-    (p) => matchesBrand(p, activeBrand) && matchesCategory(p, activeCategory) && matchesSizes(p, activeSizes) && matchesPromo(p)
+    (p) => matchesBrand(p, activeBrand) && matchesCategory(p, activeCategory) && matchesSizes(p, activeSizes)
   );
   const cards = expandByColor(filtered);
-  const hasActiveFilter = activeBrand !== null || activeCategory !== null || activeSizes.length > 0 || promoOnly;
+  const hasActiveFilter = activeBrand !== null || activeCategory !== null || activeSizes.length > 0;
   const clearFilters = () => {
     setActiveBrand(null);
     setActiveCategory(null);
     setActiveSizes([]);
-    setPromoOnly(false);
   };
 
   if (products.length === 0) {
@@ -209,13 +198,13 @@ export default function ProductGrid({
   const showBrandRow = brands.length > 1;
   const showCategoryRow = categories.length > 1;
   const showSizeRow = sizes.length > 1;
-  const showFilters = showBrandRow || showCategoryRow || showSizeRow || showPromoToggle;
+  const showFilters = showBrandRow || showCategoryRow || showSizeRow;
 
   return (
     <div className="mx-auto max-w-screen-2xl px-6 pb-16 pt-10 md:px-10 md:pb-20 md:pt-12">
       {showFilters && (
-        <div className="mb-8 rounded-3xl border border-cream-200 bg-white/50 md:mb-12">
-          {/* One row per filter: what garment → brand → size → deals. Label above the
+        <div className="mb-6 rounded-2xl border border-cream-200 bg-white/50 md:mb-10">
+          {/* One compact row per filter: what garment → brand → size. Label above the
               options on phones, in a fixed left column from md up. */}
           <div className="divide-y divide-cream-200">
             {showCategoryRow && (
@@ -289,38 +278,13 @@ export default function ProductGrid({
             )}
 
 
-            {showPromoToggle && (
-              <FilterRow label="Ofertas" activeKey={promoOnly ? 'on' : ''}>
-                <Tap
-                  href={linkMode ? '/promos' : undefined}
-                  onClick={() => setPromoOnly((on) => !on)}
-                  pressed={linkMode ? undefined : promoOnly}
-                  className={`flex h-10 shrink-0 items-center gap-2 rounded-full border pl-1.5 pr-4 text-[11px] font-medium uppercase tracking-[0.1em] transition-[background-color,border-color,color,transform] duration-200 active:scale-[0.96] ${
-                    promoOnly
-                      ? 'border-red-700 bg-red-700 text-cream-50'
-                      : 'border-red-700/30 bg-white text-red-700 hover:border-red-700'
-                  }`}
-                >
-                  <span
-                    className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-semibold tracking-normal transition-colors ${
-                      promoOnly ? 'bg-cream-50 text-red-700' : 'bg-red-700 text-cream-50'
-                    }`}
-                    aria-hidden="true"
-                  >
-                    %
-                  </span>
-                  Solo promociones
-                  {!linkMode && <span className={promoOnly ? 'text-cream-50/80' : 'text-red-700/60'}>{promoCount}</span>}
-                </Tap>
-              </FilterRow>
-            )}
           </div>
 
           {/* Status bar: what's applied on the left, result count and grid
               density on the right. */}
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-b-3xl border-t border-cream-200 bg-cream-100/50 px-4 py-3 text-xs text-coffee-500 md:px-6">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-b-2xl border-t border-cream-200 bg-cream-100/50 px-4 py-2 text-xs text-coffee-500 md:px-5">
             {hasActiveFilter ? (
-              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+              <div className="scrollbar-none order-last -mx-4 flex w-[calc(100%+2rem)] min-w-0 items-center gap-2 overflow-x-auto px-4 [&>*]:shrink-0 md:order-none md:mx-0 md:w-auto md:flex-1 md:flex-wrap md:overflow-visible md:px-0">
                 {activeCategory && <ActivePill label={activeCategory} onRemove={() => setActiveCategory(null)} />}
                 {sizes
                   .filter((sz) => activeSizes.includes(normalizeSize(sz)))
@@ -328,10 +292,9 @@ export default function ProductGrid({
                     <ActivePill key={sz} label={`Talla ${sz}`} onRemove={() => toggleSize(sz)} />
                   ))}
                 {activeBrand && <ActivePill label={activeBrand} onRemove={() => setActiveBrand(null)} />}
-                {promoOnly && <ActivePill label="Promociones" onRemove={() => setPromoOnly(false)} />}
                 <button
                   onClick={clearFilters}
-                  className="rounded-full px-2 py-1.5 font-medium text-coffee-800 underline decoration-coffee-300 underline-offset-4 transition-colors hover:text-coffee-900 hover:decoration-coffee-900"
+                  className="whitespace-nowrap rounded-full px-1.5 py-1 font-medium text-coffee-800 underline decoration-coffee-300 underline-offset-4 transition-colors hover:text-coffee-900 hover:decoration-coffee-900"
                 >
                   Limpiar todo
                 </button>
@@ -451,16 +414,16 @@ function FilterRow({
   }, [activeKey]);
 
   return (
-    <div className={`px-4 py-4 md:grid md:grid-cols-[9rem_1fr] md:items-center md:gap-6 md:px-6 md:py-5 ${className}`}>
-      <div className="mb-3 flex items-baseline gap-2 md:mb-0 md:flex-col md:gap-1">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-coffee-600">{label}</p>
-        {hint && <p className="text-[11px] text-coffee-400">{hint}</p>}
+    <div className={`px-4 py-2.5 md:grid md:grid-cols-[7.5rem_1fr] md:items-center md:gap-4 md:px-5 md:py-3 ${className}`}>
+      <div className="mb-1.5 flex items-baseline gap-2 md:mb-0 md:flex-col md:gap-0.5">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-coffee-600">{label}</p>
+        {hint && <p className="hidden text-[11px] text-coffee-400 md:block">{hint}</p>}
       </div>
       <div
         ref={scrollerRef}
         role="group"
         aria-label={label}
-        className="scrollbar-none edge-fade relative -mx-4 flex snap-x scroll-px-4 gap-2.5 overflow-x-auto overscroll-x-contain px-4 py-1 md:mx-0 md:flex-wrap md:gap-3 md:overflow-visible md:px-0"
+        className="scrollbar-none edge-fade relative -mx-4 flex snap-x scroll-px-4 gap-2 overflow-x-auto overscroll-x-contain px-4 py-0.5 md:mx-0 md:flex-wrap md:overflow-visible md:px-0"
       >
         {children}
       </div>
@@ -490,26 +453,16 @@ function CategoryTile({
       pressed={href ? undefined : active}
       disabled={disabled}
       title={disabled ? `${label} — sin productos con estos filtros` : undefined}
-      className={`group flex w-[76px] shrink-0 snap-start flex-col items-center gap-2 transition-opacity active:scale-[0.96] disabled:pointer-events-none md:w-[84px] ${
-        disabled ? 'opacity-35' : ''
+      className={`flex h-9 shrink-0 snap-start items-center gap-1.5 whitespace-nowrap rounded-full border pl-2 pr-3.5 text-[13px] transition-[background-color,border-color,color,opacity,transform] duration-200 active:scale-[0.96] disabled:pointer-events-none [&_svg]:h-[18px] [&_svg]:w-[18px] ${
+        active
+          ? 'border-coffee-900 bg-coffee-900 font-medium text-cream-50'
+          : disabled
+            ? 'border-cream-200 bg-white text-coffee-700 opacity-35'
+            : 'border-cream-200 bg-white text-coffee-800 hover:border-coffee-400'
       }`}
     >
-      <span
-        className={`flex h-14 w-14 items-center justify-center rounded-2xl border transition-[background-color,border-color,color] duration-200 ${
-          active
-            ? 'border-coffee-900 bg-coffee-900 text-cream-50'
-            : 'border-cream-200 bg-white text-coffee-700 group-hover:border-coffee-400 group-hover:text-coffee-900'
-        }`}
-      >
-        {icon}
-      </span>
-      <span
-        className={`line-clamp-2 text-center text-[11px] leading-tight ${
-          active ? 'font-semibold text-coffee-900' : 'text-coffee-600 group-hover:text-coffee-900'
-        }`}
-      >
-        {label}
-      </span>
+      {icon}
+      {label}
     </Tap>
   );
 }
@@ -539,7 +492,7 @@ function BrandTile({
       disabled={disabled}
       title={disabled ? `${label} — sin productos con estos filtros` : label}
       ariaLabel={label}
-      className={`relative flex h-12 min-w-[96px] shrink-0 snap-start items-center justify-center rounded-xl border bg-white px-4 transition-[border-color,box-shadow,opacity,transform] duration-200 active:scale-[0.96] disabled:pointer-events-none ${
+      className={`relative flex h-9 min-w-[72px] shrink-0 snap-start items-center justify-center rounded-full border bg-white px-3.5 transition-[border-color,box-shadow,opacity,transform] duration-200 active:scale-[0.96] disabled:pointer-events-none ${
         active
           ? 'border-coffee-900 shadow-[0_0_0_1px_rgb(var(--color-coffee-900))]'
           : disabled
@@ -554,7 +507,7 @@ function BrandTile({
           alt={label}
           loading="lazy"
           decoding="async"
-          className={`h-6 max-w-[96px] object-contain transition-[filter,opacity] duration-200 ${
+          className={`h-5 max-w-[84px] object-contain transition-[filter,opacity] duration-200 ${
             dimmed || disabled ? 'opacity-60 grayscale' : ''
           }`}
         />
@@ -570,9 +523,9 @@ function BrandTile({
       {active && (
         <span
           aria-hidden="true"
-          className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-coffee-900 text-cream-50"
+          className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-coffee-900 text-cream-50"
         >
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5">
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5">
             <path d="m5 12.5 4.5 4.5L19 7.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </span>
@@ -602,7 +555,7 @@ function SizeChip({
       disabled={disabled}
       title={disabled ? `Talla ${label} — sin productos con estos filtros` : `Talla ${label}`}
       ariaLabel={`Talla ${label}`}
-      className={`flex h-11 min-w-[2.75rem] shrink-0 snap-start items-center justify-center rounded-full border px-3 text-sm font-medium tabular-nums transition-[background-color,border-color,color,opacity,transform] duration-200 active:scale-[0.94] disabled:pointer-events-none ${
+      className={`flex h-9 min-w-[2.25rem] shrink-0 snap-start items-center justify-center rounded-full border px-2.5 text-[13px] font-medium tabular-nums transition-[background-color,border-color,color,opacity,transform] duration-200 active:scale-[0.94] disabled:pointer-events-none ${
         active
           ? 'border-coffee-900 bg-coffee-900 text-cream-50'
           : disabled
@@ -621,7 +574,7 @@ function ActivePill({ label, onRemove }: { label: string; onRemove: () => void }
       type="button"
       onClick={onRemove}
       aria-label={`Quitar filtro ${label}`}
-      className="flex h-8 items-center gap-1.5 rounded-full bg-coffee-900 pl-3 pr-2 font-medium text-cream-50 transition-transform active:scale-[0.96]"
+      className="flex h-7 items-center gap-1 rounded-full bg-coffee-900 pl-2.5 pr-1.5 font-medium text-cream-50 transition-transform active:scale-[0.96]"
     >
       {label}
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
