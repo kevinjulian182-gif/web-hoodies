@@ -6,7 +6,7 @@ import { sendOrderConfirmationEmail } from '@/lib/email';
 import { notifyStoreNewOrder } from '@/lib/orderNotify';
 import { checkStock, buildStockDecrementOps } from '@/lib/stock';
 import { revalidateProductListings, revalidateProduct } from '@/lib/revalidate';
-import { getSiteContent, getFreeShippingThresholdCents, getShippingCostCents } from '@/lib/content';
+import { getSiteContent, getFreeShippingThresholdCents, getShippingRates } from '@/lib/content';
 import { computeDiscountCents, computeShippingCents } from '@/lib/pricing';
 
 const schema = z.object({
@@ -69,7 +69,8 @@ export async function POST(req: NextRequest) {
   const shippingCents = computeShippingCents(
     subtotalCents,
     getFreeShippingThresholdCents(content),
-    getShippingCostCents(content)
+    getShippingRates(content),
+    customer.shippingDepartment
   );
   const totalCents = subtotalCents - discountCents + shippingCents;
   const reference = generateOrderReference();

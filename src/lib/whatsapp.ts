@@ -34,9 +34,9 @@ export function getStoreWhatsAppNumber(content: Pick<SiteContent, 'site.whatsapp
 export function buildWhatsAppOrderMessage(
   items: { name: string; size: string; color?: string; quantity: number; priceCents: number }[],
   subtotalCents: number,
-  customer?: { name: string; city?: string; reference?: string; shippingCents?: number }
+  customer?: { name: string; city?: string; reference?: string; shipping?: { free: boolean; fromCents: number } }
 ): string {
-  const shipping = customer?.shippingCents;
+  const shipping = customer?.shipping;
   const lines = items.map(
     (i) =>
       `• ${i.quantity} x ${i.name} — Talla ${i.size}${i.color ? `, ${i.color}` : ''} (${formatCOP(i.priceCents * i.quantity)})`
@@ -47,12 +47,13 @@ export function buildWhatsAppOrderMessage(
     ...lines,
     '',
     `Subtotal: ${formatCOP(subtotalCents)}`,
-    ...(shipping === undefined
+    ...(!shipping
       ? []
-      : [
-          `Envío: ${shipping > 0 ? formatCOP(shipping) : 'Gratis'}`,
-          `Total: ${formatCOP(subtotalCents + shipping)}`,
-        ]),
+      : shipping.free
+        ? ['Envío: Gratis', `Total: ${formatCOP(subtotalCents)}`]
+        : shipping.fromCents > 0
+          ? [`Envío: según mi ciudad (desde ${formatCOP(shipping.fromCents)})`]
+          : []),
     '',
     ...(customer
       ? [

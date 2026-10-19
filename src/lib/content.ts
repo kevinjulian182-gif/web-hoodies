@@ -1,3 +1,4 @@
+import type { ShippingRates } from '@/lib/pricing';
 import { prisma } from '@/lib/prisma';
 
 export const CONTENT_DEFAULTS = {
@@ -113,7 +114,15 @@ export const CONTENT_DEFAULTS = {
   'catalog.show_colors_on_card': 'false',
   'catalog.show_sizes_on_card': 'false',
   'shipping.free_threshold': '250000',
+  // Interrapidísimo rates from Bogotá for a ~1 kg package, by destination
+  // zone. `shipping.cost` is the national rate (its key predates the zones).
+  'shipping.cost_local': '12000',
+  'shipping.cost_regional': '16000',
   'shipping.cost': '18000',
+  'shipping.cost_special': '25000',
+  'shipping.zone_local': 'Bogotá D.C.',
+  'shipping.zone_regional': 'Cundinamarca, Boyacá, Tolima, Meta',
+  'shipping.zone_special': 'Amazonas, Guainía, Guaviare, Vaupés, Vichada, San Andrés y Providencia, Putumayo, Chocó',
   'home.faq_title': 'Preguntas frecuentes',
   'pdp.faq_title': 'Preguntas frecuentes',
   'pdp.reviews_title': 'Lo que dicen nuestros clientes',
@@ -208,11 +217,27 @@ export function getFreeShippingThresholdCents(content: SiteContent): number {
   return Number.isFinite(pesos) && pesos > 0 ? Math.round(pesos * 100) : 0;
 }
 
-/** Flat shipping fee charged while the cart is under the free-shipping
- * threshold; 0 (or blank) means shipping is always free. */
-export function getShippingCostCents(content: SiteContent): number {
-  const pesos = Number(content['shipping.cost']);
+const pesosToCents = (value: string) => {
+  const pesos = Number(value);
   return Number.isFinite(pesos) && pesos > 0 ? Math.round(pesos * 100) : 0;
+};
+const departmentList = (value: string) =>
+  value
+    .split(/[,\n]/)
+    .map((d) => d.trim())
+    .filter(Boolean);
+
+/** Carrier rates by destination zone (Admin › Contenido › Envíos). */
+export function getShippingRates(content: SiteContent): ShippingRates {
+  return {
+    localCents: pesosToCents(content['shipping.cost_local']),
+    regionalCents: pesosToCents(content['shipping.cost_regional']),
+    nationalCents: pesosToCents(content['shipping.cost']),
+    specialCents: pesosToCents(content['shipping.cost_special']),
+    localDepartments: departmentList(content['shipping.zone_local']),
+    regionalDepartments: departmentList(content['shipping.zone_regional']),
+    specialDepartments: departmentList(content['shipping.zone_special']),
+  };
 }
 
 export type ContentKey = keyof typeof CONTENT_DEFAULTS;
@@ -302,14 +327,20 @@ export const CONTENT_FIELDS: Array<{
   {
     key: 'shipping.free_threshold',
     label: 'Monto mínimo en el carrito para envío gratis (COP)',
-    section: 'Envío gratis',
+    section: 'Envíos y tarifas (Interrapidísimo)',
     type: 'number',
   },
+  { key: 'shipping.cost_local', label: 'Tarifa local (COP) — mismo destino de despacho', section: 'Envíos y tarifas (Interrapidísimo)', type: 'number' },
+  { key: 'shipping.zone_local', label: 'Departamentos con tarifa local (separados por coma)', section: 'Envíos y tarifas (Interrapidísimo)' },
+  { key: 'shipping.cost_regional', label: 'Tarifa regional (COP)', section: 'Envíos y tarifas (Interrapidísimo)', type: 'number' },
+  { key: 'shipping.zone_regional', label: 'Departamentos con tarifa regional (separados por coma)', section: 'Envíos y tarifas (Interrapidísimo)' },
+  { key: 'shipping.cost', label: 'Tarifa nacional (COP) — el resto del país', section: 'Envíos y tarifas (Interrapidísimo)', type: 'number' },
+  { key: 'shipping.cost_special', label: 'Tarifa zona especial / difícil acceso (COP)', section: 'Envíos y tarifas (Interrapidísimo)', type: 'number' },
   {
-    key: 'shipping.cost',
-    label: 'Costo del envío cuando no se alcanza el mínimo (COP)',
-    section: 'Envío gratis',
-    type: 'number',
+    key: 'shipping.zone_special',
+    label: 'Departamentos de zona especial (separados por coma)',
+    section: 'Envíos y tarifas (Interrapidísimo)',
+    multiline: true,
   },
   { key: 'footer.tagline', label: 'Descripción de la marca', section: 'Pie de página', multiline: true },
   { key: 'footer.copyright_year', label: 'Año del copyright', section: 'Pie de página' },

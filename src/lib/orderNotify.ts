@@ -55,7 +55,7 @@ export function buildStoreOrderAlert(order: OrderForAlert): string {
     order.discountCents > 0
       ? `Subtotal: ${formatCOP(order.subtotalCents)} · Descuento${order.couponCode ? ` (${order.couponCode})` : ''}: -${formatCOP(order.discountCents)}`
       : null,
-    `Envío: ${shippingCents > 0 ? formatCOP(shippingCents) : 'Gratis'}`,
+    viaWhatsApp ? null : `Envío: ${shippingCents > 0 ? formatCOP(shippingCents) : 'Gratis'}`,
     `*Total: ${formatCOP(order.totalCents)}*`,
     viaWhatsApp ? '💬 Pago y envío por acordar en el chat' : order.paymentMethod === 'COD' ? '💵 Pago contra entrega' : '✅ Pagado con Wompi',
     '',

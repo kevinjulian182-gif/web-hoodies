@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     revalidateProductListings();
     for (const product of productMap.values()) revalidateProduct(product.slug);
     // A Wompi order only counts once it's paid — that's when the store hears about it.
-    await Promise.allSettled([sendOrderConfirmationEmail({ ...order, status: 'PAID' }), notifyStoreNewOrder(order)]);
+    await Promise.allSettled([sendOrderConfirmationEmail(order), notifyStoreNewOrder(order)]);
   } else if (transaction.status === 'DECLINED' || transaction.status === 'ERROR') {
     await prisma.order.update({ where: { id: order.id }, data: { status: 'CANCELLED' } });
   }

@@ -8,7 +8,14 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useCart } from '@/lib/cart';
 import { useCatalogSettings } from '@/lib/catalogSettings';
 import { formatCOP } from '@/lib/format';
-import { computeDiscountCents, computeShippingCents, type CouponTerms } from '@/lib/pricing';
+import {
+  computeDiscountCents,
+  computeShippingCents,
+  minShippingCents,
+  shippingZone,
+  ZONE_LABELS,
+  type CouponTerms,
+} from '@/lib/pricing';
 import { COLOMBIA_DEPARTMENTS } from '@/lib/colombia';
 import WompiCheckoutButton from '@/components/WompiCheckoutButton';
 import Logo from '@/components/Logo';
@@ -108,7 +115,7 @@ function extractError(error: unknown): string {
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, subtotalCents } = useCart();
-  const { freeShippingThresholdCents, shippingCostCents } = useCatalogSettings();
+  const { freeShippingThresholdCents, shippingRates } = useCatalogSettings();
 
   const [step, setStep] = useState<Step>(1);
   const [direction, setDirection] = useState(1);
@@ -168,8 +175,14 @@ export default function CheckoutPage() {
   }, [step, checkoutData]);
 
   const discountCents = computeDiscountCents(coupon, subtotalCents);
-  const shippingCents = computeShippingCents(subtotalCents, freeShippingThresholdCents, shippingCostCents);
-  const totalCents = checkoutData?.amountInCents ?? subtotalCents - discountCents + shippingCents;
+  // Unknown (null) until the shopper picks a department: the carrier's
+  // rate depends on the destination zone.
+  const shippingCents = form.shippingDepartment
+    ? computeShippingCents(subtotalCents, freeShippingThresholdCents, shippingRates, form.shippingDepartment)
+    : null;
+  const shippingFromCents = minShippingCents(shippingRates);
+  const shippingLabel = form.shippingDepartment ? ZONE_LABELS[shippingZone(form.shippingDepartment, shippingRates)] : '';
+  const totalCents = checkoutData?.amountInCents ?? subtotalCents - discountCents + (shippingCents ?? 0);
   const itemCount = items.reduce((n, i) => n + i.quantity, 0);
   const firstName = form.customerName.trim().split(/\s+/)[0] || '';
 
@@ -312,6 +325,7 @@ export default function CheckoutPage() {
       discountCents={discountCents}
       couponCode={coupon?.code}
       shippingCents={shippingCents}
+      shippingFromCents={shippingFromCents}
       totalCents={totalCents}
       thresholdCents={freeShippingThresholdCents}
     />
@@ -521,7 +535,13 @@ export default function CheckoutPage() {
                     </button>
                   )}
 
-                  <ShippingNote shippingCents={shippingCents} thresholdCents={freeShippingThresholdCents} subtotalCents={subtotalCents} />
+                  <ShippingNote
+                    shippingCents={shippingCents}
+                    shippingFromCents={shippingFromCents}
+                    zoneLabel={shippingLabel}
+                    thresholdCents={freeShippingThresholdCents}
+                    subtotalCents={subtotalCents}
+                  />
 
                   <StepActions onBack={() => goTo(1)}>
                     <PrimaryButton type="submit">Continuar al pago</PrimaryButton>
@@ -557,7 +577,7 @@ export default function CheckoutPage() {
                         {form.shippingCity}, {form.shippingDepartment}
                       </p>
                       <p className={shippingCents === 0 ? 'font-medium text-green-700' : ''}>
-                        {shippingCents === 0 ? 'Envío gratis' : `Envío ${formatCOP(shippingCents)}`}
+                        {shippingCents === 0 ? 'Envío gratis' : `${shippingLabel} · ${formatCOP(shippingCents ?? 0)}`}
                       </p>
                     </ReviewRow>
                   </div>
@@ -1038,10 +1058,14 @@ function CouponBox({
 
 function ShippingNote({
   shippingCents,
+  shippingFromCents,
+  zoneLabel,
   thresholdCents,
   subtotalCents,
 }: {
-  shippingCents: number;
+  shippingCents: number | null;
+  shippingFromCents: number;
+  zoneLabel: string;
   thresholdCents: number;
   subtotalCents: number;
 }) {
@@ -1063,7 +1087,16 @@ function ShippingNote({
           </>
         ) : (
           <>
-            Envío a cualquier parte de Colombia por <strong className="font-semibold">{formatCOP(shippingCents)}</strong>.
+            {shippingCents === null ? (
+              <>
+                Elige el departamento y calculamos tu envío con Interrapidísimo (desde{' '}
+                <strong className="font-semibold">{formatCOP(shippingFromCents)}</strong>).
+              </>
+            ) : (
+              <>
+                {zoneLabel} con Interrapidísimo: <strong className="font-semibold">{formatCOP(shippingCents)}</strong>.
+              </>
+            )}
             {thresholdCents > 0 && (
               <> Gratis si tu pedido llega a {formatCOP(thresholdCents)} (te faltan {formatCOP(thresholdCents - subtotalCents)}).</>
             )}
@@ -1123,6 +1156,7 @@ function OrderSummary({
   discountCents,
   couponCode,
   shippingCents,
+  shippingFromCents,
   totalCents,
   thresholdCents,
 }: {
@@ -1130,7 +1164,8 @@ function OrderSummary({
   subtotalCents: number;
   discountCents: number;
   couponCode?: string;
-  shippingCents: number;
+  shippingCents: number | null;
+  shippingFromCents: number;
   totalCents: number;
   thresholdCents: number;
 }) {
@@ -1181,11 +1216,15 @@ function OrderSummary({
         <div className="flex justify-between text-coffee-600">
           <dt>Envío</dt>
           <dd className={shippingCents === 0 ? 'font-medium text-green-700' : 'tabular-nums'}>
-            {shippingCents === 0 ? 'Gratis' : formatCOP(shippingCents)}
+            {shippingCents === 0
+              ? 'Gratis'
+              : shippingCents === null
+                ? `Desde ${formatCOP(shippingFromCents)}`
+                : formatCOP(shippingCents)}
           </dd>
         </div>
         <div className="flex items-baseline justify-between border-t border-cream-200 pt-3">
-          <dt className="font-semibold text-coffee-900">Total</dt>
+          <dt className="font-semibold text-coffee-900">{shippingCents === null ? 'Total sin envío' : 'Total'}</dt>
           <dd className="text-xl font-semibold tabular-nums text-coffee-900">
             <span className="mr-1 text-xs font-normal text-coffee-500">COP</span>
             {formatCOP(totalCents)}

@@ -1,21 +1,30 @@
 'use client';
 
 import { createContext, useContext, type ReactNode } from 'react';
+import type { ShippingRates } from '@/lib/pricing';
 
 type CatalogSettings = {
   showColors: boolean;
   showSizes: boolean;
   /** 0 = no free-shipping threshold. */
   freeShippingThresholdCents: number;
-  /** Flat fee charged under the threshold; 0 = shipping always free. */
-  shippingCostCents: number;
+  /** Carrier rates by destination zone, charged under the threshold. */
+  shippingRates: ShippingRates;
 };
 
 const CatalogSettingsContext = createContext<CatalogSettings>({
   showColors: true,
   showSizes: true,
   freeShippingThresholdCents: 0,
-  shippingCostCents: 0,
+  shippingRates: {
+    localCents: 0,
+    regionalCents: 0,
+    nationalCents: 0,
+    specialCents: 0,
+    localDepartments: [],
+    regionalDepartments: [],
+    specialDepartments: [],
+  },
 });
 
 export function CatalogSettingsProvider({ children, ...settings }: CatalogSettings & { children: ReactNode }) {

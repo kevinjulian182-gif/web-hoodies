@@ -66,7 +66,7 @@ export default function WhatsAppOrderButton({
       // storage unavailable
     }
     let reference: string | undefined;
-    let shippingCents: number | undefined;
+    let shipping: { free: boolean; fromCents: number } | undefined;
     try {
       const res = await fetch('/api/orders/whatsapp', {
         method: 'POST',
@@ -78,7 +78,11 @@ export default function WhatsAppOrderButton({
           items: items.map(({ productId, size, color, quantity }) => ({ productId, size, color, quantity })),
         }),
       });
-      if (res.ok) ({ reference, shippingCents } = await res.json());
+      if (res.ok) {
+        const data = await res.json();
+        reference = data.reference;
+        shipping = { free: data.freeShipping, fromCents: data.shippingFromCents };
+      }
     } catch {
       // still open the chat
     }
@@ -86,7 +90,7 @@ export default function WhatsAppOrderButton({
       name: name.trim(),
       city: city.trim() || undefined,
       reference,
-      shippingCents,
+      shipping,
     });
     window.location.href = buildWhatsAppLink(whatsappNumber, message);
     setSending(false);

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import WhatsAppAlertsCard from '@/components/admin/WhatsAppAlertsCard';
+import OrderEmailCard from '@/components/admin/OrderEmailCard';
 
 const inputClass =
   'mt-1 w-full rounded-lg border border-cream-200 bg-white px-3 py-2.5 text-sm text-coffee-900 outline-none transition-colors focus:border-coffee-600';
@@ -164,6 +165,7 @@ export default function AccountPage() {
       </form>
       </div>
       <WhatsAppAlertsCard />
+      <OrderEmailCard />
     </div>
   );
 }
