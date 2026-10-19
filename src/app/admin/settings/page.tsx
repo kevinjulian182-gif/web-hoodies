@@ -9,6 +9,7 @@ const LABELS: Record<string, string> = {
   WOMPI_EVENTS_SECRET: 'Wompi — Secreto de eventos (webhook)',
   INTER_RAPIDISIMO_API_KEY: 'Inter Rapidísimo — API Key',
   RESEND_API_KEY: 'Resend — API Key (correos)',
+  CALLMEBOT_API_KEY: 'CallMeBot — API Key (avisos de pedidos por WhatsApp)',
 };
 
 export default function SettingsPage() {

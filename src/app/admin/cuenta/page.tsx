@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import WhatsAppAlertsCard from '@/components/admin/WhatsAppAlertsCard';
 
 const inputClass =
   'mt-1 w-full rounded-lg border border-cream-200 bg-white px-3 py-2.5 text-sm text-coffee-900 outline-none transition-colors focus:border-coffee-600';
@@ -67,7 +68,8 @@ export default function AccountPage() {
   };
 
   return (
-    <div className="max-w-md">
+    <div>
+      <div className="max-w-md">
       <h1 className="mb-2 text-2xl font-semibold tracking-tightest text-coffee-900">Mi cuenta</h1>
       <p className="mb-8 text-sm text-coffee-600">Cambia el correo y la contraseña con los que entras al panel.</p>
 
@@ -160,6 +162,8 @@ export default function AccountPage() {
           {saving ? 'Guardando…' : 'Guardar cambios'}
         </button>
       </form>
+      </div>
+      <WhatsAppAlertsCard />
     </div>
   );
 }
