@@ -113,6 +113,7 @@ export const CONTENT_DEFAULTS = {
   'catalog.show_colors_on_card': 'false',
   'catalog.show_sizes_on_card': 'false',
   'shipping.free_threshold': '250000',
+  'shipping.cost': '18000',
   'home.faq_title': 'Preguntas frecuentes',
   'pdp.faq_title': 'Preguntas frecuentes',
   'pdp.reviews_title': 'Lo que dicen nuestros clientes',
@@ -207,6 +208,13 @@ export function getFreeShippingThresholdCents(content: SiteContent): number {
   return Number.isFinite(pesos) && pesos > 0 ? Math.round(pesos * 100) : 0;
 }
 
+/** Flat shipping fee charged while the cart is under the free-shipping
+ * threshold; 0 (or blank) means shipping is always free. */
+export function getShippingCostCents(content: SiteContent): number {
+  const pesos = Number(content['shipping.cost']);
+  return Number.isFinite(pesos) && pesos > 0 ? Math.round(pesos * 100) : 0;
+}
+
 export type ContentKey = keyof typeof CONTENT_DEFAULTS;
 export type SiteContent = Record<ContentKey, string>;
 
@@ -294,6 +302,12 @@ export const CONTENT_FIELDS: Array<{
   {
     key: 'shipping.free_threshold',
     label: 'Monto mínimo en el carrito para envío gratis (COP)',
+    section: 'Envío gratis',
+    type: 'number',
+  },
+  {
+    key: 'shipping.cost',
+    label: 'Costo del envío cuando no se alcanza el mínimo (COP)',
     section: 'Envío gratis',
     type: 'number',
   },

@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { notifyStoreNewOrder } from '@/lib/orderNotify';
 import { WHATSAPP_ORDER_PREFIX, PLACEHOLDER_ADDRESS } from '@/lib/orderSource';
+import { getSiteContent, getFreeShippingThresholdCents, getShippingCostCents } from '@/lib/content';
+import { computeShippingCents } from '@/lib/pricing';
 
 const schema = z.object({
   customerName: z.string().trim().min(2).max(80),
@@ -50,6 +52,12 @@ export async function POST(req: NextRequest) {
   }
 
   const subtotalCents = valid.reduce((sum, i) => sum + priceById.get(i.productId)! * i.quantity, 0);
+  const content = await getSiteContent();
+  const shippingCents = computeShippingCents(
+    subtotalCents,
+    getFreeShippingThresholdCents(content),
+    getShippingCostCents(content)
+  );
   const reference = `${WHATSAPP_ORDER_PREFIX}${Date.now().toString(36).toUpperCase()}${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
 
   const order = await prisma.order.create({
@@ -62,7 +70,7 @@ export async function POST(req: NextRequest) {
       paymentMethod: 'COD',
       subtotalCents,
       discountCents: 0,
-      totalCents: subtotalCents,
+      totalCents: subtotalCents + shippingCents,
       wompiReference: reference,
       items: {
         create: valid.map((i) => ({
@@ -78,5 +86,5 @@ export async function POST(req: NextRequest) {
   });
 
   await notifyStoreNewOrder(order);
-  return NextResponse.json({ reference, orderId: order.id });
+  return NextResponse.json({ reference, orderId: order.id, shippingCents });
 }

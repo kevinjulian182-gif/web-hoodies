@@ -3,6 +3,7 @@ import { getConfigValue } from '@/lib/config';
 import { getSiteContent } from '@/lib/content';
 import { getStoreWhatsAppNumber } from '@/lib/whatsapp';
 import { isWhatsAppOrder, PLACEHOLDER_ADDRESS } from '@/lib/orderSource';
+import { orderShippingCents } from '@/lib/pricing';
 
 // Internal heads-up to the store's own WhatsApp (the number set in Admin >
 // Contenido) whenever an order is confirmed. Sent through a personal-use
@@ -43,6 +44,7 @@ export function buildStoreOrderAlert(order: OrderForAlert): string {
     (i) =>
       `• ${i.quantity}x ${i.product.name} — Talla ${i.size}${i.color ? `, ${i.color}` : ''} (${formatCOP(i.priceCents * i.quantity)})`
   );
+  const shippingCents = orderShippingCents(order);
   return [
     viaWhatsApp
       ? `📲 *Pedido por WhatsApp en AFRA* (${order.wompiReference})\nEl cliente va a escribirte para confirmarlo.`
@@ -53,6 +55,7 @@ export function buildStoreOrderAlert(order: OrderForAlert): string {
     order.discountCents > 0
       ? `Subtotal: ${formatCOP(order.subtotalCents)} · Descuento${order.couponCode ? ` (${order.couponCode})` : ''}: -${formatCOP(order.discountCents)}`
       : null,
+    `Envío: ${shippingCents > 0 ? formatCOP(shippingCents) : 'Gratis'}`,
     `*Total: ${formatCOP(order.totalCents)}*`,
     viaWhatsApp ? '💬 Pago y envío por acordar en el chat' : order.paymentMethod === 'COD' ? '💵 Pago contra entrega' : '✅ Pagado con Wompi',
     '',

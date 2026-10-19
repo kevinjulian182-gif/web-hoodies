@@ -8,15 +8,13 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useCart, type CartItem } from '@/lib/cart';
 import WhatsAppOrderButton from '@/components/WhatsAppOrderButton';
 import { formatCOP } from '@/lib/format';
+import { useCatalogSettings } from '@/lib/catalogSettings';
+import { computeShippingCents } from '@/lib/pricing';
 
-export default function CartDrawer({
-  freeShippingThresholdCents = 0,
-  whatsappNumber,
-}: {
-  freeShippingThresholdCents?: number;
-  whatsappNumber?: string;
-}) {
+export default function CartDrawer({ whatsappNumber }: { whatsappNumber?: string }) {
   const { items, isOpen, closeCart, updateQuantity, removeItem, subtotalCents } = useCart();
+  const { freeShippingThresholdCents, shippingCostCents } = useCatalogSettings();
+  const shippingCents = computeShippingCents(subtotalCents, freeShippingThresholdCents, shippingCostCents);
   const pathname = usePathname();
 
   // Never show the drawer over the distraction-free checkout itself.
@@ -97,7 +95,11 @@ export default function CartDrawer({
             ) : (
               <>
                 {freeShippingThresholdCents > 0 && (
-                  <FreeShippingBar subtotalCents={subtotalCents} thresholdCents={freeShippingThresholdCents} />
+                  <FreeShippingBar
+                    subtotalCents={subtotalCents}
+                    thresholdCents={freeShippingThresholdCents}
+                    shippingCostCents={shippingCostCents}
+                  />
                 )}
                 <ul className="flex-1 overflow-y-auto overscroll-contain px-6 py-4">
                   <AnimatePresence initial={false}>
@@ -113,10 +115,24 @@ export default function CartDrawer({
                 </ul>
 
                 <div className="shrink-0 border-t border-cream-200 px-6 py-5">
-                  <div className="mb-4 flex items-baseline justify-between text-sm">
-                    <span className="text-coffee-600">Subtotal</span>
-                    <span className="text-lg font-semibold text-coffee-900">{formatCOP(subtotalCents)}</span>
-                  </div>
+                  <dl className="mb-4 space-y-1.5 text-sm">
+                    <div className="flex justify-between text-coffee-600">
+                      <dt>Subtotal</dt>
+                      <dd className="tabular-nums">{formatCOP(subtotalCents)}</dd>
+                    </div>
+                    <div className="flex justify-between text-coffee-600">
+                      <dt>Envío</dt>
+                      <dd className={shippingCents === 0 ? 'font-medium text-green-700' : 'tabular-nums'}>
+                        {shippingCents === 0 ? 'Gratis' : formatCOP(shippingCents)}
+                      </dd>
+                    </div>
+                    <div className="flex items-baseline justify-between pt-1">
+                      <dt className="font-medium text-coffee-900">Total</dt>
+                      <dd className="text-lg font-semibold tabular-nums text-coffee-900">
+                        {formatCOP(subtotalCents + shippingCents)}
+                      </dd>
+                    </div>
+                  </dl>
                   <Link
                     href="/checkout"
                     onClick={closeCart}
@@ -142,7 +158,7 @@ export default function CartDrawer({
                       Seguir comprando
                     </button>
                   </div>
-                  <p className="mt-3 text-center text-xs text-coffee-500">Envío y descuentos se calculan en el pago.</p>
+                  <p className="mt-3 text-center text-xs text-coffee-500">Si tienes un cupón, lo aplicas en el pago.</p>
                 </div>
               </>
             )}
@@ -153,7 +169,15 @@ export default function CartDrawer({
   );
 }
 
-function FreeShippingBar({ subtotalCents, thresholdCents }: { subtotalCents: number; thresholdCents: number }) {
+function FreeShippingBar({
+  subtotalCents,
+  thresholdCents,
+  shippingCostCents,
+}: {
+  subtotalCents: number;
+  thresholdCents: number;
+  shippingCostCents: number;
+}) {
   const unlocked = subtotalCents >= thresholdCents;
   const pct = Math.min(100, Math.round((subtotalCents / thresholdCents) * 100));
   const remainingCents = Math.max(0, thresholdCents - subtotalCents);
@@ -172,7 +196,7 @@ function FreeShippingBar({ subtotalCents, thresholdCents }: { subtotalCents: num
         >
           {unlocked ? (
             <>
-              <CheckCircleIcon /> ¡Envío gratis desbloqueado!
+              <CheckCircleIcon /> ¡Tu envío es gratis!
             </>
           ) : (
             <>
@@ -182,6 +206,11 @@ function FreeShippingBar({ subtotalCents, thresholdCents }: { subtotalCents: num
           )}
         </motion.p>
       </AnimatePresence>
+      {!unlocked && shippingCostCents > 0 && (
+        <p className="mb-2 -mt-1 pl-[22px] text-xs text-coffee-500">
+          Por ahora el envío cuesta {formatCOP(shippingCostCents)}.
+        </p>
+      )}
 
       <motion.div
         animate={unlocked ? { scale: [1, 1.015, 1] } : { scale: 1 }}

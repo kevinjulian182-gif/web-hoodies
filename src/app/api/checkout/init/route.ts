@@ -6,6 +6,8 @@ import { sendOrderConfirmationEmail } from '@/lib/email';
 import { notifyStoreNewOrder } from '@/lib/orderNotify';
 import { checkStock, buildStockDecrementOps } from '@/lib/stock';
 import { revalidateProductListings, revalidateProduct } from '@/lib/revalidate';
+import { getSiteContent, getFreeShippingThresholdCents, getShippingCostCents } from '@/lib/content';
+import { computeDiscountCents, computeShippingCents } from '@/lib/pricing';
 
 const schema = z.object({
   customerEmail: z.string().email(),
@@ -54,18 +56,22 @@ export async function POST(req: NextRequest) {
 
   const subtotalCents = items.reduce((sum, i) => sum + productMap.get(i.productId)!.priceCents * i.quantity, 0);
 
+  const code = couponCode?.trim().toUpperCase();
   let discountCents = 0;
-  if (couponCode) {
-    const coupon = await prisma.coupon.findUnique({ where: { code: couponCode } });
+  if (code) {
+    const coupon = await prisma.coupon.findUnique({ where: { code } });
     if (coupon && coupon.active && (!coupon.expiresAt || coupon.expiresAt > new Date())) {
-      discountCents =
-        coupon.discountType === 'PERCENT'
-          ? Math.round((subtotalCents * coupon.value) / 100)
-          : Math.min(coupon.value, subtotalCents);
+      discountCents = computeDiscountCents(coupon, subtotalCents);
     }
   }
 
-  const totalCents = subtotalCents - discountCents;
+  const content = await getSiteContent();
+  const shippingCents = computeShippingCents(
+    subtotalCents,
+    getFreeShippingThresholdCents(content),
+    getShippingCostCents(content)
+  );
+  const totalCents = subtotalCents - discountCents + shippingCents;
   const reference = generateOrderReference();
 
   const order = await prisma.order.create({
@@ -75,7 +81,7 @@ export async function POST(req: NextRequest) {
       subtotalCents,
       discountCents,
       totalCents,
-      couponCode: discountCents > 0 ? couponCode : null,
+      couponCode: discountCents > 0 ? code : null,
       wompiReference: reference,
       items: {
         create: items.map((i) => ({

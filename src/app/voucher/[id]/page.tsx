@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { formatCOP } from '@/lib/format';
 import Logo from '@/components/Logo';
+import { orderShippingCents } from '@/lib/pricing';
 
 type OrderItem = {
   id: string;
@@ -25,6 +26,8 @@ type Order = {
   shippingPhone: string;
   deliveryNotes: string | null;
   wompiReference: string;
+  subtotalCents: number;
+  discountCents: number;
   totalCents: number;
   paymentMethod: 'WOMPI' | 'COD';
   items: OrderItem[];
@@ -102,6 +105,7 @@ export default function VoucherPage() {
             {order.items.reduce((sum, i) => sum + i.quantity, 0)} pieza(s) ·{' '}
             {order.paymentMethod === 'COD' ? `Cobrar ${formatCOP(order.totalCents)} contra entrega` : formatCOP(order.totalCents)}
           </p>
+          <p>Envío: {orderShippingCents(order) > 0 ? formatCOP(orderShippingCents(order)) : 'Gratis'}</p>
           <p className="mt-1 font-medium text-coffee-800">
             {order.paymentMethod === 'COD' ? 'Pago contra entrega' : 'Pagado en línea (Wompi)'}
           </p>

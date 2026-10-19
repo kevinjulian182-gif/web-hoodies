@@ -1,5 +1,6 @@
 import { Resend } from 'resend';
 import { getConfigValue } from '@/lib/config';
+import { orderShippingCents } from '@/lib/pricing';
 import type { Order, OrderItem, Product } from '@prisma/client';
 
 type OrderWithItems = Order & { items: (OrderItem & { product: Omit<Product, 'costCents'> })[] };
@@ -19,7 +20,10 @@ export async function sendOrderConfirmationEmail(order: OrderWithItems) {
     )
     .join('');
 
-  const total = (order.totalCents / 100).toLocaleString('es-CO', { style: 'currency', currency: 'COP' });
+  const money = (cents: number) =>
+    (cents / 100).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
+  const total = money(order.totalCents);
+  const shippingCents = orderShippingCents(order);
   const isCod = order.paymentMethod === 'COD';
 
   await resend.emails.send({
@@ -39,6 +43,7 @@ export async function sendOrderConfirmationEmail(order: OrderWithItems) {
         <table style="width:100%; margin:24px 0; border-top:1px solid #F1EADD; border-bottom:1px solid #F1EADD;">
           ${itemsHtml}
         </table>
+        <p style="font-size:14px; color:#4A3B2F; margin:0 0 4px;">Envío: ${shippingCents > 0 ? money(shippingCents) : 'Gratis'}</p>
         <p style="font-size:18px; font-weight:600;">Total${isCod ? ' a pagar en la entrega' : ''}: ${total}</p>
         <p style="font-size:14px; color:#4A3B2F;">Referencia de pedido: ${order.wompiReference}</p>
       </div>

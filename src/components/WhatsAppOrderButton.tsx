@@ -66,6 +66,7 @@ export default function WhatsAppOrderButton({
       // storage unavailable
     }
     let reference: string | undefined;
+    let shippingCents: number | undefined;
     try {
       const res = await fetch('/api/orders/whatsapp', {
         method: 'POST',
@@ -77,7 +78,7 @@ export default function WhatsAppOrderButton({
           items: items.map(({ productId, size, color, quantity }) => ({ productId, size, color, quantity })),
         }),
       });
-      if (res.ok) reference = (await res.json()).reference;
+      if (res.ok) ({ reference, shippingCents } = await res.json());
     } catch {
       // still open the chat
     }
@@ -85,6 +86,7 @@ export default function WhatsAppOrderButton({
       name: name.trim(),
       city: city.trim() || undefined,
       reference,
+      shippingCents,
     });
     window.location.href = buildWhatsAppLink(whatsappNumber, message);
     setSending(false);

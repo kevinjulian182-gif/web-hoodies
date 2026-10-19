@@ -11,7 +11,13 @@ import StorefrontOnly from '@/components/StorefrontOnly';
 import CartDrawer from '@/components/CartDrawer';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import CustomCursor from '@/components/CustomCursor';
-import { getSiteContent, getHomeSectionOrder, getHeroImages, getFreeShippingThresholdCents } from '@/lib/content';
+import {
+  getSiteContent,
+  getHomeSectionOrder,
+  getHeroImages,
+  getFreeShippingThresholdCents,
+  getShippingCostCents,
+} from '@/lib/content';
 import { generateThemeVars, themeVarsToCss } from '@/lib/theme';
 import { getStoreWhatsAppNumber } from '@/lib/whatsapp';
 
@@ -73,6 +79,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <CatalogSettingsProvider
               showColors={content['catalog.show_colors_on_card'] === 'true'}
               showSizes={content['catalog.show_sizes_on_card'] === 'true'}
+              freeShippingThresholdCents={getFreeShippingThresholdCents(content)}
+              shippingCostCents={getShippingCostCents(content)}
             >
               <StorefrontOnly>
                 <Navbar
@@ -102,10 +110,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     xUrl: content['social.x_url'] || undefined,
                   }}
                 />
-                <CartDrawer
-                  freeShippingThresholdCents={getFreeShippingThresholdCents(content)}
-                  whatsappNumber={whatsappNumber}
-                />
+                <CartDrawer whatsappNumber={whatsappNumber} />
                 <WhatsAppButton number={whatsappNumber} />
                 <CustomCursor />
               </StorefrontOnly>
