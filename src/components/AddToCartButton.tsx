@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { catalogItemId, pesos, trackPixel } from '@/lib/metaPixel';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '@/lib/cart';
@@ -33,6 +34,23 @@ export default function AddToCartButton({
   // ProductColorProvider) so picking a color here swaps the photos too.
   const { selectedColor: color, setSelectedColor: setColor } = useProductColor();
   const [added, setAdded] = useState(false);
+
+  // Meta Pixel: the shopper is looking at this product (and color). Waits
+  // for the color to settle and sends each product+color once.
+  const lastViewed = useRef('');
+  useEffect(() => {
+    if (product.colors.length > 0 && !color) return;
+    const id = catalogItemId(product.id, color || null);
+    if (lastViewed.current === id) return;
+    lastViewed.current = id;
+    trackPixel('ViewContent', {
+      content_type: 'product',
+      content_ids: [id],
+      content_name: `${product.brand} ${product.name}`,
+      value: pesos(product.priceCents),
+      currency: 'COP',
+    });
+  }, [product.id, product.colors.length, product.brand, product.name, product.priceCents, color]);
 
   // Stock belongs to the specific size+color combo, not the product as a
   // whole — Black/M can be sold out while White/M still has plenty. A

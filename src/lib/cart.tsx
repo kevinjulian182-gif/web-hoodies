@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { catalogItemId, pesos, trackPixel } from '@/lib/metaPixel';
 
 export type CartItem = {
   productId: string;
@@ -136,6 +137,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
     // the cart lives; later adds just confirm on the button and bump the
     // badge instead of interrupting browsing every time.
     if (options?.openDrawer !== false && current.length === 0) setIsOpen(true);
+    trackPixel('AddToCart', {
+      content_type: 'product',
+      content_ids: [catalogItemId(item.productId, item.color)],
+      content_name: item.name,
+      contents: [{ id: catalogItemId(item.productId, item.color), quantity: item.quantity, item_price: pesos(item.priceCents) }],
+      value: pesos(item.priceCents * item.quantity),
+      currency: 'COP',
+    });
     return { ok: true, available: stock ?? Infinity };
   };
 

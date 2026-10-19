@@ -3,6 +3,7 @@ import { getSiteContent } from '@/lib/content';
 import { parseColorImages } from '@/lib/colors';
 import { sortByAdminOrder } from '@/lib/productOrder';
 import { variantKey } from '@/lib/variants';
+import { catalogItemId } from '@/lib/metaPixel';
 
 // Product feed in Meta's catalog format. Commerce Manager reads this URL
 // on a schedule and keeps the WhatsApp Business (and Facebook/Instagram)
@@ -84,7 +85,7 @@ export async function GET() {
       const link = `${SITE_URL}/productos/${product.slug}${color && product.colors.length > 1 ? `?color=${encodeURIComponent(color)}` : ''}`;
 
       rows.push({
-        id: color ? `${product.id}-${color.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-')}` : product.id,
+        id: catalogItemId(product.id, color),
         title: `${product.brand} ${product.name}${color && product.colors.length > 1 ? ` - ${color}` : ''}`.slice(0, 150),
         description: description || `${product.brand} ${product.name}`,
         availability: stock > 0 ? 'in stock' : 'out of stock',

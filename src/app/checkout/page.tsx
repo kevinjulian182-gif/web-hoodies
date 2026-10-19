@@ -20,6 +20,7 @@ import { COLOMBIA_DEPARTMENTS } from '@/lib/colombia';
 import WompiCheckoutButton from '@/components/WompiCheckoutButton';
 import Logo from '@/components/Logo';
 import { autoBulletize, pasteBulletedText } from '@/lib/textareaBullets';
+import { catalogItemId, pesos, PENDING_PURCHASE_KEY, trackPixel } from '@/lib/metaPixel';
 
 type CheckoutData = {
   orderId: string;
@@ -168,6 +169,20 @@ export default function CheckoutPage() {
 
   // Each step is a new screen; without this, phones stay scrolled to where
   // the previous step's button was and land mid-way through the next one.
+  // Meta Pixel: once per checkout visit, as soon as the cart is known.
+  const checkoutTracked = useRef(false);
+  useEffect(() => {
+    if (checkoutTracked.current || items.length === 0) return;
+    checkoutTracked.current = true;
+    trackPixel('InitiateCheckout', {
+      content_type: 'product',
+      content_ids: items.map((i) => catalogItemId(i.productId, i.color)),
+      num_items: items.reduce((n, i) => n + i.quantity, 0),
+      value: pesos(subtotalCents),
+      currency: 'COP',
+    });
+  }, [items, subtotalCents]);
+
   const isFirstRender = useRef(true);
   useEffect(() => {
     if (isFirstRender.current) {
@@ -269,6 +284,18 @@ export default function CheckoutPage() {
       if (!res.ok) {
         setError(extractError(data.error));
         return;
+      }
+      try {
+        sessionStorage.setItem(
+          PENDING_PURCHASE_KEY,
+          JSON.stringify({
+            reference: data.reference,
+            value: pesos(data.amountInCents),
+            contents: items.map((i) => ({ id: catalogItemId(i.productId, i.color), quantity: i.quantity, item_price: pesos(i.priceCents) })),
+          })
+        );
+      } catch {
+        // storage unavailable: the purchase just isn't reported
       }
       if (paymentMethod === 'COD') {
         router.push(`/checkout/success?ref=${data.reference}&method=cod`);

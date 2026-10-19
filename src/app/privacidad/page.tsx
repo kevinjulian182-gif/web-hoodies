@@ -55,6 +55,12 @@ export default function PrivacidadPage() {
             Usamos cookies estrictamente necesarias para mantener tu sesión iniciada, recordar el
             contenido de tu carrito y tus favoritos mientras navegas el sitio.
           </p>
+          <p className="mt-2">
+            También usamos el píxel de Meta (Facebook e Instagram), que registra visitas y acciones
+            como ver un producto, agregarlo al carrito o comprar, para medir y mostrar nuestros anuncios.
+            Puedes gestionar estos anuncios desde la configuración de tu cuenta de Meta o bloquear las
+            cookies de terceros en tu navegador.
+          </p>
         </section>
       </div>
     </div>

@@ -8,6 +8,7 @@ import Footer from '@/components/Footer';
 import PageTransition from '@/components/PageTransition';
 import HydrationFlag from '@/components/HydrationFlag';
 import StorefrontOnly from '@/components/StorefrontOnly';
+import MetaPixel from '@/components/MetaPixel';
 import CartDrawer from '@/components/CartDrawer';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import CustomCursor from '@/components/CustomCursor';
@@ -113,6 +114,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 <CartDrawer whatsappNumber={whatsappNumber} />
                 <WhatsAppButton number={whatsappNumber} />
                 <CustomCursor />
+                <MetaPixel />
               </StorefrontOnly>
               <HydrationFlag />
             </CatalogSettingsProvider>
