@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getSession, requireRole } from '@/lib/auth';
 import { setConfigValue } from '@/lib/config';
-import { getAlertProvider } from '@/lib/orderNotify';
+import { getAlertProvider, getTelegramConfig } from '@/lib/orderNotify';
 import { getSiteContent } from '@/lib/content';
 import { getStoreWhatsAppNumber } from '@/lib/whatsapp';
 
@@ -14,8 +14,12 @@ export async function GET() {
   if (!requireRole(session, ['ADMIN', 'SUPER_ADMIN'])) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
-  const [config, content] = await Promise.all([getAlertProvider(), getSiteContent()]);
-  return NextResponse.json({ provider: config?.provider ?? null, phone: getStoreWhatsAppNumber(content) });
+  const [config, telegram, content] = await Promise.all([getAlertProvider(), getTelegramConfig(), getSiteContent()]);
+  return NextResponse.json({
+    provider: config?.provider ?? null,
+    phone: getStoreWhatsAppNumber(content),
+    telegram: telegram ? (telegram.chatId ? 'connected' : 'pending') : null,
+  });
 }
 
 const schema = z.object({

@@ -104,7 +104,50 @@ export async function sendStoreWhatsApp(text: string): Promise<{ ok: boolean; er
   }
 }
 
+// ── Telegram (free, official Bot API) ────────────────────────────────────
+
+export async function getTelegramConfig(): Promise<{ token: string; chatId: string | null } | null> {
+  const [token, chatId] = await Promise.all([getConfigValue('TELEGRAM_BOT_TOKEN'), getConfigValue('TELEGRAM_CHAT_ID')]);
+  return token ? { token, chatId } : null;
+}
+
+export async function sendTelegram(text: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const config = await getTelegramConfig();
+    if (!config) return { ok: false, error: 'Telegram no está configurado.' };
+    if (!config.chatId) return { ok: false, error: 'Falta conectar el chat: escríbele al bot y toca «Conectar».' };
+    const res = await fetch(`https://api.telegram.org/bot${config.token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      // Plain text: WhatsApp-style *bold* marks are dropped rather than risk
+      // Telegram rejecting the message over an unescaped character.
+      body: JSON.stringify({ chat_id: config.chatId, text: text.replace(/\*/g, ''), disable_web_page_preview: true }),
+      cache: 'no-store',
+      signal: AbortSignal.timeout(10000),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data?.ok) return { ok: false, error: data?.description ?? `Error ${res.status}` };
+    return { ok: true };
+  } catch (err) {
+    console.error('No se pudo enviar el aviso por Telegram:', err);
+    return { ok: false, error: 'No se pudo conectar con Telegram.' };
+  }
+}
+
+/** Sends the alert on every configured channel (Telegram and/or WhatsApp). */
+export async function sendStoreAlert(
+  text: string
+): Promise<{ ok: boolean; results: { channel: string; ok: boolean; error?: string }[] }> {
+  const [telegram, whatsappProvider] = await Promise.all([getTelegramConfig(), getAlertProvider()]);
+  const jobs: Promise<{ channel: string; ok: boolean; error?: string }>[] = [];
+  if (telegram) jobs.push(sendTelegram(text).then((r) => ({ channel: 'Telegram', ...r })));
+  if (whatsappProvider) jobs.push(sendStoreWhatsApp(text).then((r) => ({ channel: 'WhatsApp', ...r })));
+  if (jobs.length === 0) return { ok: false, results: [{ channel: 'Avisos', ok: false, error: 'No hay ningún canal configurado.' }] };
+  const results = await Promise.all(jobs);
+  return { ok: results.some((r) => r.ok), results };
+}
+
 export async function notifyStoreNewOrder(order: OrderForAlert): Promise<void> {
-  const result = await sendStoreWhatsApp(buildStoreOrderAlert(order));
-  if (!result.ok) console.warn('Aviso de pedido por WhatsApp no enviado:', result.error);
+  const { results } = await sendStoreAlert(buildStoreOrderAlert(order));
+  for (const r of results) if (!r.ok) console.warn(`Aviso de pedido por ${r.channel} no enviado:`, r.error);
 }

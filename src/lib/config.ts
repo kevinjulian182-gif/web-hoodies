@@ -36,6 +36,8 @@ export const CONFIG_KEYS = [
   'RESEND_API_KEY',
   'CALLMEBOT_API_KEY',
   'TEXTMEBOT_API_KEY',
+  'TELEGRAM_BOT_TOKEN',
+  'TELEGRAM_CHAT_ID',
 ] as const;
 
 export type ConfigKey = (typeof CONFIG_KEYS)[number];

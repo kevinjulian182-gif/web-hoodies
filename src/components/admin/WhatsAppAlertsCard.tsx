@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 
 type Provider = 'textmebot' | 'callmebot';
-type Status = { provider: Provider | null; phone: string };
+type Status = { provider: Provider | null; phone: string; telegram: 'connected' | 'pending' | null };
+type Channel = 'telegram' | 'whatsapp';
 
 const PROVIDERS: Record<
   Provider,
@@ -35,7 +36,11 @@ const PROVIDERS: Record<
 
 export default function WhatsAppAlertsCard() {
   const [status, setStatus] = useState<Status | null>(null);
+  const [channel, setChannel] = useState<Channel>('telegram');
   const [provider, setProvider] = useState<Provider>('textmebot');
+  const [botToken, setBotToken] = useState('');
+  const [botUsername, setBotUsername] = useState<string | null>(null);
+  const [connecting, setConnecting] = useState(false);
   const [apiKey, setApiKey] = useState('');
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -47,6 +52,7 @@ export default function WhatsAppAlertsCard() {
       .then((s: Status | null) => {
         setStatus(s);
         if (s?.provider) setProvider(s.provider);
+        if (s?.provider && !s.telegram) setChannel('whatsapp');
       })
       .catch(() => setStatus(null));
   useEffect(() => {
@@ -72,6 +78,30 @@ export default function WhatsAppAlertsCard() {
     load();
   };
 
+  const connectTelegram = async () => {
+    setConnecting(true);
+    setMessage(null);
+    const res = await fetch('/api/admin/notifications/telegram', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(botToken.trim() ? { token: botToken.trim() } : {}),
+    });
+    const data = await res.json().catch(() => null);
+    setConnecting(false);
+    if (!res.ok) {
+      setMessage({ ok: false, text: data?.error ?? 'No se pudo conectar con Telegram.' });
+      return;
+    }
+    setBotToken('');
+    setBotUsername(data.botUsername);
+    setMessage(
+      data.connected
+        ? { ok: true, text: 'Telegram conectado. Envía una prueba para confirmar.' }
+        : { ok: false, text: `Token guardado. Ahora abre @${data.botUsername} en Telegram, toca «Iniciar» (o escríbele «hola») y vuelve a tocar «Conectar».` }
+    );
+    load();
+  };
+
   const test = async () => {
     setTesting(true);
     setMessage(null);
@@ -80,22 +110,30 @@ export default function WhatsAppAlertsCard() {
     setTesting(false);
     setMessage(
       res.ok
-        ? { ok: true, text: 'Mensaje de prueba enviado. Revisa tu WhatsApp (puede tardar unos segundos).' }
+        ? {
+            ok: true,
+            text: `Prueba enviada por ${(data?.sent ?? []).join(' y ')}.${data?.error ? ` (Falló ${data.error})` : ''} Revisa tu celular.`,
+          }
         : { ok: false, text: data?.error ? `No se envió: ${data.error}` : 'No se pudo enviar la prueba.' }
     );
   };
 
   const phoneLabel = status?.phone ? `+${status.phone}` : null;
-  const active = Boolean(status?.provider && phoneLabel);
+  const whatsappActive = Boolean(status?.provider && phoneLabel);
+  const telegramActive = status?.telegram === 'connected';
+  const active = whatsappActive || telegramActive;
+  const activeLabel = [telegramActive && 'Telegram', whatsappActive && `WhatsApp (${PROVIDERS[status!.provider!].name})`]
+    .filter(Boolean)
+    .join(' + ');
   const info = PROVIDERS[provider];
 
   return (
     <section className="mt-12 max-w-xl rounded-2xl border border-cream-200 bg-white p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-base font-semibold text-coffee-900">Avisos de pedidos por WhatsApp</h2>
+          <h2 className="text-base font-semibold text-coffee-900">Avisos de pedidos nuevos</h2>
           <p className="mt-1 text-sm text-coffee-600">
-            Cada pedido confirmado (contra entrega o pagado con Wompi) te llega como mensaje al WhatsApp de la tienda.
+            Cada pedido confirmado (contra entrega o pagado con Wompi) te llega como mensaje al celular.
           </p>
         </div>
         <span
@@ -103,10 +141,78 @@ export default function WhatsAppAlertsCard() {
             active ? 'bg-green-100 text-green-800' : 'bg-cream-100 text-coffee-600'
           }`}
         >
-          {active ? `Activo · ${PROVIDERS[status!.provider!].name}` : 'Sin configurar'}
+          {active ? `Activo · ${activeLabel}` : 'Sin configurar'}
         </span>
       </div>
 
+      <div role="tablist" aria-label="Canal" className="mt-4 flex gap-1 rounded-xl bg-cream-100 p-1">
+        {([
+          ['telegram', 'Telegram', 'Gratis'],
+          ['whatsapp', 'WhatsApp', 'Con servicio externo'],
+        ] as const).map(([key, label, tag]) => (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            aria-selected={channel === key}
+            onClick={() => {
+              setChannel(key);
+              setMessage(null);
+            }}
+            className={`flex-1 rounded-lg px-3 py-2 text-left transition-colors ${
+              channel === key ? 'bg-white shadow-sm' : 'hover:bg-white/60'
+            }`}
+          >
+            <span className="block text-sm font-medium text-coffee-900">{label}</span>
+            <span className="block text-[11px] text-coffee-500">{tag}</span>
+          </button>
+        ))}
+      </div>
+
+      {channel === 'telegram' && (
+        <div className="mt-4">
+          <p className="text-sm text-coffee-700">
+            Gratis y oficial: los avisos llegan como notificación de Telegram al instante.{' '}
+            {telegramActive && <span className="font-medium text-green-700">Conectado.</span>}
+          </p>
+          <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm text-coffee-700">
+            <li>
+              En Telegram abre{' '}
+              <a href="https://t.me/BotFather" target="_blank" rel="noreferrer" className="font-medium underline underline-offset-2">
+                @BotFather
+              </a>
+              , envía <span className="rounded bg-cream-100 px-1.5 py-0.5 font-mono text-xs">/newbot</span> y ponle un nombre (ej: AFRA Pedidos).
+            </li>
+            <li>Copia el token que te da (se ve como 123456:ABC…) y pégalo aquí.</li>
+            <li>Abre tu bot nuevo, toca «Iniciar» y luego toca «Conectar» aquí.</li>
+          </ol>
+          <div className="mt-4 flex gap-2">
+            <input
+              type="password"
+              value={botToken}
+              onChange={(e) => setBotToken(e.target.value)}
+              placeholder={status?.telegram ? '•••••• (token guardado — escribe para cambiarlo)' : 'Token del bot'}
+              className="min-w-0 flex-1 rounded-lg border border-cream-200 px-3 py-2.5 text-sm focus:border-coffee-700 focus:outline-none focus:ring-2 focus:ring-coffee-900/10"
+            />
+            <button
+              type="button"
+              onClick={connectTelegram}
+              disabled={connecting || (!botToken.trim() && !status?.telegram)}
+              className="rounded-lg bg-coffee-900 px-4 py-2.5 text-sm font-medium text-cream-50 disabled:opacity-50"
+            >
+              {connecting ? 'Conectando…' : 'Conectar'}
+            </button>
+          </div>
+          {botUsername && !telegramActive && (
+            <a href={`https://t.me/${botUsername}`} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs font-medium text-coffee-800 underline underline-offset-2">
+              Abrir @{botUsername} ↗
+            </a>
+          )}
+        </div>
+      )}
+
+      {channel === 'whatsapp' && (
+      <>
       <p className="mt-4 text-sm text-coffee-800">
         Número que recibe los avisos:{' '}
         {phoneLabel ? (
@@ -162,6 +268,9 @@ export default function WhatsAppAlertsCard() {
           {saving ? 'Guardando…' : 'Guardar'}
         </button>
       </div>
+
+      </>
+      )}
 
       <button
         type="button"
