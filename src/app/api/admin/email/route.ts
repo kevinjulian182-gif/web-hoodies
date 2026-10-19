@@ -2,15 +2,29 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getSession, requireRole } from '@/lib/auth';
 import { setConfigValue } from '@/lib/config';
-import { DEFAULT_EMAIL_FROM, getEmailSettings } from '@/lib/email';
+import { DEFAULT_EMAIL_FROM, getEmailSettings, getLastEmailResult } from '@/lib/email';
+import { getCustomerWhatsAppKey, getLastCustomerWhatsAppResult } from '@/lib/orderNotify';
 
+// Status of the confirmations the customer gets (email + WhatsApp).
 export async function GET() {
   const session = await getSession();
   if (!requireRole(session, ['ADMIN', 'SUPER_ADMIN'])) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
-  const { apiKey, from } = await getEmailSettings();
-  return NextResponse.json({ configured: Boolean(apiKey), from, defaultFrom: DEFAULT_EMAIL_FROM });
+  const [settings, lastEmail, waKey, lastWhatsApp] = await Promise.all([
+    getEmailSettings(),
+    getLastEmailResult(),
+    getCustomerWhatsAppKey(),
+    getLastCustomerWhatsAppResult(),
+  ]);
+  return NextResponse.json({
+    configured: Boolean(settings.apiKey),
+    from: settings.from,
+    defaultFrom: DEFAULT_EMAIL_FROM,
+    lastEmail,
+    whatsappReady: Boolean(waKey),
+    lastWhatsApp,
+  });
 }
 
 const schema = z.object({

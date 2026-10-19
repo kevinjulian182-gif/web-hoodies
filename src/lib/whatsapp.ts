@@ -5,7 +5,7 @@ import type { SiteContent } from '@/lib/content';
  * prefixed form wa.me needs (e.g. "313 808 9302" or "3138089302" ->
  * "573138089302"). A number already carrying a country code (more than 10
  * digits) is left as-is. */
-function normalizePhone(phone: string): string {
+export function normalizePhone(phone: string): string {
   const digits = phone.replace(/\D/g, '');
   if (!digits) return '';
   return digits.length <= 10 ? `57${digits}` : digits;
@@ -73,31 +73,33 @@ export function buildOrderConfirmationMessage(order: {
   shippingAddressComplement?: string | null;
   shippingCity: string;
   shippingDepartment?: string | null;
-  items: { quantity: number; product: { name: string } }[];
+  wompiReference?: string;
+  items: { quantity: number; size?: string; color?: string | null; product: { name: string } }[];
 }): string {
   const total = formatCOP(order.totalCents);
+  const firstName = order.customerName.trim().split(/\s+/)[0] || order.customerName;
   const address = `${order.shippingAddress}${order.shippingAddressComplement ? `, ${order.shippingAddressComplement}` : ''}, ${order.shippingCity}${order.shippingDepartment ? `, ${order.shippingDepartment}` : ''}`;
   const paymentLine =
     order.paymentMethod === 'COD'
       ? `💵 Pagas ${total} contra entrega, en efectivo o con datáfono.`
       : `✅ Tu pago de ${total} ya fue confirmado.`;
-  const productsLine =
-    order.items.length === 1
-      ? `${order.items[0].quantity}x ${order.items[0].product.name}`
-      : order.items.map((i) => `• ${i.quantity}x ${i.product.name}`).join('\n');
+  const productsLine = order.items
+    .map((i) => {
+      const detail = [i.size && `Talla ${i.size}`, i.color].filter(Boolean).join(', ');
+      return `• ${i.quantity}x ${i.product.name}${detail ? ` (${detail})` : ''}`;
+    })
+    .join('\n');
 
   return [
-    `👋 ¡Hola ${order.customerName}!`,
+    `👋 ¡Hola ${firstName}! Gracias por comprar en AFRA.`,
     ``,
-    `Gracias por comprar en AFRA.`,
-    ``,
-    `📦 Pedido confirmado:`,
+    `✅ *Tu pedido quedó confirmado*${order.wompiReference ? ` (${order.wompiReference})` : ''}`,
     productsLine,
     ``,
     paymentLine,
+    `📍 Lo enviamos a: ${address}`,
+    `🚚 Lo despachamos en 24 horas hábiles y te compartimos la guía por aquí.`,
     ``,
-    `📍 Lo enviaremos a: ${address}`,
-    ``,
-    `¿Dudas? Escríbenos por acá 😊`,
+    `¿Dudas? Responde este mensaje 😊`,
   ].join('\n');
 }

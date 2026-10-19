@@ -1,9 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { buildWompiSignature, generateOrderReference, getWompiPublicKey } from '@/lib/wompi';
-import { sendOrderConfirmationEmail } from '@/lib/email';
-import { notifyStoreNewOrder } from '@/lib/orderNotify';
+import { notifyOrderConfirmed } from '@/lib/orderNotify';
 import { checkStock, buildStockDecrementOps } from '@/lib/stock';
 import { revalidateProductListings, revalidateProduct } from '@/lib/revalidate';
 import { getSiteContent, getFreeShippingThresholdCents, getShippingRates } from '@/lib/content';
@@ -104,9 +103,9 @@ export async function POST(req: NextRequest) {
     await prisma.$transaction(buildStockDecrementOps(productMap, items));
     revalidateProductListings();
     for (const product of productMap.values()) revalidateProduct(product.slug);
-    // Email to the customer and WhatsApp heads-up to the store, side by side;
-    // either failing never blocks the order.
-    await Promise.allSettled([sendOrderConfirmationEmail(order), notifyStoreNewOrder(order)]);
+    // Email + WhatsApp to the customer and the store's heads-up run after the
+    // response, so the shopper isn't kept waiting; none can fail the order.
+    after(() => notifyOrderConfirmed(order));
     return NextResponse.json({
       orderId: order.id,
       reference,

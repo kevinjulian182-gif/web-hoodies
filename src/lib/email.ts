@@ -1,5 +1,5 @@
 import { Resend } from 'resend';
-import { getConfigValue } from '@/lib/config';
+import { getConfigValue, setConfigValue } from '@/lib/config';
 import { getSiteContent } from '@/lib/content';
 import { getStoreWhatsAppNumber } from '@/lib/whatsapp';
 import { orderShippingCents } from '@/lib/pricing';
@@ -41,6 +41,17 @@ const esc = (s: string) =>
 export async function getEmailSettings() {
   const [apiKey, from] = await Promise.all([getConfigValue('RESEND_API_KEY'), getConfigValue('EMAIL_FROM')]);
   return { apiKey, from: from || DEFAULT_EMAIL_FROM };
+}
+
+export type DeliveryLog = { ok: boolean; to: string; reference: string; at: string; error?: string };
+
+/** Last confirmation attempt, so the admin can see why a customer didn't get it. */
+export async function getLastEmailResult(): Promise<DeliveryLog | null> {
+  try {
+    return JSON.parse((await getConfigValue('EMAIL_LAST_RESULT')) || 'null');
+  } catch {
+    return null;
+  }
 }
 
 /** Turns Resend's error into something the store owner can act on. */
@@ -210,14 +221,15 @@ export function buildOrderEmail(order: OrderForEmail, whatsappNumber: string) {
 
 export async function sendOrderEmail(order: OrderForEmail, to = order.customerEmail): Promise<EmailResult> {
   if (!to) return { ok: false, error: 'El pedido no tiene correo del cliente.' };
-  const { apiKey, from } = await getEmailSettings();
-  if (!apiKey) return { ok: false, error: 'Falta la API key de Resend.' };
+  const settings = await getEmailSettings();
+  if (!settings.apiKey) return { ok: false, error: 'Falta la API key de Resend (Admin › Cuenta › Confirmación al cliente).' };
 
   const content = await getSiteContent();
   const { subject, html, text } = buildOrderEmail(order, getStoreWhatsAppNumber(content));
+
   try {
     // Resend reports failures in the result instead of throwing.
-    const { data, error } = await new Resend(apiKey).emails.send({ from, to, subject, html, text });
+    const { data, error } = await new Resend(settings.apiKey!).emails.send({ from: settings.from, to, subject, html, text });
     if (error) return { ok: false, error: explainResendError(error.message) };
     return { ok: true, id: data?.id };
   } catch (err) {
@@ -231,4 +243,12 @@ export async function sendOrderConfirmationEmail(order: OrderForEmail) {
   if (isWhatsAppOrder(order.wompiReference)) return;
   const result = await sendOrderEmail(order);
   if (!result.ok) console.error(`Correo de confirmación no enviado (${order.wompiReference}): ${result.error}`);
+  const log: DeliveryLog = {
+    ok: result.ok,
+    to: order.customerEmail,
+    reference: order.wompiReference,
+    at: new Date().toISOString(),
+    error: result.ok ? undefined : result.error,
+  };
+  await setConfigValue('EMAIL_LAST_RESULT', JSON.stringify(log)).catch(() => {});
 }

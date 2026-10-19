@@ -1,7 +1,10 @@
 import { formatCOP } from '@/lib/format';
 import { getConfigValue } from '@/lib/config';
 import { getSiteContent } from '@/lib/content';
-import { getStoreWhatsAppNumber } from '@/lib/whatsapp';
+import { prisma } from '@/lib/prisma';
+import { setConfigValue } from '@/lib/config';
+import { sendOrderConfirmationEmail, type DeliveryLog } from '@/lib/email';
+import { buildOrderConfirmationMessage, getStoreWhatsAppNumber, normalizePhone } from '@/lib/whatsapp';
 import { isWhatsAppOrder, PLACEHOLDER_ADDRESS } from '@/lib/orderSource';
 import { orderShippingCents } from '@/lib/pricing';
 
@@ -11,6 +14,7 @@ import { orderShippingCents } from '@/lib/pricing';
 // with just an API key: no Meta Business account or message templates.
 
 type OrderForAlert = {
+  id?: string;
   wompiReference: string;
   customerName: string;
   customerEmail: string;
@@ -25,7 +29,13 @@ type OrderForAlert = {
   discountCents: number;
   totalCents: number;
   couponCode?: string | null;
-  items: { quantity: number; size: string; color?: string | null; priceCents: number; product: { name: string } }[];
+  items: {
+    quantity: number;
+    size: string;
+    color?: string | null;
+    priceCents: number;
+    product: { name: string; images?: string[] };
+  }[];
 };
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://wearafra.com').replace(/\/$/, '');
@@ -86,12 +96,19 @@ export async function getAlertProvider(): Promise<{ provider: AlertProvider; api
 /** Sends a WhatsApp message to the store's number. Never throws: an alert
  * failing must not break checkout. */
 export async function sendStoreWhatsApp(text: string): Promise<{ ok: boolean; error?: string }> {
-  try {
-    const config = await getAlertProvider();
-    if (!config) return { ok: false, error: 'Falta configurar el servicio de avisos (API key).' };
-    const phone = getStoreWhatsAppNumber(await getSiteContent());
-    if (!phone) return { ok: false, error: 'No hay número de WhatsApp en Admin › Contenido.' };
+  const config = await getAlertProvider().catch(() => null);
+  if (!config) return { ok: false, error: 'Falta configurar el servicio de avisos (API key).' };
+  const phone = getStoreWhatsAppNumber(await getSiteContent());
+  if (!phone) return { ok: false, error: 'No hay número de WhatsApp en Admin › Contenido.' };
+  return sendWhatsAppVia(config, phone, text);
+}
 
+async function sendWhatsAppVia(
+  config: { provider: AlertProvider; apiKey: string },
+  phone: string,
+  text: string
+): Promise<{ ok: boolean; error?: string }> {
+  try {
     const url =
       config.provider === 'textmebot'
         ? `https://api.textmebot.com/send.php?recipient=%2B${phone}&apikey=${encodeURIComponent(config.apiKey)}&text=${encodeURIComponent(text)}`
@@ -157,4 +174,59 @@ export async function sendStoreAlert(
 export async function notifyStoreNewOrder(order: OrderForAlert): Promise<void> {
   const { results } = await sendStoreAlert(buildStoreOrderAlert(order));
   for (const r of results) if (!r.ok) console.warn(`Aviso de pedido por ${r.channel} no enviado:`, r.error);
+}
+
+// ── Confirmation to the customer's own WhatsApp ──────────────────────────
+
+/** Only TextMeBot can message other people: it sends from the store's own
+ * WhatsApp (linked by QR). CallMeBot can only message the key's owner. */
+export async function getCustomerWhatsAppKey(): Promise<string | null> {
+  return getConfigValue('TEXTMEBOT_API_KEY');
+}
+
+export async function getLastCustomerWhatsAppResult(): Promise<DeliveryLog | null> {
+  try {
+    return JSON.parse((await getConfigValue('CUSTOMER_WA_LAST_RESULT')) || 'null');
+  } catch {
+    return null;
+  }
+}
+
+export async function sendCustomerWhatsApp(phone: string, text: string): Promise<{ ok: boolean; error?: string }> {
+  const apiKey = await getCustomerWhatsAppKey().catch(() => null);
+  if (!apiKey) {
+    return { ok: false, error: 'Para enviarlo solo se necesita TextMeBot conectado (Avisos de pedidos nuevos › WhatsApp).' };
+  }
+  const recipient = normalizePhone(phone);
+  if (recipient.length < 12) return { ok: false, error: `El celular del cliente (${phone}) no parece un número válido.` };
+  return sendWhatsAppVia({ provider: 'textmebot', apiKey }, recipient, text);
+}
+
+const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Everything that happens once an order is committed (COD at creation,
+ * Wompi when paid): email + WhatsApp to the customer, alert to the store.
+ * Never throws. */
+export async function notifyOrderConfirmed(order: OrderForAlert): Promise<void> {
+  await Promise.allSettled([sendOrderConfirmationEmail(order), notifyStoreNewOrder(order)]);
+
+  if (isWhatsAppOrder(order.wompiReference)) return;
+  const provider = await getAlertProvider().catch(() => null);
+  if (provider?.provider !== 'textmebot') return;
+  // TextMeBot needs a few seconds between messages from the same number,
+  // and the store alert may have just gone out through it.
+  await pause(6000);
+  const result = await sendCustomerWhatsApp(order.shippingPhone, buildOrderConfirmationMessage(order));
+  if (result.ok && order.id) {
+    await prisma.order.update({ where: { id: order.id }, data: { whatsappConfirmedAt: new Date() } }).catch(() => {});
+  }
+  if (!result.ok) console.error(`WhatsApp de confirmación no enviado (${order.wompiReference}): ${result.error}`);
+  const log: DeliveryLog = {
+    ok: result.ok,
+    to: order.shippingPhone,
+    reference: order.wompiReference,
+    at: new Date().toISOString(),
+    error: result.error,
+  };
+  await setConfigValue('CUSTOMER_WA_LAST_RESULT', JSON.stringify(log)).catch(() => {});
 }

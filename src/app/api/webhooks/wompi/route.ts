@@ -1,8 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyWompiWebhook } from '@/lib/wompi';
-import { sendOrderConfirmationEmail } from '@/lib/email';
-import { notifyStoreNewOrder } from '@/lib/orderNotify';
+import { notifyOrderConfirmed } from '@/lib/orderNotify';
 import { buildStockDecrementOps, type ProductWithVariants } from '@/lib/stock';
 import { revalidateProductListings, revalidateProduct } from '@/lib/revalidate';
 
@@ -43,7 +42,7 @@ export async function POST(req: NextRequest) {
     revalidateProductListings();
     for (const product of productMap.values()) revalidateProduct(product.slug);
     // A Wompi order only counts once it's paid — that's when the store hears about it.
-    await Promise.allSettled([sendOrderConfirmationEmail(order), notifyStoreNewOrder(order)]);
+    after(() => notifyOrderConfirmed(order));
   } else if (transaction.status === 'DECLINED' || transaction.status === 'ERROR') {
     await prisma.order.update({ where: { id: order.id }, data: { status: 'CANCELLED' } });
   }
