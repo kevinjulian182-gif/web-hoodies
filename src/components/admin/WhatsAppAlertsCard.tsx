@@ -2,10 +2,40 @@
 
 import { useEffect, useState } from 'react';
 
-type Status = { configured: boolean; phone: string };
+type Provider = 'textmebot' | 'callmebot';
+type Status = { provider: Provider | null; phone: string };
+
+const PROVIDERS: Record<
+  Provider,
+  { name: string; tag: string; steps: React.ReactNode[]; url: string }
+> = {
+  textmebot: {
+    name: 'TextMeBot',
+    tag: 'Recomendado · pago (bajo costo)',
+    url: 'https://textmebot.com',
+    steps: [
+      <>Crea una cuenta en textmebot.com y elige el plan para enviarte mensajes a ti mismo.</>,
+      <>Vincula el WhatsApp de la tienda escaneando el código QR (como WhatsApp Web).</>,
+      <>Copia tu API key, pégala aquí y guarda.</>,
+    ],
+  },
+  callmebot: {
+    name: 'CallMeBot',
+    tag: 'Gratis · a veces está lleno o bloqueado',
+    url: 'https://www.callmebot.com/blog/free-api-whatsapp-messages/',
+    steps: [
+      <>Desde el WhatsApp de la tienda, abre la página de CallMeBot y guarda el número que indican.</>,
+      <>
+        Envíale: <span className="rounded bg-cream-100 px-1.5 py-0.5 font-mono text-xs">I allow callmebot to send me messages</span>
+      </>,
+      <>Si responde con tu API key, pégala aquí. Si dice que está lleno, usa TextMeBot.</>,
+    ],
+  },
+};
 
 export default function WhatsAppAlertsCard() {
   const [status, setStatus] = useState<Status | null>(null);
+  const [provider, setProvider] = useState<Provider>('textmebot');
   const [apiKey, setApiKey] = useState('');
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -14,7 +44,10 @@ export default function WhatsAppAlertsCard() {
   const load = () =>
     fetch('/api/admin/notifications')
       .then((r) => (r.ok ? r.json() : null))
-      .then(setStatus)
+      .then((s: Status | null) => {
+        setStatus(s);
+        if (s?.provider) setProvider(s.provider);
+      })
       .catch(() => setStatus(null));
   useEffect(() => {
     load();
@@ -27,7 +60,7 @@ export default function WhatsAppAlertsCard() {
     const res = await fetch('/api/admin/notifications', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ apiKey: apiKey.trim() }),
+      body: JSON.stringify({ provider, apiKey: apiKey.trim() }),
     });
     setSaving(false);
     if (!res.ok) {
@@ -53,6 +86,8 @@ export default function WhatsAppAlertsCard() {
   };
 
   const phoneLabel = status?.phone ? `+${status.phone}` : null;
+  const active = Boolean(status?.provider && phoneLabel);
+  const info = PROVIDERS[provider];
 
   return (
     <section className="mt-12 max-w-xl rounded-2xl border border-cream-200 bg-white p-5">
@@ -65,10 +100,10 @@ export default function WhatsAppAlertsCard() {
         </div>
         <span
           className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
-            status?.configured && phoneLabel ? 'bg-green-100 text-green-800' : 'bg-cream-100 text-coffee-600'
+            active ? 'bg-green-100 text-green-800' : 'bg-cream-100 text-coffee-600'
           }`}
         >
-          {status?.configured && phoneLabel ? 'Activo' : 'Sin configurar'}
+          {active ? `Activo · ${PROVIDERS[status!.provider!].name}` : 'Sin configurar'}
         </span>
       </div>
 
@@ -81,31 +116,41 @@ export default function WhatsAppAlertsCard() {
         )}
       </p>
 
-      <ol className="mt-4 list-decimal space-y-1.5 pl-5 text-sm text-coffee-700">
-        <li>
-          Desde ese WhatsApp, abre{' '}
-          <a
-            href="https://www.callmebot.com/blog/free-api-whatsapp-messages/"
-            target="_blank"
-            rel="noreferrer"
-            className="font-medium underline underline-offset-2"
+      <div role="radiogroup" aria-label="Servicio de envío" className="mt-4 grid grid-cols-2 gap-2">
+        {(Object.keys(PROVIDERS) as Provider[]).map((key) => (
+          <button
+            key={key}
+            type="button"
+            role="radio"
+            aria-checked={provider === key}
+            onClick={() => setProvider(key)}
+            className={`rounded-xl border p-3 text-left transition-colors ${
+              provider === key ? 'border-coffee-900 bg-cream-50' : 'border-cream-200 hover:border-coffee-400'
+            }`}
           >
-            la página de CallMeBot
-          </a>{' '}
-          y guarda el número de WhatsApp que indican ahí.
-        </li>
-        <li>
-          Envíale el mensaje: <span className="rounded bg-cream-100 px-1.5 py-0.5 font-mono text-xs">I allow callmebot to send me messages</span>
-        </li>
-        <li>Te responde con tu API key. Pégala aquí y guarda.</li>
+            <span className="block text-sm font-medium text-coffee-900">{PROVIDERS[key].name}</span>
+            <span className="mt-0.5 block text-[11px] leading-snug text-coffee-500">{PROVIDERS[key].tag}</span>
+          </button>
+        ))}
+      </div>
+
+      <ol className="mt-4 list-decimal space-y-1.5 pl-5 text-sm text-coffee-700">
+        {info.steps.map((step, i) => (
+          <li key={i}>{step}</li>
+        ))}
       </ol>
+      <a href={info.url} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs font-medium text-coffee-800 underline underline-offset-2">
+        Abrir {info.name} ↗
+      </a>
 
       <div className="mt-4 flex gap-2">
         <input
           type="password"
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
-          placeholder={status?.configured ? '•••••• (ya configurada — escribe para cambiarla)' : 'API key de CallMeBot'}
+          placeholder={
+            status?.provider === provider ? '•••••• (ya configurada — escribe para cambiarla)' : `API key de ${info.name}`
+          }
           className="min-w-0 flex-1 rounded-lg border border-cream-200 px-3 py-2.5 text-sm focus:border-coffee-700 focus:outline-none focus:ring-2 focus:ring-coffee-900/10"
         />
         <button
@@ -121,7 +166,7 @@ export default function WhatsAppAlertsCard() {
       <button
         type="button"
         onClick={test}
-        disabled={testing || !status?.configured || !phoneLabel}
+        disabled={testing || !active}
         className="mt-3 rounded-lg border border-cream-300 px-4 py-2 text-sm text-coffee-800 transition-colors hover:border-coffee-600 disabled:cursor-not-allowed disabled:opacity-40"
       >
         {testing ? 'Enviando…' : 'Enviar mensaje de prueba'}

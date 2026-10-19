@@ -35,6 +35,7 @@ export const CONFIG_KEYS = [
   'INTER_RAPIDISIMO_API_KEY',
   'RESEND_API_KEY',
   'CALLMEBOT_API_KEY',
+  'TEXTMEBOT_API_KEY',
 ] as const;
 
 export type ConfigKey = (typeof CONFIG_KEYS)[number];

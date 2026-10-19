@@ -10,6 +10,7 @@ const LABELS: Record<string, string> = {
   INTER_RAPIDISIMO_API_KEY: 'Inter Rapidísimo — API Key',
   RESEND_API_KEY: 'Resend — API Key (correos)',
   CALLMEBOT_API_KEY: 'CallMeBot — API Key (avisos de pedidos por WhatsApp)',
+  TEXTMEBOT_API_KEY: 'TextMeBot — API Key (avisos de pedidos por WhatsApp)',
 };
 
 export default function SettingsPage() {
