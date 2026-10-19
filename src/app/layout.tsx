@@ -7,6 +7,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import PageTransition from '@/components/PageTransition';
 import HydrationFlag from '@/components/HydrationFlag';
+import StorefrontOnly from '@/components/StorefrontOnly';
 import CartDrawer from '@/components/CartDrawer';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import CustomCursor from '@/components/CustomCursor';
@@ -73,37 +74,41 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               showColors={content['catalog.show_colors_on_card'] === 'true'}
               showSizes={content['catalog.show_sizes_on_card'] === 'true'}
             >
-              <Navbar
-                logoUrl={content['site.logo_url'] || undefined}
-                transparentOverHero={heroIsFirstAndDark}
-                whatsappNumber={whatsappNumber}
-                social={{
-                  instagramUrl: content['social.instagram_url'] || undefined,
-                  tiktokUrl: content['social.tiktok_url'] || undefined,
-                  facebookUrl: content['social.facebook_url'] || undefined,
-                  xUrl: content['social.x_url'] || undefined,
-                }}
-              />
+              <StorefrontOnly>
+                <Navbar
+                  logoUrl={content['site.logo_url'] || undefined}
+                  transparentOverHero={heroIsFirstAndDark}
+                  whatsappNumber={whatsappNumber}
+                  social={{
+                    instagramUrl: content['social.instagram_url'] || undefined,
+                    tiktokUrl: content['social.tiktok_url'] || undefined,
+                    facebookUrl: content['social.facebook_url'] || undefined,
+                    xUrl: content['social.x_url'] || undefined,
+                  }}
+                />
+              </StorefrontOnly>
               <main>
                 <PageTransition>{children}</PageTransition>
               </main>
-              <Footer
-                tagline={content['footer.tagline']}
-                copyrightYear={content['footer.copyright_year']}
-                whatsappNumber={whatsappNumber}
-                social={{
-                  instagramUrl: content['social.instagram_url'] || undefined,
-                  tiktokUrl: content['social.tiktok_url'] || undefined,
-                  facebookUrl: content['social.facebook_url'] || undefined,
-                  xUrl: content['social.x_url'] || undefined,
-                }}
-              />
-              <CartDrawer
-                freeShippingThresholdCents={getFreeShippingThresholdCents(content)}
-                whatsappNumber={whatsappNumber}
-              />
-              <WhatsAppButton number={whatsappNumber} />
-              <CustomCursor />
+              <StorefrontOnly>
+                <Footer
+                  tagline={content['footer.tagline']}
+                  copyrightYear={content['footer.copyright_year']}
+                  whatsappNumber={whatsappNumber}
+                  social={{
+                    instagramUrl: content['social.instagram_url'] || undefined,
+                    tiktokUrl: content['social.tiktok_url'] || undefined,
+                    facebookUrl: content['social.facebook_url'] || undefined,
+                    xUrl: content['social.x_url'] || undefined,
+                  }}
+                />
+                <CartDrawer
+                  freeShippingThresholdCents={getFreeShippingThresholdCents(content)}
+                  whatsappNumber={whatsappNumber}
+                />
+                <WhatsAppButton number={whatsappNumber} />
+                <CustomCursor />
+              </StorefrontOnly>
               <HydrationFlag />
             </CatalogSettingsProvider>
           </WishlistProvider>

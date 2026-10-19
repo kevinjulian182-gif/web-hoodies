@@ -163,7 +163,7 @@ export default function AdminContentPage() {
 
   return (
     <div>
-      <div className="sticky top-0 z-10 -mx-8 mb-6 flex items-center justify-between gap-4 border-b border-cream-200 bg-cream-50 px-8 py-4">
+      <div className="sticky top-[6.25rem] z-10 -mx-4 mb-6 flex items-center justify-between gap-4 border-b border-cream-200 bg-cream-50 px-4 py-4 md:top-0 md:-mx-8 md:px-8">
         <div>
           <h1 className="text-2xl font-semibold tracking-tightest text-coffee-900">Contenido de la web</h1>
           {dirtyCount > 0 && (
