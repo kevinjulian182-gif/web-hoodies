@@ -80,26 +80,37 @@ export default function ProductCard({
             add sliding up from inside the photo. Phones keep the plain tile
             and the always-visible button below (no hover on touch). */}
         <div className="relative aspect-[3/4] overflow-hidden rounded-2xl border border-cream-200/70 bg-cream-50 transition-[transform,box-shadow,border-color] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] md:border-transparent md:bg-[radial-gradient(110%_85%_at_50%_35%,rgb(var(--color-cream-50))_0%,rgb(var(--color-cream-100))_70%,rgb(var(--color-cream-200)/0.7)_100%)] md:group-hover:-translate-y-1.5 md:group-hover:shadow-[0_24px_48px_-20px_rgba(54,37,25,0.45)]">
-          {displayImages[0] && (
-            <Image
-              src={displayImages[0]}
-              alt={`${product.brand} ${product.name}`}
-              fill
-              className={`object-contain transition-[transform,opacity] duration-700 ease-out group-hover:scale-105 md:p-3 ${
-                displayImages[1] ? 'group-hover:opacity-0' : ''
-              } ${soldOut ? 'opacity-60 grayscale-[70%]' : ''}`}
-              sizes="(max-width: 768px) 100vw, 50vw"
-            />
-          )}
-          {displayImages[1] && (
-            <Image
-              src={displayImages[1]}
-              alt={`${product.brand} ${product.name}`}
-              fill
-              className="object-contain opacity-0 transition-opacity duration-500 ease-out group-hover:opacity-100 md:p-3"
-              sizes="(max-width: 768px) 100vw, 50vw"
-            />
-          )}
+          {/* Phones: swipe through the photos right on the card. */}
+          <SwipeGallery
+            key={color}
+            images={displayImages.slice(0, 6)}
+            alt={`${product.brand} ${product.name}`}
+            soldOut={soldOut}
+          />
+
+          {/* Desktop: hover swaps to the second photo. */}
+          <div className="absolute inset-0 hidden md:block">
+            {displayImages[0] && (
+              <Image
+                src={displayImages[0]}
+                alt={`${product.brand} ${product.name}`}
+                fill
+                className={`object-contain p-3 transition-[transform,opacity] duration-700 ease-out group-hover:scale-105 ${
+                  displayImages[1] ? 'group-hover:opacity-0' : ''
+                } ${soldOut ? 'opacity-60 grayscale-[70%]' : ''}`}
+                sizes="(max-width: 768px) 100vw, 50vw"
+              />
+            )}
+            {displayImages[1] && (
+              <Image
+                src={displayImages[1]}
+                alt={`${product.brand} ${product.name}`}
+                fill
+                className="object-contain p-3 opacity-0 transition-opacity duration-500 ease-out group-hover:opacity-100"
+                sizes="(max-width: 768px) 100vw, 50vw"
+              />
+            )}
+          </div>
 
           <HeartButton
             productId={product.id}
@@ -237,6 +248,53 @@ export default function ProductCard({
           )}
         </div>
       </Link>
+    </div>
+  );
+}
+
+function SwipeGallery({ images, alt, soldOut }: { images: string[]; alt: string; soldOut: boolean }) {
+  const [active, setActive] = useState(0);
+
+  if (images.length === 0) return null;
+  return (
+    <div className="absolute inset-0 md:hidden">
+      <div
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          setActive(Math.round(el.scrollLeft / el.clientWidth));
+        }}
+        className="scrollbar-none flex h-full snap-x snap-mandatory overflow-x-auto overscroll-x-contain"
+      >
+        {images.map((src, i) => (
+          <div key={src + i} className="relative h-full w-full shrink-0 snap-center snap-always">
+            <Image
+              src={src}
+              alt={i === 0 ? alt : `${alt} — foto ${i + 1}`}
+              fill
+              draggable={false}
+              className={`object-contain ${soldOut ? 'opacity-60 grayscale-[70%]' : ''}`}
+              sizes="(max-width: 768px) 100vw, 50vw"
+            />
+          </div>
+        ))}
+      </div>
+      {images.length > 1 && (
+        <div
+          aria-hidden="true"
+          className={`pointer-events-none absolute inset-x-0 flex justify-center ${soldOut ? 'bottom-14' : 'bottom-2.5'}`}
+        >
+          <span className="flex items-center gap-1 rounded-full bg-cream-50/75 px-1.5 py-1 backdrop-blur-sm">
+          {images.map((src, i) => (
+            <span
+              key={src + i}
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                i === active ? 'w-4 bg-coffee-900' : 'w-1.5 bg-coffee-900/25'
+              }`}
+            />
+          ))}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
