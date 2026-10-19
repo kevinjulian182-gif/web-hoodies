@@ -96,7 +96,7 @@ export default function WhatsAppAlertsCard() {
     setBotUsername(data.botUsername);
     setMessage(
       data.connected
-        ? { ok: true, text: 'Telegram conectado. Envía una prueba para confirmar.' }
+        ? { ok: true, text: `Telegram conectado al chat de ${data.chatName}. Envía una prueba para confirmar.` }
         : { ok: false, text: `Token guardado. Ahora abre @${data.botUsername} en Telegram, toca «Iniciar» (o escríbele «hola») y vuelve a tocar «Conectar».` }
     );
     load();

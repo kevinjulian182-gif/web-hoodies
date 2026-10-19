@@ -25,16 +25,31 @@ export async function POST(req: NextRequest) {
     if (parsed.data.token) await setConfigValue('TELEGRAM_BOT_TOKEN', token);
     const botUsername: string = me.result.username;
 
-    const updates = await fetch(`https://api.telegram.org/bot${token}/getUpdates`, { cache: 'no-store', signal: AbortSignal.timeout(10000) }).then((r) => r.json());
-    const chats = (updates?.result ?? [])
-      .map((u: { message?: { chat?: { id: number } }; my_chat_member?: { chat?: { id: number } } }) => u.message?.chat?.id ?? u.my_chat_member?.chat?.id)
-      .filter((id: unknown): id is number => typeof id === 'number');
-    const chatId = chats.at(-1);
-    if (!chatId) {
+    const getUpdates = () =>
+      fetch(`https://api.telegram.org/bot${token}/getUpdates`, { cache: 'no-store', signal: AbortSignal.timeout(10000) }).then((r) => r.json());
+    let updates = await getUpdates();
+    // A bot with a webhook set (e.g. used before with another tool) can't be
+    // read with getUpdates (409 Conflict): drop the webhook and retry.
+    if (!updates?.ok && updates?.error_code === 409) {
+      await fetch(`https://api.telegram.org/bot${token}/deleteWebhook`, { cache: 'no-store', signal: AbortSignal.timeout(10000) });
+      updates = await getUpdates();
+    }
+    if (!updates?.ok) {
+      return NextResponse.json({ error: `Telegram respondió: ${updates?.description ?? 'error desconocido'}` }, { status: 502 });
+    }
+    type Chat = { id: number; first_name?: string; username?: string; title?: string };
+    const chats: Chat[] = (updates.result ?? [])
+      .map((u: { message?: { chat?: Chat }; my_chat_member?: { chat?: Chat }; edited_message?: { chat?: Chat } }) =>
+        u.message?.chat ?? u.edited_message?.chat ?? u.my_chat_member?.chat
+      )
+      .filter((c: Chat | undefined): c is Chat => typeof c?.id === 'number');
+    const chat = chats[chats.length - 1];
+    if (!chat) {
       return NextResponse.json({ connected: false, botUsername });
     }
-    await setConfigValue('TELEGRAM_CHAT_ID', String(chatId));
-    return NextResponse.json({ connected: true, botUsername });
+    await setConfigValue('TELEGRAM_CHAT_ID', String(chat.id));
+    const chatName = chat.title ?? chat.first_name ?? (chat.username ? `@${chat.username}` : String(chat.id));
+    return NextResponse.json({ connected: true, botUsername, chatName });
   } catch {
     return NextResponse.json({ error: 'No se pudo conectar con Telegram. Intenta de nuevo.' }, { status: 502 });
   }
