@@ -56,6 +56,9 @@ export default function MediaUploader({
   const [removingBg, setRemovingBg] = useState<Set<string>>(new Set());
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
+  // Files whose URL no longer loads (deleted from the Blob store, store
+  // disconnected…): shown as a clear "no carga" tile instead of a blank one.
+  const [broken, setBroken] = useState<Set<string>>(new Set());
   const inputRef = useRef<HTMLInputElement>(null);
 
   const reorder = (from: number, to: number) => {
@@ -300,6 +303,13 @@ export default function MediaUploader({
       </div>
       {error && <p className="mt-1.5 text-xs text-red-600">{error}</p>}
 
+      {items.some((url) => broken.has(url)) && (
+        <p className="mt-2 text-xs text-red-700">
+          {items.filter((url) => broken.has(url)).length === 1 ? 'Un archivo no carga' : `${items.filter((url) => broken.has(url)).length} archivos no cargan`}
+          : ya no existen en el almacenamiento o el enlace está bloqueado. Quítalos y vuelve a subirlos.
+        </p>
+      )}
+
       {items.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
           {items.map((url, index) => (
@@ -334,11 +344,35 @@ export default function MediaUploader({
                 dragIndex === index ? 'opacity-40' : ''
               } ${overIndex === index && dragIndex !== null && dragIndex !== index ? 'ring-2 ring-coffee-600 rounded-lg' : ''}`}
             >
-              {kind === 'image' ? (
+              {broken.has(url) ? (
+                <a
+                  href={url}
+                  target="_blank"
+                  rel="noreferrer"
+                  title={`No se pudo cargar: ${url}`}
+                  className={`flex h-20 ${kind === 'image' ? 'w-16' : 'w-28'} flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-red-300 bg-red-50 px-1 text-center text-[9px] font-medium leading-tight text-red-700`}
+                >
+                  <span aria-hidden="true" className="text-sm">!</span>
+                  No carga
+                  <span className="underline">Abrir</span>
+                </a>
+              ) : kind === 'image' ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={url} alt="" className="h-20 w-16 rounded-lg object-cover border border-cream-200" draggable={false} />
+                <img
+                  src={url}
+                  alt=""
+                  className="h-20 w-16 rounded-lg object-cover border border-cream-200"
+                  draggable={false}
+                  onError={() => setBroken((prev) => new Set(prev).add(url))}
+                />
               ) : (
-                <video src={url} className="h-20 w-28 rounded-lg object-cover border border-cream-200" muted />
+                <video
+                  src={url}
+                  className="h-20 w-28 rounded-lg object-cover border border-cream-200"
+                  muted
+                  preload="metadata"
+                  onError={() => setBroken((prev) => new Set(prev).add(url))}
+                />
               )}
               {index === 0 && (
                 <span className="absolute left-1 top-1 rounded bg-coffee-900/80 px-1 py-0.5 text-[8px] font-medium leading-none text-cream-50">

@@ -1045,7 +1045,7 @@ export default function AdminProductsPage() {
             <div key={p.id} className="flex items-center gap-4 rounded-xl border border-cream-200 p-3">
               <div className="relative h-16 w-14 shrink-0 overflow-hidden rounded-lg bg-cream-100">
                 {p.images[0] ? (
-                  <Image src={p.images[0]} alt={p.name} fill className="object-cover" sizes="56px" />
+                  <AdminThumb src={p.images[0]} alt={p.name} />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-coffee-300">
                     <NoImageIcon />
@@ -1136,6 +1136,29 @@ function FormField({ label, className = '', children }: { label: string; classNa
       {children}
     </label>
   );
+}
+
+// Plain <img> (no Next optimizer) so a thumbnail shows exactly whether the
+// stored file URL itself loads; a dead URL gets a visible warning instead of
+// an empty box.
+function AdminThumb({ src, alt }: { src: string; alt: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return (
+      <a
+        href={src}
+        target="_blank"
+        rel="noreferrer"
+        title={`La imagen no carga: ${src}`}
+        className="flex h-full w-full flex-col items-center justify-center bg-red-50 text-center text-[9px] font-medium leading-tight text-red-700"
+      >
+        <NoImageIcon />
+        No carga
+      </a>
+    );
+  }
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={src} alt={alt} loading="lazy" className="h-full w-full object-cover" onError={() => setFailed(true)} />;
 }
 
 function NoImageIcon() {
