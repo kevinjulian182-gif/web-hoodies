@@ -35,6 +35,35 @@ type Props = {
   shippingAddress?: ShippingAddress;
 };
 
+// Wompi refuses to open the payment ("No se pudo crear la transacción") when
+// a prefilled field breaks its rules, e.g. an address line under 4
+// characters. Prefill is optional, so anything that can't be fixed is left
+// out and the shopper simply types it in Wompi.
+const WOMPI_MIN_LENGTH = 4;
+
+/** 10-digit Colombian mobile, dropping a leading 57; null if it isn't one. */
+function colombianMobile(phone: string): string | null {
+  let digits = phone.replace(/\D/g, '');
+  if (digits.length === 12 && digits.startsWith('57')) digits = digits.slice(2);
+  return digits.length === 10 ? digits : null;
+}
+
+function wompiShippingAddress(address: ShippingAddress): ShippingAddress | null {
+  let addressLine1 = address.addressLine1.trim();
+  let addressLine2 = address.addressLine2?.trim() || undefined;
+  // Short complements ("501", "2B") ride along on the first line.
+  if (addressLine2 && addressLine2.length < WOMPI_MIN_LENGTH) {
+    addressLine1 = `${addressLine1}, ${addressLine2}`;
+    addressLine2 = undefined;
+  }
+  const phoneNumber = colombianMobile(address.phoneNumber);
+  const city = address.city.trim();
+  const region = address.region.trim();
+  const name = address.name.trim();
+  if (!phoneNumber || [addressLine1, city, region, name].some((v) => v.length < WOMPI_MIN_LENGTH)) return null;
+  return { ...address, addressLine1, addressLine2, city, region, name, phoneNumber };
+}
+
 export default function WompiCheckoutButton({
   publicKey,
   currency,
@@ -65,22 +94,26 @@ export default function WompiCheckoutButton({
     script.setAttribute('data-redirect-url', redirectUrl);
 
     if (customer) {
+      const phone = colombianMobile(customer.phoneNumber);
       script.setAttribute('data-customer-data:email', customer.email);
       script.setAttribute('data-customer-data:full-name', customer.fullName);
-      script.setAttribute('data-customer-data:phone-number', customer.phoneNumber);
-      script.setAttribute('data-customer-data:phone-number-prefix', customer.phoneNumberPrefix ?? '+57');
+      if (phone) {
+        script.setAttribute('data-customer-data:phone-number', phone);
+        script.setAttribute('data-customer-data:phone-number-prefix', customer.phoneNumberPrefix ?? '+57');
+      }
     }
 
-    if (shippingAddress) {
-      script.setAttribute('data-shipping-address:address-line-1', shippingAddress.addressLine1);
-      if (shippingAddress.addressLine2) {
-        script.setAttribute('data-shipping-address:address-line-2', shippingAddress.addressLine2);
+    const address = shippingAddress && wompiShippingAddress(shippingAddress);
+    if (address) {
+      script.setAttribute('data-shipping-address:address-line-1', address.addressLine1);
+      if (address.addressLine2) {
+        script.setAttribute('data-shipping-address:address-line-2', address.addressLine2);
       }
-      script.setAttribute('data-shipping-address:country', shippingAddress.country ?? 'CO');
-      script.setAttribute('data-shipping-address:city', shippingAddress.city);
-      script.setAttribute('data-shipping-address:region', shippingAddress.region);
-      script.setAttribute('data-shipping-address:phone-number', shippingAddress.phoneNumber);
-      script.setAttribute('data-shipping-address:name', shippingAddress.name);
+      script.setAttribute('data-shipping-address:country', address.country ?? 'CO');
+      script.setAttribute('data-shipping-address:city', address.city);
+      script.setAttribute('data-shipping-address:region', address.region);
+      script.setAttribute('data-shipping-address:phone-number', address.phoneNumber);
+      script.setAttribute('data-shipping-address:name', address.name);
     }
 
     // Wompi's own button only exists once this script finishes loading and
