@@ -139,10 +139,10 @@ export default function ProductGrid({
     setActiveSizes((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
   };
   const [promoOnly, setPromoOnly] = useState(false);
-  // Phones: size/brand/deals fold behind "Más filtros" so the panel doesn't
+  // Phones: size and deals fold behind "Más filtros" so the panel doesn't
   // fill the whole screen before the first product. Opens by itself when
   // one of them arrives preset from the URL.
-  const [moreOpen, setMoreOpen] = useState(Boolean(initialSize || initialBrand));
+  const [moreOpen, setMoreOpen] = useState(Boolean(initialSize));
   const [view, setView] = useState<GridView>(DEFAULT_VIEW);
 
   useEffect(() => {
@@ -214,16 +214,15 @@ export default function ProductGrid({
   const showCategoryRow = categories.length > 1;
   const showSizeRow = sizes.length > 1;
   const showFilters = showBrandRow || showCategoryRow || showSizeRow || showPromoToggle;
-  const moreRows = [showSizeRow, showBrandRow, showPromoToggle].filter(Boolean).length;
-  const moreActive = activeSizes.length + (activeBrand ? 1 : 0) + (promoOnly ? 1 : 0);
+  const moreRows = [showSizeRow, showPromoToggle].filter(Boolean).length;
+  const moreActive = activeSizes.length + (promoOnly ? 1 : 0);
   const moreRowClass = moreOpen ? '' : 'hidden md:grid';
 
   return (
     <div className="mx-auto max-w-screen-2xl px-6 pb-16 pt-10 md:px-10 md:pb-20 md:pt-12">
       {showFilters && (
         <div className="mb-8 rounded-3xl border border-cream-200 bg-white/50 md:mb-12">
-          {/* One row per filter, in the order people narrow down clothes:
-              what garment → their size → brand → deals. Label above the
+          {/* One row per filter: what garment → brand → size → deals. Label above the
               options on phones, in a fixed left column from md up. */}
           <div className="divide-y divide-cream-200">
             {showCategoryRow && (
@@ -252,6 +251,32 @@ export default function ProductGrid({
               </FilterRow>
             )}
 
+            {showBrandRow && (
+              <FilterRow label="Marca" activeKey={norm(activeBrand)}>
+                <BrandTile
+                  label="Todas"
+                  active={!linkMode && activeBrand === null}
+                  href={linkMode ? '/productos' : undefined}
+                  onClick={() => setActiveBrand(null)}
+                />
+                {brands.map((brand) => {
+                  const active = !linkMode && norm(activeBrand) === norm(brand);
+                  return (
+                    <BrandTile
+                      key={brand}
+                      label={brand}
+                      logo={logoByBrand.get(norm(brand))}
+                      active={active}
+                      dimmed={!linkMode && activeBrand !== null && !active}
+                      disabled={!active && !brandHasResults(brand)}
+                      href={linkMode ? catalogHref({ marca: brand }) : undefined}
+                      onClick={() => setActiveBrand(active ? null : brand)}
+                    />
+                  );
+                })}
+              </FilterRow>
+            )}
+
             {moreRows > 0 && (
               <button
                 type="button"
@@ -263,7 +288,7 @@ export default function ProductGrid({
                   <SlidersIcon />
                   {moreOpen ? 'Menos filtros' : 'Más filtros'}
                   <span className="font-normal normal-case tracking-normal text-coffee-500">
-                    {[showSizeRow && 'talla', showBrandRow && 'marca', showPromoToggle && 'ofertas'].filter(Boolean).join(', ')}
+                    {[showSizeRow && 'talla', showPromoToggle && 'ofertas'].filter(Boolean).join(', ')}
                   </span>
                 </span>
                 <span className="flex items-center gap-2">
@@ -306,31 +331,6 @@ export default function ProductGrid({
               </FilterRow>
             )}
 
-            {showBrandRow && (
-              <FilterRow className={moreRowClass} label="Marca" activeKey={norm(activeBrand)}>
-                <BrandTile
-                  label="Todas"
-                  active={!linkMode && activeBrand === null}
-                  href={linkMode ? '/productos' : undefined}
-                  onClick={() => setActiveBrand(null)}
-                />
-                {brands.map((brand) => {
-                  const active = !linkMode && norm(activeBrand) === norm(brand);
-                  return (
-                    <BrandTile
-                      key={brand}
-                      label={brand}
-                      logo={logoByBrand.get(norm(brand))}
-                      active={active}
-                      dimmed={!linkMode && activeBrand !== null && !active}
-                      disabled={!active && !brandHasResults(brand)}
-                      href={linkMode ? catalogHref({ marca: brand }) : undefined}
-                      onClick={() => setActiveBrand(active ? null : brand)}
-                    />
-                  );
-                })}
-              </FilterRow>
-            )}
 
             {showPromoToggle && (
               <FilterRow className={moreRowClass} label="Ofertas" activeKey={promoOnly ? 'on' : ''}>
