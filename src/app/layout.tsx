@@ -9,11 +9,9 @@ import PageTransition from '@/components/PageTransition';
 import HydrationFlag from '@/components/HydrationFlag';
 import StorefrontOnly from '@/components/StorefrontOnly';
 import MetaPixel from '@/components/MetaPixel';
-import { META_PIXEL_ID } from '@/lib/metaPixel';
 import { SITE_URL } from '@/lib/seo';
 import JsonLd from '@/components/JsonLd';
 import { RETURN_POLICY } from '@/lib/legal';
-import { COOKIE_CONSENT_KEY } from '@/lib/legal';
 import CookieConsent from '@/components/CookieConsent';
 import CartDrawer from '@/components/CartDrawer';
 import WhatsAppButton from '@/components/WhatsAppButton';
@@ -136,25 +134,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="es">
       <head>
-        {/* Meta Pixel Code — pasted as Meta provides it, in the <head> of every page */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `!function(f,b,e,v,n,t,s)
-{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-n.queue=[];t=b.createElement(e);t.async=!0;
-t.src=v;s=b.getElementsByTagName(e)[0];
-s.parentNode.insertBefore(t,s)}(window, document,'script',
-'https://connect.facebook.net/en_US/fbevents.js');
-// Nothing is sent to Meta until the visitor accepts cookies (banner).
-var consent=null;try{consent=JSON.parse(localStorage.getItem('${COOKIE_CONSENT_KEY}'))}catch(e){}
-fbq('consent', consent && consent.choice === 'all' ? 'grant' : 'revoke');
-fbq('init', '${META_PIXEL_ID}');
-fbq('track', 'PageView');`,
-          }}
-        />
-        {/* End Meta Pixel Code */}
+        {/* Meta Pixel: one copy, loaded from /meta-pixel.js (see that route). */}
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script src="/meta-pixel.js" />
       </head>
       <body>
         <style dangerouslySetInnerHTML={{ __html: themeCss }} />

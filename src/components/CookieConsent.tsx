@@ -28,7 +28,6 @@ export default function CookieConsent() {
   }, []);
 
   const choose = (choice: CookieChoice) => {
-    const previous = readCookieConsent()?.choice;
     try {
       localStorage.setItem(
         COOKIE_CONSENT_KEY,
@@ -38,10 +37,9 @@ export default function CookieConsent() {
       // storage blocked: the banner will simply ask again next visit
     }
     const fbq = (window as unknown as { fbq?: Fbq }).fbq;
-    if (fbq) {
-      fbq('consent', choice === 'all' ? 'grant' : 'revoke');
-      if (choice === 'all' && previous !== 'all') fbq('track', 'PageView');
-    }
+    // Granting releases the PageView Meta held while consent was pending,
+    // so no extra PageView is sent here (it would count the visit twice).
+    if (fbq) fbq('consent', choice === 'all' ? 'grant' : 'revoke');
     window.dispatchEvent(new CustomEvent(COOKIE_CONSENT_EVENT, { detail: choice }));
     fetch('/api/consent', {
       method: 'POST',
