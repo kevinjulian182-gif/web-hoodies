@@ -1,7 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyWompiWebhook } from '@/lib/wompi';
-import { sendOrderConfirmationEmail } from '@/lib/email';
+import { notifyOrderConfirmed } from '@/lib/orderNotify';
+import { orderHoldsStock, releaseOrderStock, takeOrderStock } from '@/lib/stock';
+import { revalidateProductListings, revalidateProduct } from '@/lib/revalidate';
 
 export async function POST(req: NextRequest) {
   const event = await req.json();
@@ -14,28 +16,40 @@ export async function POST(req: NextRequest) {
   const { transaction } = event.data;
   const order = await prisma.order.findUnique({
     where: { wompiReference: transaction.reference },
-    include: { items: { include: { product: true } } },
+    include: { items: { include: { product: { include: { variants: true } } } } },
   });
   if (!order) {
     return NextResponse.json({ error: 'Pedido no encontrado' }, { status: 404 });
   }
 
-  if (transaction.status === 'APPROVED' && order.status === 'PENDING') {
-    await prisma.$transaction([
-      prisma.order.update({
-        where: { id: order.id },
-        data: { status: 'PAID', wompiTransactionId: transaction.id },
-      }),
-      ...order.items.map((item) =>
-        prisma.product.update({
-          where: { id: item.productId },
-          data: { stock: { decrement: item.quantity } },
-        })
-      ),
-    ]);
-    await sendOrderConfirmationEmail({ ...order, status: 'PAID' });
-  } else if (transaction.status === 'DECLINED' || transaction.status === 'ERROR') {
-    await prisma.order.update({ where: { id: order.id }, data: { status: 'CANCELLED' } });
+  // A paid order whose reservation had already been released (declined
+  // retry, or left past the hold window) takes its units again.
+  if (transaction.status === 'APPROVED' && (order.status === 'PENDING' || order.status === 'CANCELLED')) {
+    const holds = orderHoldsStock(order);
+    const { count } = await prisma.order.updateMany({
+      where: { id: order.id, status: order.status },
+      data: { status: 'PAID', wompiTransactionId: transaction.id },
+    });
+    if (count === 1) {
+      const slugs = holds ? [] : await takeOrderStock(order.id);
+      if (slugs.length) {
+        revalidateProductListings();
+        for (const slug of new Set(slugs)) revalidateProduct(slug);
+      }
+      // A Wompi order only counts once it's paid — that's when the store hears about it.
+      after(() => notifyOrderConfirmed(order));
+    }
+  } else if ((transaction.status === 'DECLINED' || transaction.status === 'ERROR') && order.status === 'PENDING') {
+    const holds = orderHoldsStock(order);
+    const { count } = await prisma.order.updateMany({
+      where: { id: order.id, status: 'PENDING' },
+      data: { status: 'CANCELLED' },
+    });
+    if (count === 1 && holds) {
+      const slugs = await releaseOrderStock(order.id);
+      revalidateProductListings();
+      for (const slug of new Set(slugs)) revalidateProduct(slug);
+    }
   }
 
   return NextResponse.json({ ok: true });

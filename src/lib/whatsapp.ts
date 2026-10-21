@@ -1,0 +1,105 @@
+import { formatCOP } from '@/lib/format';
+import type { SiteContent } from '@/lib/content';
+
+/** Normalizes a Colombian phone number to the digits-only, country-code-
+ * prefixed form wa.me needs (e.g. "313 808 9302" or "3138089302" ->
+ * "573138089302"). A number already carrying a country code (more than 10
+ * digits) is left as-is. */
+export function normalizePhone(phone: string): string {
+  const digits = phone.replace(/\D/g, '');
+  if (!digits) return '';
+  return digits.length <= 10 ? `57${digits}` : digits;
+}
+
+/** Builds a wa.me deep link pre-addressed to a Colombian customer with a
+ * ready-to-send message. Opening it starts a chat FROM whoever clicks it —
+ * there's no way to make WhatsApp actually send on its own without the
+ * paid Business API, so this is the "one click, no cost" middle ground. */
+export function buildWhatsAppLink(phone: string, message: string): string {
+  return `https://wa.me/${normalizePhone(phone)}?text=${encodeURIComponent(message)}`;
+}
+
+/** The store's own WhatsApp contact number (not a customer's), normalized
+ * to the country-code-prefixed digits wa.me needs so every usage site can
+ * drop it straight into a wa.me link without its own formatting. Prefers
+ * the admin-editable site content field so it can be changed without a
+ * redeploy; falls back to the env var for sites that set it the old way
+ * and haven't filled the new admin field yet. */
+export function getStoreWhatsAppNumber(content: Pick<SiteContent, 'site.whatsapp_number'>): string {
+  return normalizePhone(content['site.whatsapp_number'] || process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '');
+}
+
+/** Pre-written order message for shoppers who'd rather buy over WhatsApp
+ * than through the checkout: one line per cart item plus the subtotal. */
+export function buildWhatsAppOrderMessage(
+  items: { name: string; size: string; color?: string; quantity: number; priceCents: number }[],
+  subtotalCents: number,
+  customer?: { name: string; city?: string; reference?: string; shipping?: { free: boolean; fromCents: number } }
+): string {
+  const shipping = customer?.shipping;
+  const lines = items.map(
+    (i) =>
+      `• ${i.quantity} x ${i.name} — Talla ${i.size}${i.color ? `, ${i.color}` : ''} (${formatCOP(i.priceCents * i.quantity)})`
+  );
+  return [
+    'Hola, quiero hacer este pedido por WhatsApp:',
+    '',
+    ...lines,
+    '',
+    `Subtotal: ${formatCOP(subtotalCents)}`,
+    ...(!shipping
+      ? []
+      : shipping.free
+        ? ['Envío: Gratis', `Total: ${formatCOP(subtotalCents)}`]
+        : shipping.fromCents > 0
+          ? [`Envío: según mi ciudad (desde ${formatCOP(shipping.fromCents)})`]
+          : []),
+    '',
+    ...(customer
+      ? [
+          customer.reference ? `Pedido: ${customer.reference}` : null,
+          `Nombre: ${customer.name}`,
+          customer.city ? `Ciudad: ${customer.city}` : null,
+        ].filter((line): line is string => line !== null)
+      : ['Mi nombre y ciudad de envío:']),
+  ].join('\n');
+}
+
+export function buildOrderConfirmationMessage(order: {
+  customerName: string;
+  totalCents: number;
+  paymentMethod: 'WOMPI' | 'COD';
+  shippingAddress: string;
+  shippingAddressComplement?: string | null;
+  shippingCity: string;
+  shippingDepartment?: string | null;
+  wompiReference?: string;
+  items: { quantity: number; size?: string; color?: string | null; product: { name: string } }[];
+}): string {
+  const total = formatCOP(order.totalCents);
+  const firstName = order.customerName.trim().split(/\s+/)[0] || order.customerName;
+  const address = `${order.shippingAddress}${order.shippingAddressComplement ? `, ${order.shippingAddressComplement}` : ''}, ${order.shippingCity}${order.shippingDepartment ? `, ${order.shippingDepartment}` : ''}`;
+  const paymentLine =
+    order.paymentMethod === 'COD'
+      ? `💵 Pagas ${total} contra entrega, en efectivo o con datáfono.`
+      : `✅ Tu pago de ${total} ya fue confirmado.`;
+  const productsLine = order.items
+    .map((i) => {
+      const detail = [i.size && `Talla ${i.size}`, i.color].filter(Boolean).join(', ');
+      return `• ${i.quantity}x ${i.product.name}${detail ? ` (${detail})` : ''}`;
+    })
+    .join('\n');
+
+  return [
+    `👋 ¡Hola ${firstName}! Gracias por comprar en AFRA.`,
+    ``,
+    `✅ *Tu pedido quedó confirmado*${order.wompiReference ? ` (${order.wompiReference})` : ''}`,
+    productsLine,
+    ``,
+    paymentLine,
+    `📍 Lo enviamos a: ${address}`,
+    `🚚 Lo despachamos en 24 horas hábiles y te compartimos la guía por aquí.`,
+    ``,
+    `¿Dudas? Responde este mensaje 😊`,
+  ].join('\n');
+}
