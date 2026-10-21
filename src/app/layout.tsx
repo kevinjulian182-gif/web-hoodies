@@ -10,6 +10,11 @@ import HydrationFlag from '@/components/HydrationFlag';
 import StorefrontOnly from '@/components/StorefrontOnly';
 import MetaPixel from '@/components/MetaPixel';
 import { META_PIXEL_ID } from '@/lib/metaPixel';
+import { SITE_URL } from '@/lib/seo';
+import JsonLd from '@/components/JsonLd';
+import { RETURN_POLICY } from '@/lib/legal';
+import { COOKIE_CONSENT_KEY } from '@/lib/legal';
+import CookieConsent from '@/components/CookieConsent';
 import CartDrawer from '@/components/CartDrawer';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import CustomCursor from '@/components/CustomCursor';
@@ -19,9 +24,11 @@ import {
   getHeroImages,
   getFreeShippingThresholdCents,
   getShippingRates,
+  getLegalInfo,
 } from '@/lib/content';
 import { generateThemeVars, themeVarsToCss } from '@/lib/theme';
 import { getStoreWhatsAppNumber } from '@/lib/whatsapp';
+import AnalyticsTracker from '@/components/AnalyticsTracker';
 
 // This layout wraps every page in the app, and a force-dynamic ancestor
 // forces every descendant page dynamic too regardless of its own config —
@@ -45,9 +52,14 @@ export const viewport: Viewport = {
 
 export async function generateMetadata(): Promise<Metadata> {
   const content = await getSiteContent();
+  // Version the share image by the uploaded file so networks refetch it
+  // after it changes in the admin.
+  const ogImage = `/og-image?v=${encodeURIComponent((content['site.og_image'] || 'default').slice(-24))}`;
   return {
-    title: content['site.title'],
+    metadataBase: new URL(SITE_URL),
+    title: { default: content['site.title'], template: '%s | AFRA' },
     description: content['site.description'],
+    applicationName: 'AFRA',
     icons: { icon: content['site.favicon_url'] || '/icon.svg', apple: '/apple-icon.png' },
     openGraph: {
       siteName: 'AFRA',
@@ -55,11 +67,14 @@ export async function generateMetadata(): Promise<Metadata> {
       description: content['site.description'],
       locale: 'es_CO',
       type: 'website',
+      url: SITE_URL,
+      images: [{ url: ogImage, width: 1200, height: 630, alt: 'AFRA — streetwear de marca en Colombia' }],
     },
     twitter: {
       card: 'summary_large_image',
       title: content['site.title'],
       description: content['site.description'],
+      images: [ogImage],
     },
   };
 }
@@ -71,6 +86,52 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     (Boolean(content['hero.video_url']) || getHeroImages(content).length > 0);
   const themeCss = themeVarsToCss(generateThemeVars(content['theme.coffee_color'], content['theme.cream_color']));
   const whatsappNumber = getStoreWhatsAppNumber(content);
+  const legal = getLegalInfo(content);
+  const sameAs = ['social.instagram_url', 'social.tiktok_url', 'social.facebook_url', 'social.x_url']
+    .map((k) => content[k as keyof typeof content])
+    .filter(Boolean);
+  const siteLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'OnlineStore',
+        '@id': `${SITE_URL}/#organization`,
+        name: 'AFRA',
+        ...(legal.name !== 'AFRA' ? { legalName: legal.name } : {}),
+        ...(legal.nit ? { taxID: legal.nit } : {}),
+        url: SITE_URL,
+        logo: `${SITE_URL}/apple-icon.png`,
+        description: content['site.description'],
+        ...(sameAs.length ? { sameAs } : {}),
+        address: { '@type': 'PostalAddress', addressLocality: 'Bogotá', addressCountry: 'CO' },
+        contactPoint: {
+          '@type': 'ContactPoint',
+          contactType: 'customer service',
+          areaServed: 'CO',
+          availableLanguage: 'es',
+          ...(legal.phone ? { telephone: legal.phone } : {}),
+          ...(legal.email ? { email: legal.email } : {}),
+        },
+        hasMerchantReturnPolicy: {
+          '@type': 'MerchantReturnPolicy',
+          applicableCountry: 'CO',
+          returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
+          merchantReturnDays: RETURN_POLICY.withdrawalBusinessDays,
+          returnMethod: 'https://schema.org/ReturnByMail',
+          returnFees: 'https://schema.org/ReturnShippingFees',
+          merchantReturnLink: `${SITE_URL}/reembolsos`,
+        },
+      },
+      {
+        '@type': 'WebSite',
+        '@id': `${SITE_URL}/#website`,
+        name: 'AFRA',
+        url: SITE_URL,
+        inLanguage: 'es-CO',
+        publisher: { '@id': `${SITE_URL}/#organization` },
+      },
+    ],
+  };
 
   return (
     <html lang="es">
@@ -86,24 +147,18 @@ n.queue=[];t=b.createElement(e);t.async=!0;
 t.src=v;s=b.getElementsByTagName(e)[0];
 s.parentNode.insertBefore(t,s)}(window, document,'script',
 'https://connect.facebook.net/en_US/fbevents.js');
+// Nothing is sent to Meta until the visitor accepts cookies (banner).
+var consent=null;try{consent=JSON.parse(localStorage.getItem('${COOKIE_CONSENT_KEY}'))}catch(e){}
+fbq('consent', consent && consent.choice === 'all' ? 'grant' : 'revoke');
 fbq('init', '${META_PIXEL_ID}');
 fbq('track', 'PageView');`,
           }}
         />
-        <noscript>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            height="1"
-            width="1"
-            style={{ display: 'none' }}
-            alt=""
-            src={`https://www.facebook.com/tr?id=${META_PIXEL_ID}&ev=PageView&noscript=1`}
-          />
-        </noscript>
         {/* End Meta Pixel Code */}
       </head>
       <body>
         <style dangerouslySetInnerHTML={{ __html: themeCss }} />
+        <JsonLd data={siteLd} />
         <CartProvider>
           <WishlistProvider>
             <CatalogSettingsProvider
@@ -144,6 +199,8 @@ fbq('track', 'PageView');`,
                 <WhatsAppButton number={whatsappNumber} />
                 <CustomCursor />
                 <MetaPixel />
+                <CookieConsent />
+                <AnalyticsTracker />
               </StorefrontOnly>
               <HydrationFlag />
             </CatalogSettingsProvider>

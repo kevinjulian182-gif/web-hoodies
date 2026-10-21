@@ -10,7 +10,7 @@ export default function WhatsAppCatalogCard() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    setFeedUrl(`${window.location.origin}${FEED_PATH}`);
+    setFeedUrl(`${window.location.origin.replace('//admin.', '//')}${FEED_PATH}`);
     fetch(FEED_PATH)
       .then((r) => r.text())
       .then((csv) => setCount(Math.max(0, csv.trim().split('\n').length - 1)))

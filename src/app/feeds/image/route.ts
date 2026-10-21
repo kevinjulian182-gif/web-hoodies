@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import sharp from 'sharp';
+import { copyrightExif } from '@/lib/imageRights';
 
 // Product photos are stored as WebP (lighter for the store), but Meta's
 // catalog — and with it WhatsApp Business — only takes JPG/PNG and wants
@@ -36,6 +37,7 @@ export async function GET(req: NextRequest) {
       .rotate()
       .resize(1080, 1080, { fit: 'contain', background: '#ffffff' })
       .flatten({ background: '#ffffff' })
+      .withExif(copyrightExif())
       .jpeg({ quality: 85, mozjpeg: true })
       .toBuffer();
     return new Response(new Uint8Array(jpg), {

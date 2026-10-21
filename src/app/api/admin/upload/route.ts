@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { put, BlobError } from '@vercel/blob';
 import sharp from 'sharp';
 import { getSession, requireRole } from '@/lib/auth';
+import { copyrightExif } from '@/lib/imageRights';
 
 // Vercel's serverless functions cap the whole request body around 4.5MB and
 // reject anything larger with a platform-level 413 before this handler ever
@@ -52,6 +53,7 @@ export async function POST(req: NextRequest) {
       const optimized = await sharp(original)
         .rotate()
         .resize({ width: 2000, height: 2000, fit: 'inside', withoutEnlargement: true })
+        .withExif(copyrightExif())
         .webp({ quality: 82 })
         .toBuffer();
 

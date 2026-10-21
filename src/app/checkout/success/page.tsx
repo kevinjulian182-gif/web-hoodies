@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useCart } from '@/lib/cart';
 import { PENDING_PURCHASE_KEY, trackPixel } from '@/lib/metaPixel';
+import { track } from '@/lib/analytics';
 
 export default function CheckoutSuccessPage() {
   return (
@@ -37,6 +38,7 @@ function CheckoutSuccessContent() {
           },
           reference ?? undefined
         );
+        track('purchase', { value: pending.value, detail: isCod ? 'contra entrega' : 'en línea' });
         sessionStorage.removeItem(PENDING_PURCHASE_KEY);
       }
     } catch {

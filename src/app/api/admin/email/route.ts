@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getSession, requireRole } from '@/lib/auth';
 import { setConfigValue } from '@/lib/config';
-import { DEFAULT_EMAIL_FROM, getEmailSettings, getLastEmailResult } from '@/lib/email';
+import { DEFAULT_EMAIL_FROM, DEFAULT_MARKETING_FROM, getEmailSettings, getLastEmailResult } from '@/lib/email';
 import { getCustomerWhatsAppKey, getLastCustomerWhatsAppResult } from '@/lib/orderNotify';
 
 // Status of the confirmations the customer gets (email + WhatsApp).
@@ -21,6 +21,8 @@ export async function GET() {
     configured: Boolean(settings.apiKey),
     from: settings.from,
     defaultFrom: DEFAULT_EMAIL_FROM,
+    marketingFrom: settings.marketingFrom,
+    defaultMarketingFrom: DEFAULT_MARKETING_FROM,
     lastEmail,
     whatsappReady: Boolean(waKey),
     lastWhatsApp,
@@ -35,6 +37,11 @@ const schema = z.object({
     .trim()
     .regex(/^([^<>]+<[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+>|[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+)$/, 'Escribe un remitente como: AFRA <pedidos@wearafra.com>')
     .optional(),
+  marketingFrom: z
+    .string()
+    .trim()
+    .regex(/^([^<>]+<[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+>|[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+)$/, 'Escribe un remitente como: AFRA <hola@news.wearafra.com>')
+    .optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -46,8 +53,9 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Datos inválidos' }, { status: 400 });
   }
-  const { apiKey, from } = parsed.data;
+  const { apiKey, from, marketingFrom } = parsed.data;
   if (apiKey) await setConfigValue('RESEND_API_KEY', apiKey);
   if (from) await setConfigValue('EMAIL_FROM', from);
+  if (marketingFrom) await setConfigValue('EMAIL_FROM_MARKETING', marketingFrom);
   return NextResponse.json({ ok: true });
 }

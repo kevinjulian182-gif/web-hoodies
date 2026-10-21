@@ -21,6 +21,8 @@ import WompiCheckoutButton from '@/components/WompiCheckoutButton';
 import Logo from '@/components/Logo';
 import { autoBulletize, pasteBulletedText } from '@/lib/textareaBullets';
 import { catalogItemId, pesos, PENDING_PURCHASE_KEY, trackPixel } from '@/lib/metaPixel';
+import LegalConsentFields, { type LegalConsentState } from '@/components/LegalConsentFields';
+import { track } from '@/lib/analytics';
 
 type CheckoutData = {
   orderId: string;
@@ -127,6 +129,8 @@ export default function CheckoutPage() {
   // Wompi order created earlier in this visit; if the shopper comes back and
   // places a new one, the server releases the units this one reserved.
   const lastWompiRef = useRef<string | null>(null);
+  const [legalConsent, setLegalConsent] = useState<LegalConsentState>({ terms: false, privacy: false });
+  const [consentError, setConsentError] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
@@ -174,6 +178,7 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (checkoutTracked.current || items.length === 0) return;
     checkoutTracked.current = true;
+    track('begin_checkout', { value: pesos(subtotalCents) });
     trackPixel('InitiateCheckout', {
       content_type: 'product',
       content_ids: items.map((i) => catalogItemId(i.productId, i.color)),
@@ -182,6 +187,16 @@ export default function CheckoutPage() {
       currency: 'COP',
     });
   }, [items, subtotalCents]);
+
+  // Product analytics: which checkout step each visit reaches.
+  // Waits for the cart (it loads from storage after mount) and counts each
+  // step once per visit.
+  const trackedSteps = useRef(new Set<number>());
+  useEffect(() => {
+    if (items.length === 0 || trackedSteps.current.has(step)) return;
+    trackedSteps.current.add(step);
+    track('checkout_step', { step });
+  }, [step, items.length]);
 
   const isFirstRender = useRef(true);
   useEffect(() => {
@@ -229,6 +244,7 @@ export default function CheckoutPage() {
     setTouched((t) => ({ ...t, ...Object.fromEntries(fields.map((f) => [f, true])) }));
     const firstInvalid = fields.find((f) => !isValid(f));
     if (firstInvalid) {
+      track('checkout_error', { step: current, detail: `Campos: ${fields.filter((f) => !isValid(f)).join(', ')}` });
       e.currentTarget.querySelector<HTMLElement>(`[name="${firstInvalid}"]`)?.focus();
       return;
     }
@@ -262,6 +278,11 @@ export default function CheckoutPage() {
   };
 
   const handleConfirmPayment = async () => {
+    if (!legalConsent.terms || !legalConsent.privacy) {
+      setConsentError(true);
+      track('checkout_error', { step: 3, detail: 'Sin aceptar términos/privacidad' });
+      return;
+    }
     if (hasSoldOut) {
       setError('Hay productos agotados en tu pedido. Quítalos para continuar.');
       return;
@@ -276,6 +297,8 @@ export default function CheckoutPage() {
           ...form,
           couponCode: coupon?.code,
           previousReference: lastWompiRef.current ?? undefined,
+          acceptTerms: legalConsent.terms,
+          acceptPrivacy: legalConsent.privacy,
           paymentMethod,
           items: items.map((i) => ({ productId: i.productId, size: i.size, color: i.color, quantity: i.quantity })),
         }),
@@ -283,6 +306,7 @@ export default function CheckoutPage() {
       const data = await res.json();
       if (!res.ok) {
         setError(extractError(data.error));
+        track('checkout_error', { step: 3, detail: extractError(data.error).slice(0, 180) });
         return;
       }
       try {
@@ -683,6 +707,10 @@ export default function CheckoutPage() {
                     error={couponError}
                   />
 
+                  <div className="rounded-2xl border border-cream-200 bg-white/60 p-4">
+                    <LegalConsentFields value={legalConsent} onChange={setLegalConsent} showError={consentError} />
+                  </div>
+
                   <AnimatePresence>
                     {error && (
                       <motion.p
@@ -712,17 +740,6 @@ export default function CheckoutPage() {
                       )}
                     </PrimaryButton>
                   </StepActions>
-                  <p className="text-center text-xs text-coffee-500">
-                    Al confirmar aceptas nuestros{' '}
-                    <Link href="/terminos" className="underline underline-offset-2 hover:text-coffee-800">
-                      términos
-                    </Link>{' '}
-                    y{' '}
-                    <Link href="/privacidad" className="underline underline-offset-2 hover:text-coffee-800">
-                      política de privacidad
-                    </Link>
-                    .
-                  </p>
                 </motion.div>
               )}
 

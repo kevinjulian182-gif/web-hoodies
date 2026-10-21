@@ -1,19 +1,26 @@
 'use client';
 
 import { useState } from 'react';
+import LegalConsentFields, { type LegalConsentState } from '@/components/LegalConsentFields';
 
 export default function NewsletterForm() {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [consent, setConsent] = useState<LegalConsentState>({ terms: false, privacy: false });
+  const [consentError, setConsentError] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!consent.terms || !consent.privacy) {
+      setConsentError(true);
+      return;
+    }
     setStatus('sending');
     try {
       const res = await fetch('/api/newsletter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, acceptTerms: consent.terms, acceptPrivacy: consent.privacy }),
       });
       if (!res.ok) throw new Error('request failed');
       setStatus('sent');
@@ -43,6 +50,9 @@ export default function NewsletterForm() {
           {status === 'sent' ? 'Listo' : status === 'sending' ? 'Enviando…' : 'Suscribirme'}
         </button>
       </form>
+      <div className="mt-3 text-left">
+        <LegalConsentFields value={consent} onChange={setConsent} showError={consentError} />
+      </div>
       {status === 'error' && (
         <p className="mt-2 text-center text-xs text-red-700">No pudimos guardar tu correo. Intenta de nuevo.</p>
       )}

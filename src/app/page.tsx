@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import Hero from '@/components/Hero';
 import BrandSpotlight from '@/components/BrandSpotlight';
@@ -29,6 +30,8 @@ type PublicProduct = Omit<Product, 'costCents'>;
 // just self-heals anything that changes outside the admin (checkout stock
 // decrements) without needing every write path wired to revalidate.
 export const revalidate = 60;
+
+export const metadata: Metadata = { alternates: { canonical: '/' } };
 
 function renderSection(
   id: HomeSectionId,

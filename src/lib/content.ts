@@ -4,8 +4,12 @@ import { prisma } from '@/lib/prisma';
 export const CONTENT_DEFAULTS = {
   'theme.coffee_color': '#291C13',
   'theme.cream_color': '#FBF6EC',
-  'site.title': 'AFRA — Streetwear de lujo',
-  'site.description': 'Hoodies, sudaderas y chaquetas de las marcas más exclusivas.',
+  'site.title': 'AFRA | Hoodies y streetwear de marca en Colombia',
+  'site.description':
+    'Hoodies, chaquetas y streetwear de Nike, Adidas, BAPE y más. Pago contra entrega, envíos a toda Colombia y cambios fáciles.',
+  // Image shown when the site is shared on WhatsApp, Instagram, Facebook…
+  // (1200×630 recommended). Empty = a branded image generated automatically.
+  'site.og_image': '',
   'hero.eyebrow': 'Colección permanente',
   'hero.title_line1': 'Streetwear',
   'hero.title_line2': 'de élite.',
@@ -51,6 +55,13 @@ export const CONTENT_DEFAULTS = {
   'site.favicon_url': '',
   'site.logo_url': '',
   'site.whatsapp_number': '',
+  // Shown on the legal pages (Ley 1480 de 2011, art. 50: an online store
+  // must identify itself) and in the store's structured data.
+  'legal.business_name': 'AFRA',
+  'legal.nit': '',
+  'legal.address': 'Bogotá D.C., Colombia',
+  'legal.email': '',
+  'legal.phone': '',
   'faq.items': JSON.stringify([
     {
       question: '¿Cómo funciona el pago contra entrega?',
@@ -277,6 +288,12 @@ export const CONTENT_FIELDS: Array<{
   },
   { key: 'site.favicon_url', label: 'Favicon', section: 'General del sitio', type: 'image' },
   {
+    key: 'site.og_image',
+    label: 'Imagen para compartir (Open Graph) — se ve al enviar el link por WhatsApp o redes. Ideal 1200×630',
+    section: 'General del sitio',
+    type: 'image',
+  },
+  {
     key: 'site.whatsapp_number',
     label: 'Número de WhatsApp de contacto (ej: 3138089302, con o sin indicativo 57)',
     section: 'General del sitio',
@@ -342,6 +359,11 @@ export const CONTENT_FIELDS: Array<{
     section: 'Envíos y tarifas (Interrapidísimo)',
     multiline: true,
   },
+  { key: 'legal.business_name', label: 'Razón social o nombre del titular', section: 'Datos legales de la tienda' },
+  { key: 'legal.nit', label: 'NIT o cédula (con dígito de verificación)', section: 'Datos legales de la tienda' },
+  { key: 'legal.address', label: 'Dirección de notificaciones', section: 'Datos legales de la tienda' },
+  { key: 'legal.email', label: 'Correo de atención al cliente y datos personales', section: 'Datos legales de la tienda' },
+  { key: 'legal.phone', label: 'Teléfono de atención (si se deja vacío, se usa el WhatsApp)', section: 'Datos legales de la tienda' },
   { key: 'footer.tagline', label: 'Descripción de la marca', section: 'Pie de página', multiline: true },
   { key: 'footer.copyright_year', label: 'Año del copyright', section: 'Pie de página' },
   { key: 'social.instagram_url', label: 'Instagram (URL, opcional)', section: 'Pie de página' },
@@ -390,4 +412,16 @@ export async function getSiteContent(): Promise<SiteContent> {
   const rows = await prisma.siteContent.findMany();
   const overrides = Object.fromEntries(rows.map((r) => [r.key, r.value]));
   return { ...CONTENT_DEFAULTS, ...overrides } as SiteContent;
+}
+
+/** Store identity for the legal pages; empty fields are simply omitted. */
+export function getLegalInfo(content: SiteContent) {
+  const whatsapp = content['site.whatsapp_number'] || process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '';
+  return {
+    name: content['legal.business_name'] || 'AFRA',
+    nit: content['legal.nit'],
+    address: content['legal.address'],
+    email: content['legal.email'],
+    phone: content['legal.phone'] || (whatsapp ? `+${whatsapp.replace(/\D/g, '')}` : ''),
+  };
 }

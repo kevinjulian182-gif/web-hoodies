@@ -1,5 +1,7 @@
 'use client';
 
+import CookieSettingsButton from '@/components/CookieSettingsButton';
+
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Logo from '@/components/Logo';
@@ -135,14 +137,23 @@ export default function Footer({
 
       <div className="border-t border-cream-50/10">
         <div className="mx-auto max-w-7xl px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-cream-100/40">
-          <p>© {copyrightYear} AFRA. Todos los derechos reservados.</p>
-          <div className="flex items-center gap-4">
+          <p className="text-center md:text-left">
+            © {copyrightYear} AFRA. Todos los derechos reservados. Fotos y contenidos protegidos por derechos de autor.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
             <Link href="/terminos" className="hover:text-cream-100/70 transition-colors">
               Términos y condiciones
+            </Link>
+            <Link href="/reembolsos" className="hover:text-cream-100/70 transition-colors">
+              Cambios y reembolsos
             </Link>
             <Link href="/privacidad" className="hover:text-cream-100/70 transition-colors">
               Privacidad
             </Link>
+            <Link href="/cookies" className="hover:text-cream-100/70 transition-colors">
+              Cookies
+            </Link>
+            <CookieSettingsButton className="hover:text-cream-100/70 transition-colors" />
           </div>
           <p>Bogotá, Colombia</p>
         </div>

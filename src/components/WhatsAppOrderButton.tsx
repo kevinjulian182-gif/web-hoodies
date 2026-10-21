@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { buildWhatsAppLink, buildWhatsAppOrderMessage } from '@/lib/whatsapp';
+import LegalConsentFields, { type LegalConsentState } from '@/components/LegalConsentFields';
+import { track } from '@/lib/analytics';
 
 type OrderItem = { productId: string; name: string; size: string; color?: string; quantity: number; priceCents: number };
 
@@ -28,6 +30,8 @@ export default function WhatsAppOrderButton({
   const [city, setCity] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  const [consent, setConsent] = useState<LegalConsentState>({ terms: false, privacy: false });
+  const [consentError, setConsentError] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -58,6 +62,7 @@ export default function WhatsAppOrderButton({
     const digits = phone.replace(/\D/g, '');
     if (name.trim().length < 2) return setError('Escribe tu nombre.');
     if (digits.length < 7) return setError('Escribe un celular válido.');
+    if (!consent.terms || !consent.privacy) return setConsentError(true);
     setError('');
     setSending(true);
     try {
@@ -76,6 +81,8 @@ export default function WhatsAppOrderButton({
           phone: phone.trim(),
           city: city.trim() || undefined,
           items: items.map(({ productId, size, color, quantity }) => ({ productId, size, color, quantity })),
+          acceptTerms: consent.terms,
+          acceptPrivacy: consent.privacy,
         }),
       });
       if (res.status === 409) {
@@ -87,6 +94,7 @@ export default function WhatsAppOrderButton({
       if (res.ok) {
         const data = await res.json();
         reference = data.reference;
+        track('whatsapp_order', { value: Math.round(subtotalCents / 100) });
         shipping = { free: data.freeShipping, fromCents: data.shippingFromCents };
       }
     } catch {
@@ -137,6 +145,10 @@ export default function WhatsAppOrderButton({
                 className={input}
               />
               <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Ciudad (opcional)" autoComplete="address-level2" className={input} />
+            </div>
+
+            <div className="mt-4">
+              <LegalConsentFields value={consent} onChange={setConsent} showError={consentError} />
             </div>
 
             {error && <p className="mt-3 text-sm text-red-700">{error}</p>}

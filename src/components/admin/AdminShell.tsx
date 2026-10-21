@@ -11,6 +11,8 @@ const NAV: NavItem[] = [
   { href: '/admin/products', label: 'Productos', icon: <TagIcon /> },
   { href: '/admin/coupons', label: 'Cupones', icon: <TicketIcon /> },
   { href: '/admin/contenido', label: 'Contenido web', icon: <LayoutIcon /> },
+  { href: '/admin/analitica', label: 'Analítica', icon: <ChartIcon /> },
+  { href: '/admin/consentimientos', label: 'Consentimientos', icon: <ShieldIcon /> },
   { href: '/admin/cuenta', label: 'Mi cuenta', icon: <UserIcon /> },
 ];
 const SUPER_NAV: NavItem = { href: '/admin/settings', label: 'Configuración', icon: <GearIcon /> };
@@ -165,4 +167,11 @@ function ExternalIcon() {
 }
 function LogoutIcon() {
   return <Svg><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10" /></Svg>;
+}
+
+function ShieldIcon() {
+  return <Svg><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z" /><path d="m9 12 2 2 4-4.5" /></Svg>;
+}
+function ChartIcon() {
+  return <Svg><path d="M4 20V10" /><path d="M10 20V4" /><path d="M16 20v-7" /><path d="M22 20H2" /></Svg>;
 }

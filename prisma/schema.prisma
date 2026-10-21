@@ -205,3 +205,51 @@ model BlogPost {
   publishedAt DateTime @default(now())
   createdAt   DateTime @default(now())
 }
+
+// Proof of what a person accepted and when (Ley 1581 de 2012: the store
+// must be able to show each data-processing authorization). One row per
+// acceptance: checkout, WhatsApp order, newsletter or cookie choice.
+// Created on first use by lib/consent.ts if it doesn't exist yet, so no
+// manual migration is needed.
+model ConsentRecord {
+  id           String   @id @default(cuid())
+  createdAt    DateTime @default(now())
+  // checkout | whatsapp_order | newsletter | cookies
+  source       String
+  email        String?
+  name         String?
+  phone        String?
+  // Order reference when the acceptance came with an order.
+  reference    String?
+  acceptedTerms    Boolean @default(false)
+  acceptedPrivacy  Boolean @default(false)
+  // Cookie banner choice: "all" or "necessary".
+  cookies      String?
+  // Version (date) of the legal texts that were shown.
+  legalVersion String
+  ip           String?
+  userAgent    String?
+
+  @@index([email])
+  @@index([createdAt])
+}
+
+// First-party, anonymous product analytics (only with cookie consent): one
+// row per step a visit takes (page, product view, cart, checkout steps,
+// purchase), to see where shoppers drop off. No name, email or IP.
+// Created on first use by lib/analyticsServer.ts.
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  sessionId String
+  name      String
+  path      String?
+  productId String?
+  step      Int?
+  detail    String?
+  value     Int?
+  device    String?
+
+  @@index([createdAt])
+  @@index([sessionId])
+}

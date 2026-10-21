@@ -8,6 +8,8 @@ type Status = {
   configured: boolean;
   from: string;
   defaultFrom: string;
+  marketingFrom: string;
+  defaultMarketingFrom: string;
   lastEmail: DeliveryLog | null;
   whatsappReady: boolean;
   lastWhatsApp: DeliveryLog | null;
@@ -52,6 +54,7 @@ export default function CustomerConfirmationCard() {
   const [status, setStatus] = useState<Status | null>(null);
   const [apiKey, setApiKey] = useState('');
   const [from, setFrom] = useState('');
+  const [marketingFrom, setMarketingFrom] = useState('');
   const [testTo, setTestTo] = useState('');
   const [testPhone, setTestPhone] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
@@ -64,6 +67,7 @@ export default function CustomerConfirmationCard() {
       .then((data: Status) => {
         setStatus(data);
         setFrom(data.from);
+        setMarketingFrom(data.marketingFrom);
       });
 
   useEffect(() => {
@@ -154,14 +158,16 @@ export default function CustomerConfirmationCard() {
             <a href="https://resend.com/domains" target="_blank" rel="noreferrer" className="font-medium underline underline-offset-2">
               Domains
             </a>{' '}
-            toca «Add domain», escribe <span className="font-mono text-xs">wearafra.com</span> y elige la región más cercana
-            (us-east-1).
+            agrega <strong>dos subdominios</strong>, uno a la vez: <span className="font-mono text-xs">mail.wearafra.com</span>{' '}
+            (correos de la tienda: pedidos y guías) y <span className="font-mono text-xs">news.wearafra.com</span> (marketing y
+            newsletter). Así, si una campaña cae en spam, no afecta la llegada de las confirmaciones.
           </li>
           <li>
-            Resend te muestra unos registros (un <span className="font-mono text-xs">MX</span> y varios{' '}
-            <span className="font-mono text-xs">TXT</span>, en el subdominio <span className="font-mono text-xs">send</span> y{' '}
-            <span className="font-mono text-xs">resend._domainkey</span>). Cópialos tal cual en el DNS de tu dominio (donde
-            compraste wearafra.com o en Vercel › Domains si el DNS está allá).
+            Para cada subdominio Resend te muestra unos registros (un <span className="font-mono text-xs">MX</span> y
+            varios <span className="font-mono text-xs">TXT</span>: SPF y DKIM). Cópialos tal cual en el DNS de wearafra.com
+            (donde compraste el dominio o en Vercel › Domains si el DNS está allá). Agrega también un registro{' '}
+            <span className="font-mono text-xs">TXT</span> llamado <span className="font-mono text-xs">_dmarc</span> con el
+            valor <span className="font-mono text-xs">v=DMARC1; p=none;</span>
           </li>
           <li>Vuelve a Resend y toca «Verify». Cuando diga «Verified», sigue.</li>
           <li>
@@ -181,17 +187,36 @@ export default function CustomerConfirmationCard() {
             className={`${input} w-full`}
           />
           <label className="block">
-            <span className="text-xs font-medium text-coffee-600">Remitente (del dominio verificado)</span>
+            <span className="text-xs font-medium text-coffee-600">Remitente de la tienda (pedidos, guías)</span>
             <input value={from} onChange={(e) => setFrom(e.target.value)} placeholder={status?.defaultFrom} className={`${input} mt-1 w-full`} />
+          </label>
+          <label className="block">
+            <span className="text-xs font-medium text-coffee-600">Remitente de marketing (newsletter)</span>
+            <input
+              value={marketingFrom}
+              onChange={(e) => setMarketingFrom(e.target.value)}
+              placeholder={status?.defaultMarketingFrom}
+              className={`${input} mt-1 w-full`}
+            />
           </label>
           <button
             type="button"
             className={button}
-            disabled={busy !== null || !(apiKey.trim() || (from.trim() && from.trim() !== status?.from))}
+            disabled={
+              busy !== null ||
+              !(
+                apiKey.trim() ||
+                (from.trim() && from.trim() !== status?.from) ||
+                (marketingFrom.trim() && marketingFrom.trim() !== status?.marketingFrom)
+              )
+            }
             onClick={() =>
               saveEmail({
                 ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
                 ...(from.trim() && from.trim() !== status?.from ? { from: from.trim() } : {}),
+                ...(marketingFrom.trim() && marketingFrom.trim() !== status?.marketingFrom
+                  ? { marketingFrom: marketingFrom.trim() }
+                  : {}),
               })
             }
           >

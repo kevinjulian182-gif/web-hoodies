@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { notifyStoreNewOrder } from '@/lib/orderNotify';
+import { recordConsent } from '@/lib/consent';
 import { checkStock, buildStockDecrementOps, type ProductWithVariants } from '@/lib/stock';
 import { revalidateProductListings, revalidateProduct } from '@/lib/revalidate';
 import { WHATSAPP_ORDER_PREFIX, PLACEHOLDER_ADDRESS } from '@/lib/orderSource';
@@ -30,6 +31,8 @@ const schema = z.object({
     )
     .min(1)
     .max(30),
+  acceptTerms: z.literal(true),
+  acceptPrivacy: z.literal(true),
 });
 
 // Registers an order placed through "Pedir por WhatsApp" before the shopper
@@ -38,7 +41,7 @@ const schema = z.object({
 export async function POST(req: NextRequest) {
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Revisa tu nombre y celular.' }, { status: 400 });
+    return NextResponse.json({ error: 'Revisa tu nombre y celular, y acepta los términos y la política de privacidad.' }, { status: 400 });
   }
   const { customerName, phone, city, items } = parsed.data;
 
@@ -95,6 +98,14 @@ export async function POST(req: NextRequest) {
   revalidateProductListings();
   for (const product of productMap.values()) revalidateProduct(product.slug);
 
+  await recordConsent(req, {
+    source: 'whatsapp_order',
+    name: customerName,
+    phone,
+    reference,
+    acceptedTerms: true,
+    acceptedPrivacy: true,
+  });
   await notifyStoreNewOrder(order);
   return NextResponse.json({ reference, orderId: order.id, freeShipping, shippingFromCents });
 }

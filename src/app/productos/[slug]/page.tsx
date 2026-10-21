@@ -12,11 +12,14 @@ import MobileBuyBar from '@/components/MobileBuyBar';
 import ReviewsSection from '@/components/ReviewsSection';
 import ComparisonTable from '@/components/ComparisonTable';
 import FaqSection from '@/components/FaqSection';
-import { getSiteContent, getFaqItems } from '@/lib/content';
+import { getSiteContent, getFaqItems, getLegalInfo, getShippingRates, getFreeShippingThresholdCents } from '@/lib/content';
 import { parseColorImages } from '@/lib/colors';
 import { ProductColorProvider } from '@/lib/productColor';
 import { getStoreWhatsAppNumber } from '@/lib/whatsapp';
 import { parseSizeChart } from '@/lib/sizeChart';
+import JsonLd from '@/components/JsonLd';
+import { SITE_URL, jpgImage, metaDescription } from '@/lib/seo';
+import { RETURN_POLICY } from '@/lib/legal';
 
 // Cached per slug and served statically between revalidations — product
 // edits and new reviews invalidate this specific page immediately via
@@ -42,11 +45,24 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const product = await prisma.product.findUnique({ where: { slug } });
-  if (!product) return { title: 'Producto no encontrado — AFRA' };
+  if (!product) return { title: 'Producto no encontrado', robots: { index: false } };
+  const name = product.name.toLowerCase().includes(product.brand.toLowerCase())
+    ? product.name
+    : `${product.brand} ${product.name}`;
+  const title = name.length <= 38 ? `${name} | Envío a toda Colombia` : name;
+  const description = metaDescription(
+    `${name}: ${product.description} Pago contra entrega, envíos a toda Colombia y cambios fáciles.`
+  );
   return {
-    title: `${product.name} — ${product.brand} — AFRA`,
-    description: `${product.description} Pago contra entrega y envíos a toda Colombia.`,
-    openGraph: product.images[0] ? { images: [product.images[0]] } : undefined,
+    title,
+    description,
+    alternates: { canonical: `/productos/${product.slug}` },
+    openGraph: {
+      title: name,
+      description,
+      images: product.images[0] ? [{ url: jpgImage(product.images[0]), width: 1080, height: 1080, alt: name }] : undefined,
+    },
+    twitter: { card: 'summary_large_image', title: name, description },
   };
 }
 
@@ -71,8 +87,101 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const whatsappNumber = getStoreWhatsAppNumber(content);
   const generalSizeChart = parseGeneralSizeChart(content['sizeguide.chart']);
 
+  const productUrl = `${SITE_URL}/productos/${product.slug}`;
+  const stock = product.variants.length > 0 ? product.variants.reduce((n, v) => n + v.stock, 0) : product.stock;
+  const legal = getLegalInfo(content);
+  const shippingCents = getShippingRates(content).nationalCents;
+  const freeOverCents = getFreeShippingThresholdCents(content);
+  const ratingCount = reviews.length;
+  const ratingValue = ratingCount ? reviews.reduce((n, r) => n + r.rating, 0) / ratingCount : 0;
+  const productLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    '@id': `${productUrl}#product`,
+    name: `${product.brand} ${product.name}`,
+    description: metaDescription(product.description, 5000),
+    sku: product.id,
+    url: productUrl,
+    brand: { '@type': 'Brand', name: product.brand },
+    ...(product.category ? { category: product.category } : {}),
+    ...(product.colors.length ? { color: product.colors.join(', ') } : {}),
+    ...(product.sizes.length ? { size: product.sizes.join(', ') } : {}),
+    ...(product.materials ? { material: metaDescription(product.materials, 200) } : {}),
+    image: product.images.slice(0, 6).map((src) => ({
+      '@type': 'ImageObject',
+      contentUrl: jpgImage(src),
+      creditText: 'AFRA',
+      creator: { '@type': 'Organization', name: legal.name },
+      copyrightNotice: `© ${new Date().getFullYear()} ${legal.name}`,
+      license: `${SITE_URL}/terminos#propiedad-intelectual`,
+      acquireLicensePage: `${SITE_URL}/terminos#propiedad-intelectual`,
+    })),
+    offers: {
+      '@type': 'Offer',
+      url: productUrl,
+      priceCurrency: 'COP',
+      price: Math.round(product.priceCents / 100),
+      availability: stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+      itemCondition: 'https://schema.org/NewCondition',
+      seller: { '@type': 'Organization', name: legal.name },
+      shippingDetails: {
+        '@type': 'OfferShippingDetails',
+        shippingRate: {
+          '@type': 'MonetaryAmount',
+          value: freeOverCents > 0 && product.priceCents >= freeOverCents ? 0 : Math.round(shippingCents / 100),
+          currency: 'COP',
+        },
+        shippingDestination: { '@type': 'DefinedRegion', addressCountry: 'CO' },
+        deliveryTime: {
+          '@type': 'ShippingDeliveryTime',
+          handlingTime: { '@type': 'QuantitativeValue', minValue: 0, maxValue: 1, unitCode: 'DAY' },
+          transitTime: { '@type': 'QuantitativeValue', minValue: 1, maxValue: 5, unitCode: 'DAY' },
+        },
+      },
+      hasMerchantReturnPolicy: {
+        '@type': 'MerchantReturnPolicy',
+        applicableCountry: 'CO',
+        returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
+        merchantReturnDays: RETURN_POLICY.withdrawalBusinessDays,
+        returnMethod: 'https://schema.org/ReturnByMail',
+        returnFees: 'https://schema.org/ReturnShippingFees',
+        merchantReturnLink: `${SITE_URL}/reembolsos`,
+      },
+    },
+    ...(ratingCount
+      ? {
+          aggregateRating: {
+            '@type': 'AggregateRating',
+            ratingValue: Number(ratingValue.toFixed(1)),
+            reviewCount: ratingCount,
+            bestRating: 5,
+            worstRating: 1,
+          },
+          review: reviews.slice(0, 5).map((r) => ({
+            '@type': 'Review',
+            author: { '@type': 'Person', name: r.authorName },
+            datePublished: r.createdAt.toISOString().slice(0, 10),
+            reviewBody: r.comment,
+            reviewRating: { '@type': 'Rating', ratingValue: r.rating, bestRating: 5, worstRating: 1 },
+          })),
+        }
+      : {}),
+  };
+  const breadcrumbLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Inicio', item: `${SITE_URL}/` },
+      { '@type': 'ListItem', position: 2, name: 'Catálogo', item: `${SITE_URL}/productos` },
+      { '@type': 'ListItem', position: 3, name: product.brand, item: `${SITE_URL}/productos?marca=${encodeURIComponent(product.brand)}` },
+      { '@type': 'ListItem', position: 4, name: product.name, item: productUrl },
+    ],
+  };
+
   return (
     <div>
+      <JsonLd data={productLd} />
+      <JsonLd data={breadcrumbLd} />
       <nav aria-label="Breadcrumb" className="mx-auto max-w-6xl px-6 pt-6 text-xs text-coffee-500">
         <ol className="flex flex-wrap items-center gap-1.5">
           <li>

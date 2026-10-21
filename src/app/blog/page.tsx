@@ -6,8 +6,9 @@ import { prisma } from '@/lib/prisma';
 // Cached statically — a blog post only changes when an admin saves one,
 // and that save calls revalidateBlogListing() to bust this immediately.
 export const metadata: Metadata = {
-  title: 'Blog — AFRA',
-  description: 'Guías de cuidado, garantía e historia del streetwear que vendemos.',
+  title: 'Blog de streetwear: guías, cuidado y tendencias',
+  description: 'Guías para elegir talla, cuidar tus prendas y conocer la historia de las marcas de streetwear que vendemos en AFRA.',
+  alternates: { canonical: '/blog' },
 };
 
 export default async function BlogPage() {

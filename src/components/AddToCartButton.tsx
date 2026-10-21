@@ -14,6 +14,7 @@ import { WhatsAppGlyph } from '@/components/CartDrawer';
 import { resolveSizeGuide, type SizeChart } from '@/lib/sizeChart';
 import SizeGuide from '@/components/SizeGuide';
 import type { Product } from '@prisma/client';
+import { track } from '@/lib/analytics';
 
 const LOW_STOCK_THRESHOLD = 5;
 
@@ -43,6 +44,7 @@ export default function AddToCartButton({
     const id = catalogItemId(product.id, color || null);
     if (lastViewed.current === id) return;
     lastViewed.current = id;
+    track('view_product', { productId: product.id });
     trackPixel('ViewContent', {
       content_type: 'product',
       content_ids: [id],

@@ -3,7 +3,7 @@ import { getSession } from '@/lib/auth';
 import AdminShell from '@/components/admin/AdminShell';
 
 export const metadata: Metadata = {
-  title: 'Panel Admin — AFRA',
+  title: 'Panel de administración',
   robots: { index: false, follow: false },
 };
 

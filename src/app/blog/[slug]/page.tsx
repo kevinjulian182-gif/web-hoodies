@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
+import JsonLd from '@/components/JsonLd';
+import { SITE_URL, jpgImage } from '@/lib/seo';
 
 // Cached per slug on first visit — edits call revalidateBlogPost(slug). See
 // the equivalent comment on productos/[slug]/page.tsx for why this exists
@@ -18,8 +20,13 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const post = await prisma.blogPost.findUnique({ where: { slug } });
-  if (!post) return { title: 'Blog — AFRA' };
-  return { title: `${post.title} — AFRA`, description: post.excerpt };
+  if (!post) return { title: 'Artículo no encontrado', robots: { index: false } };
+  return {
+    title: post.title,
+    description: post.excerpt.slice(0, 160),
+    alternates: { canonical: `/blog/${post.slug}` },
+    openGraph: { type: 'article', title: post.title, description: post.excerpt, images: post.coverImage ? [post.coverImage] : undefined },
+  };
 }
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -34,8 +41,25 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const isHtml = /<[a-z][\s\S]*>/i.test(post.content);
   const paragraphs = isHtml ? [] : post.content.split('\n\n');
 
+  const postUrl = `${SITE_URL}/blog/${post.slug}`;
+  const postLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: post.title,
+    description: post.excerpt,
+    url: postUrl,
+    mainEntityOfPage: postUrl,
+    datePublished: post.publishedAt.toISOString(),
+    dateModified: post.publishedAt.toISOString(),
+    inLanguage: 'es-CO',
+    ...(post.coverImage ? { image: [jpgImage(post.coverImage)] } : {}),
+    author: { '@type': 'Organization', name: 'AFRA', url: SITE_URL },
+    publisher: { '@id': `${SITE_URL}/#organization` },
+  };
+
   return (
     <article className="mx-auto max-w-3xl px-6 py-20">
+      <JsonLd data={postLd} />
       <Link href="/blog" className="text-sm text-coffee-500 hover:text-coffee-900 transition-colors">
         ← Volver al blog
       </Link>

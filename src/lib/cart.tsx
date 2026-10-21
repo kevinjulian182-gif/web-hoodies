@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { catalogItemId, pesos, trackPixel } from '@/lib/metaPixel';
+import { track } from '@/lib/analytics';
 
 export type CartItem = {
   productId: string;
@@ -137,6 +138,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     // the cart lives; later adds just confirm on the button and bump the
     // badge instead of interrupting browsing every time.
     if (options?.openDrawer !== false && current.length === 0) setIsOpen(true);
+    track('add_to_cart', { productId: item.productId, value: pesos(item.priceCents * item.quantity) });
     trackPixel('AddToCart', {
       content_type: 'product',
       content_ids: [catalogItemId(item.productId, item.color)],

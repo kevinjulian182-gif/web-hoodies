@@ -5,8 +5,9 @@ import { getSiteContent } from '@/lib/content';
 // Cached statically — content edits call revalidateSite(), which busts
 // the whole layout tree this page lives under.
 export const metadata: Metadata = {
-  title: 'Sobre nosotros — AFRA',
-  description: 'La historia y los valores detrás de AFRA, streetwear de élite.',
+  title: 'Sobre nosotros: la historia detrás de AFRA',
+  description: 'Conoce quiénes somos, cómo elegimos cada prenda y por qué miles de personas compran streetwear de marca con AFRA en Colombia.',
+  alternates: { canonical: '/nosotros' },
 };
 
 const STATS = [

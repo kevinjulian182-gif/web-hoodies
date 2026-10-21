@@ -289,6 +289,11 @@ export default function MediaUploader({
         {uploading
           ? 'Subiendo…'
           : `Arrastra ${kind === 'image' ? 'imágenes' : 'videos'} aquí, haz clic para elegir, o pega con Ctrl+V`}
+        {kind === 'image' && !uploading && (
+          <span className="mt-1 block text-[11px] text-coffee-400">
+            Usa solo fotos propias o con permiso de su autor. Cada foto queda marcada con © AFRA en sus metadatos.
+          </span>
+        )}
         <input
           ref={inputRef}
           type="file"

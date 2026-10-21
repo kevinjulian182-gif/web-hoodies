@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Finalizar compra — AFRA',
+  title: 'Finalizar compra',
   robots: { index: false, follow: false },
 };
 

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { buildWompiSignature, generateOrderReference, getWompiPublicKey } from '@/lib/wompi';
 import { notifyOrderConfirmed } from '@/lib/orderNotify';
+import { recordConsent } from '@/lib/consent';
 import {
   checkStock,
   buildStockDecrementOps,
@@ -28,6 +29,10 @@ const schema = z.object({
   // Wompi order this shopper started and then left (changed method/coupon):
   // its reserved units are released before this one is checked.
   previousReference: z.string().optional(),
+  acceptTerms: z.literal(true, { errorMap: () => ({ message: 'Debes aceptar los términos y condiciones.' }) }),
+  acceptPrivacy: z.literal(true, {
+    errorMap: () => ({ message: 'Debes autorizar el tratamiento de tus datos personales.' }),
+  }),
   paymentMethod: z.enum(['WOMPI', 'COD']).default('WOMPI'),
   items: z
     .array(
@@ -46,7 +51,7 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
-  const { items, couponCode, paymentMethod, previousReference, ...customer } = parsed.data;
+  const { items, couponCode, paymentMethod, previousReference, acceptTerms, acceptPrivacy, ...customer } = parsed.data;
 
   const released = await releaseStaleReservations();
   if (previousReference) {
@@ -149,6 +154,15 @@ export async function POST(req: NextRequest) {
   // Every order takes its units the moment it's placed, so two shoppers
   // can't buy the last one. A Wompi order that's declined or never paid
   // gives them back (webhook / releaseStaleReservations).
+  await recordConsent(req, {
+    source: 'checkout',
+    email: customer.customerEmail,
+    name: customer.customerName,
+    phone: customer.shippingPhone,
+    reference,
+    acceptedTerms: acceptTerms,
+    acceptedPrivacy: acceptPrivacy,
+  });
   await prisma.$transaction(buildStockDecrementOps(productMap, items));
   revalidateProductListings();
   for (const product of productMap.values()) revalidateProduct(product.slug);

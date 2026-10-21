@@ -1,3 +1,4 @@
+import { createHmac, timingSafeEqual } from 'crypto';
 import { Resend } from 'resend';
 import { getConfigValue, setConfigValue } from '@/lib/config';
 import { getSiteContent } from '@/lib/content';
@@ -6,7 +7,11 @@ import { orderShippingCents } from '@/lib/pricing';
 import { formatCOP } from '@/lib/format';
 import { isWhatsAppOrder } from '@/lib/orderSource';
 
-export const DEFAULT_EMAIL_FROM = 'AFRA <pedidos@wearafra.com>';
+// Two sending subdomains, each verified separately in Resend: store email
+// (orders, tracking) and marketing (newsletter). Keeping them apart means a
+// marketing campaign marked as spam never hurts order confirmations.
+export const DEFAULT_EMAIL_FROM = 'AFRA <pedidos@mail.wearafra.com>';
+export const DEFAULT_MARKETING_FROM = 'AFRA <hola@news.wearafra.com>';
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://wearafra.com').replace(/\/$/, '');
 
 type OrderForEmail = {
@@ -39,8 +44,12 @@ const esc = (s: string) =>
   s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
 export async function getEmailSettings() {
-  const [apiKey, from] = await Promise.all([getConfigValue('RESEND_API_KEY'), getConfigValue('EMAIL_FROM')]);
-  return { apiKey, from: from || DEFAULT_EMAIL_FROM };
+  const [apiKey, from, marketingFrom] = await Promise.all([
+    getConfigValue('RESEND_API_KEY'),
+    getConfigValue('EMAIL_FROM'),
+    getConfigValue('EMAIL_FROM_MARKETING'),
+  ]);
+  return { apiKey, from: from || DEFAULT_EMAIL_FROM, marketingFrom: marketingFrom || DEFAULT_MARKETING_FROM };
 }
 
 export type DeliveryLog = { ok: boolean; to: string; reference: string; at: string; error?: string };
@@ -57,7 +66,7 @@ export async function getLastEmailResult(): Promise<DeliveryLog | null> {
 /** Turns Resend's error into something the store owner can act on. */
 function explainResendError(message: string): string {
   if (/domain.*not verified|verify a domain|not verified/i.test(message)) {
-    return `El dominio del remitente no está verificado en Resend. Verifica wearafra.com en resend.com/domains (registros DNS) o usa un remitente de un dominio verificado. (${message})`;
+    return `El dominio del remitente no está verificado en Resend. Verifica mail.wearafra.com y news.wearafra.com en resend.com/domains (registros DNS) o usa un remitente de un dominio verificado. (${message})`;
   }
   if (/api key|unauthori[sz]ed|invalid_api_key/i.test(message)) {
     return `La API key de Resend no es válida. Crea una nueva en resend.com/api-keys y guárdala de nuevo. (${message})`;
@@ -219,13 +228,18 @@ export function buildOrderEmail(order: OrderForEmail, whatsappNumber: string) {
   return { subject, html, text };
 }
 
-async function sendEmail(to: string, message: { subject: string; html: string; text: string }): Promise<EmailResult> {
+async function sendEmail(
+  to: string,
+  message: { subject: string; html: string; text: string; headers?: Record<string, string> },
+  kind: 'transactional' | 'marketing' = 'transactional'
+): Promise<EmailResult> {
   if (!to) return { ok: false, error: 'El pedido no tiene correo del cliente.' };
   const settings = await getEmailSettings();
   if (!settings.apiKey) return { ok: false, error: 'Falta la API key de Resend (Admin › Cuenta › Confirmación al cliente).' };
+  const from = kind === 'marketing' ? settings.marketingFrom : settings.from;
   try {
     // Resend reports failures in the result instead of throwing.
-    const { data, error } = await new Resend(settings.apiKey).emails.send({ from: settings.from, to, ...message });
+    const { data, error } = await new Resend(settings.apiKey).emails.send({ from, to, ...message });
     if (error) return { ok: false, error: explainResendError(error.message) };
     return { ok: true, id: data?.id };
   } catch (err) {
@@ -380,3 +394,42 @@ export async function sendShippedEmail(order: ShippedOrder): Promise<EmailResult
   return result;
 }
 
+
+// ── Marketing: newsletter welcome ────────────────────────────────────────
+
+/** Signed unsubscribe link so nobody can remove someone else's email. */
+export function unsubscribeUrl(email: string): string {
+  const token = createHmac('sha256', process.env.AUTH_SECRET || 'afra').update(email.toLowerCase()).digest('hex').slice(0, 32);
+  return `${SITE_URL}/api/newsletter/unsubscribe?email=${encodeURIComponent(email)}&token=${token}`;
+}
+
+export function verifyUnsubscribeToken(email: string, token: string): boolean {
+  const expected = new URL(unsubscribeUrl(email)).searchParams.get('token') ?? '';
+  return expected.length === token.length && timingSafeEqual(Buffer.from(expected), Buffer.from(token));
+}
+
+/** Welcome email from the marketing sender. Never throws. */
+export async function sendNewsletterWelcome(email: string): Promise<void> {
+  const unsubscribe = unsubscribeUrl(email);
+  const subject = 'Bienvenido a AFRA: lo nuevo te llega primero';
+  const html = `<!doctype html><html lang="es"><body style="margin:0;background:#FBF6EC;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FBF6EC;"><tr><td align="center" style="padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+    <tr><td style="padding-bottom:24px;text-align:center;"><a href="${SITE_URL}" style="font-size:26px;font-weight:800;letter-spacing:0.18em;color:#291C13;text-decoration:none;">AFRA</a></td></tr>
+    <tr><td style="background:#FFFFFF;border-radius:20px;padding:32px 28px;">
+      <h1 style="margin:0;font-size:24px;line-height:1.3;color:#291C13;">Ya eres parte de AFRA</h1>
+      <p style="margin:12px 0 0;font-size:15px;line-height:1.6;color:#4F3624;">Te vamos a escribir cuando lleguen piezas nuevas y cuando haya promociones. Pocas veces y solo con cosas que valen la pena.</p>
+      <div style="margin-top:24px;text-align:center;"><a href="${SITE_URL}/productos" style="display:inline-block;background:#291C13;color:#FBF6EC;text-decoration:none;font-size:15px;font-weight:600;padding:14px 28px;border-radius:999px;">Ver el catálogo</a></div>
+    </td></tr>
+    <tr><td style="padding:20px 8px 0;text-align:center;font-size:12px;line-height:1.6;color:#83593D;">
+      Recibes este correo porque te suscribiste en wearafra.com. <a href="${unsubscribe}" style="color:#83593D;">Darme de baja</a>
+    </td></tr>
+  </table></td></tr></table></body></html>`;
+  const text = `Ya eres parte de AFRA. Te escribiremos cuando lleguen piezas nuevas y promociones.\n\nVer el catálogo: ${SITE_URL}/productos\n\nDarte de baja: ${unsubscribe}`;
+  const result = await sendEmail(
+    email,
+    { subject, html, text, headers: { 'List-Unsubscribe': `<${unsubscribe}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' } },
+    'marketing'
+  );
+  if (!result.ok) console.error(`Correo de bienvenida no enviado (${email}): ${result.error}`);
+}

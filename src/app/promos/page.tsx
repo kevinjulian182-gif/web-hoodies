@@ -8,8 +8,10 @@ import { sortByAdminOrder } from '@/lib/productOrder';
 export const revalidate = 60;
 
 export const metadata: Metadata = {
-  title: 'Promos — AFRA',
-  description: 'Piezas premium de streetwear con descuento por tiempo limitado, pago contra entrega y garantía en toda Colombia.',
+  title: 'Promociones y descuentos en streetwear de marca',
+  description:
+    'Hoodies, chaquetas y streetwear de marca con descuento por tiempo limitado. Pago contra entrega y envíos a toda Colombia.',
+  alternates: { canonical: '/promos' },
 };
 
 export default async function PromosPage() {
