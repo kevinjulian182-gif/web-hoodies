@@ -78,9 +78,15 @@ const NAV_GROUPS: { label: string; tabs: string[] }[] = [
     ],
   },
   { label: 'Catálogo', tabs: ['Catálogo', 'Guía de tallas', 'Envío gratis'] },
-  { label: 'Páginas', tabs: ['Sobre nosotros'] },
+  { label: 'Páginas', tabs: ['Sobre nosotros', 'Datos legales de la tienda'] },
   { label: 'Blog', tabs: [BLOG_TAB] },
 ];
+
+// A section left out of NAV_GROUPS would have no tab and its fields could
+// never be edited, so any such section still shows up under "Otros".
+const LISTED_TABS = new Set(NAV_GROUPS.flatMap((g) => g.tabs));
+const UNLISTED_TABS = [...new Set(CONTENT_FIELDS.map((f) => f.section))].filter((s) => !LISTED_TABS.has(s));
+const ALL_NAV_GROUPS = UNLISTED_TABS.length ? [...NAV_GROUPS, { label: 'Otros', tabs: UNLISTED_TABS }] : NAV_GROUPS;
 
 function parseImageList(value: string): string[] {
   try {
@@ -183,7 +189,7 @@ export default function AdminContentPage() {
 
       <div className="flex flex-col gap-8 md:flex-row md:items-start">
         <nav className="flex shrink-0 gap-1.5 overflow-x-auto pb-2 md:w-60 md:flex-col md:gap-4 md:overflow-visible md:pb-0">
-          {NAV_GROUPS.map((group) => (
+          {ALL_NAV_GROUPS.map((group) => (
             <div key={group.label} className="flex shrink-0 gap-1.5 md:flex-col md:gap-1">
               <p className="hidden shrink-0 px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-coffee-400 md:block">
                 {group.label}

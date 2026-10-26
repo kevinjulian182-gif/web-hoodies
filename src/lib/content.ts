@@ -316,7 +316,7 @@ export const CONTENT_FIELDS: Array<{
   {
     key: 'shipping.free_threshold',
     label: 'Monto mínimo en el carrito para envío gratis (COP). Por debajo, el cliente paga el envío al recibir. 0 = sin envío gratis',
-    section: 'Envíos (Interrapidísimo)',
+    section: 'Envío gratis',
     type: 'number',
   },
   { key: 'legal.business_name', label: 'Razón social o nombre del titular', section: 'Datos legales de la tienda' },
