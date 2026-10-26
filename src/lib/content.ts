@@ -1,4 +1,3 @@
-import type { ShippingRates } from '@/lib/pricing';
 import { prisma } from '@/lib/prisma';
 
 export const CONTENT_DEFAULTS = {
@@ -73,6 +72,11 @@ export const CONTENT_DEFAULTS = {
       answer: 'Entre 2 y 5 días hábiles según tu ciudad. Recibes el número de guía para hacer seguimiento en tiempo real.',
     },
     {
+      question: '¿Cuánto cuesta el envío?',
+      answer:
+        'El envío no está incluido en el precio: lo pagas a Interrapidísimo cuando recibes el paquete, según su tarifa para tu ciudad. Si tu pedido llega al monto de envío gratis, lo pagamos nosotros.',
+    },
+    {
       question: '¿Qué pasa si mi pedido llega con un defecto?',
       answer: 'Te lo cambiamos sin costo. Escríbenos por WhatsApp apenas lo recibas y coordinamos el cambio o la devolución.',
     },
@@ -125,15 +129,6 @@ export const CONTENT_DEFAULTS = {
   'catalog.show_colors_on_card': 'false',
   'catalog.show_sizes_on_card': 'false',
   'shipping.free_threshold': '250000',
-  // Interrapidísimo rates from Bogotá for a ~1 kg package, by destination
-  // zone. `shipping.cost` is the national rate (its key predates the zones).
-  'shipping.cost_local': '12000',
-  'shipping.cost_regional': '16000',
-  'shipping.cost': '18000',
-  'shipping.cost_special': '25000',
-  'shipping.zone_local': 'Bogotá D.C.',
-  'shipping.zone_regional': 'Cundinamarca, Boyacá, Tolima, Meta',
-  'shipping.zone_special': 'Amazonas, Guainía, Guaviare, Vaupés, Vichada, San Andrés y Providencia, Putumayo, Chocó',
   'home.faq_title': 'Preguntas frecuentes',
   'pdp.faq_title': 'Preguntas frecuentes',
   'pdp.reviews_title': 'Lo que dicen nuestros clientes',
@@ -228,29 +223,6 @@ export function getFreeShippingThresholdCents(content: SiteContent): number {
   return Number.isFinite(pesos) && pesos > 0 ? Math.round(pesos * 100) : 0;
 }
 
-const pesosToCents = (value: string) => {
-  const pesos = Number(value);
-  return Number.isFinite(pesos) && pesos > 0 ? Math.round(pesos * 100) : 0;
-};
-const departmentList = (value: string) =>
-  value
-    .split(/[,\n]/)
-    .map((d) => d.trim())
-    .filter(Boolean);
-
-/** Carrier rates by destination zone (Admin › Contenido › Envíos). */
-export function getShippingRates(content: SiteContent): ShippingRates {
-  return {
-    localCents: pesosToCents(content['shipping.cost_local']),
-    regionalCents: pesosToCents(content['shipping.cost_regional']),
-    nationalCents: pesosToCents(content['shipping.cost']),
-    specialCents: pesosToCents(content['shipping.cost_special']),
-    localDepartments: departmentList(content['shipping.zone_local']),
-    regionalDepartments: departmentList(content['shipping.zone_regional']),
-    specialDepartments: departmentList(content['shipping.zone_special']),
-  };
-}
-
 export type ContentKey = keyof typeof CONTENT_DEFAULTS;
 export type SiteContent = Record<ContentKey, string>;
 
@@ -343,21 +315,9 @@ export const CONTENT_FIELDS: Array<{
   },
   {
     key: 'shipping.free_threshold',
-    label: 'Monto mínimo en el carrito para envío gratis (COP)',
-    section: 'Envíos y tarifas (Interrapidísimo)',
+    label: 'Monto mínimo en el carrito para envío gratis (COP). Por debajo, el cliente paga el envío al recibir. 0 = sin envío gratis',
+    section: 'Envíos (Interrapidísimo)',
     type: 'number',
-  },
-  { key: 'shipping.cost_local', label: 'Tarifa local (COP) — mismo destino de despacho', section: 'Envíos y tarifas (Interrapidísimo)', type: 'number' },
-  { key: 'shipping.zone_local', label: 'Departamentos con tarifa local (separados por coma)', section: 'Envíos y tarifas (Interrapidísimo)' },
-  { key: 'shipping.cost_regional', label: 'Tarifa regional (COP)', section: 'Envíos y tarifas (Interrapidísimo)', type: 'number' },
-  { key: 'shipping.zone_regional', label: 'Departamentos con tarifa regional (separados por coma)', section: 'Envíos y tarifas (Interrapidísimo)' },
-  { key: 'shipping.cost', label: 'Tarifa nacional (COP) — el resto del país', section: 'Envíos y tarifas (Interrapidísimo)', type: 'number' },
-  { key: 'shipping.cost_special', label: 'Tarifa zona especial / difícil acceso (COP)', section: 'Envíos y tarifas (Interrapidísimo)', type: 'number' },
-  {
-    key: 'shipping.zone_special',
-    label: 'Departamentos de zona especial (separados por coma)',
-    section: 'Envíos y tarifas (Interrapidísimo)',
-    multiline: true,
   },
   { key: 'legal.business_name', label: 'Razón social o nombre del titular', section: 'Datos legales de la tienda' },
   { key: 'legal.nit', label: 'NIT o cédula (con dígito de verificación)', section: 'Datos legales de la tienda' },

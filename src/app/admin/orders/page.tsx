@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { formatCOP } from '@/lib/format';
 import { buildOrderConfirmationMessage, buildWhatsAppLink } from '@/lib/whatsapp';
+import { useCatalogSettings } from '@/lib/catalogSettings';
+import { orderFreightOnDelivery } from '@/lib/pricing';
 import { isWhatsAppOrder, PLACEHOLDER_ADDRESS } from '@/lib/orderSource';
 
 type Order = {
@@ -20,6 +22,8 @@ type Order = {
   status: 'PENDING' | 'PAID' | 'SHIPPED' | 'CANCELLED';
   paymentMethod: 'WOMPI' | 'COD';
   whatsappConfirmedAt: string | null;
+  subtotalCents: number;
+  discountCents: number;
   totalCents: number;
   trackingNumber: string | null;
   carrier: string;
@@ -41,6 +45,7 @@ const PAYMENT_LABEL: Record<Order['paymentMethod'], string> = {
 };
 
 export default function OrdersPage() {
+  const { freeShippingThresholdCents } = useCatalogSettings();
   const [orders, setOrders] = useState<Order[]>([]);
   const [tracking, setTracking] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -193,7 +198,7 @@ export default function OrdersPage() {
 
             <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-cream-200 pt-3">
               <a
-                href={buildWhatsAppLink(order.shippingPhone, buildOrderConfirmationMessage(order))}
+                href={buildWhatsAppLink(order.shippingPhone, buildOrderConfirmationMessage(order, orderFreightOnDelivery(order, freeShippingThresholdCents)))}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => handleWhatsAppSent(order)}

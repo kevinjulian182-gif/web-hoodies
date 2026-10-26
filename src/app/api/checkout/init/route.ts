@@ -12,8 +12,7 @@ import {
   releaseStaleReservations,
 } from '@/lib/stock';
 import { revalidateProductListings, revalidateProduct } from '@/lib/revalidate';
-import { getSiteContent, getFreeShippingThresholdCents, getShippingRates } from '@/lib/content';
-import { computeDiscountCents, computeShippingCents } from '@/lib/pricing';
+import { computeDiscountCents } from '@/lib/pricing';
 
 const schema = z.object({
   customerEmail: z.string().email(),
@@ -100,14 +99,9 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const content = await getSiteContent();
-  const shippingCents = computeShippingCents(
-    subtotalCents,
-    getFreeShippingThresholdCents(content),
-    getShippingRates(content),
-    customer.shippingDepartment
-  );
-  const totalCents = subtotalCents - discountCents + shippingCents;
+  // Shipping isn't part of the total: it's free over the threshold or paid
+  // to the carrier on delivery (see SHIPPING_EXTRA in lib/pricing).
+  const totalCents = subtotalCents - discountCents;
   const reference = generateOrderReference();
 
   // Sign before creating anything: a Wompi misconfiguration must not leave

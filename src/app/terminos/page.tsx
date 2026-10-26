@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { LegalPage, LegalSection, LegalIdentity } from '@/components/LegalPage';
-import { getSiteContent, getLegalInfo, getFreeShippingThresholdCents, getShippingRates } from '@/lib/content';
-import { minShippingCents } from '@/lib/pricing';
+import { getSiteContent, getLegalInfo, getFreeShippingThresholdCents } from '@/lib/content';
 import { formatCOP } from '@/lib/format';
 
 export const metadata: Metadata = {
@@ -32,7 +31,6 @@ export default async function TerminosPage() {
   const content = await getSiteContent();
   const legal = getLegalInfo(content);
   const threshold = getFreeShippingThresholdCents(content);
-  const fromCents = minShippingCents(getShippingRates(content));
   let n = 0;
 
   return (
@@ -64,7 +62,7 @@ export default async function TerminosPage() {
       <LegalSection id="productos" n={++n} title="Productos, precios y disponibilidad">
         <ul>
           <li>Los precios están en pesos colombianos (COP) e incluyen los impuestos aplicables.</li>
-          <li>El costo del envío se muestra aparte antes de pagar, y el total final aparece antes de confirmar.</li>
+          <li>Los precios no incluyen el envío. El total de productos aparece antes de confirmar y el envío se paga aparte, como se explica abajo.</li>
           <li>
             Las unidades se apartan cuando haces el pedido. Si por un error un producto no está disponible, te
             avisamos y te devolvemos el 100% de lo pagado o te ofrecemos un cambio, como prefieras.
@@ -109,8 +107,9 @@ export default async function TerminosPage() {
             mayor.
           </li>
           <li>
-            El costo depende del destino{fromCents > 0 ? ` (desde ${formatCOP(fromCents)})` : ''} y se calcula antes de
-            pagar.{threshold > 0 ? ` Si tu pedido supera ${formatCOP(threshold)}, el envío es gratis.` : ''}
+            El envío no se cobra en la tienda: lo pagas a Interrapidísimo al recibir el paquete, según su tarifa para
+            tu ciudad y el tamaño del paquete.
+            {threshold > 0 ? ` Si tu pedido llega a ${formatCOP(threshold)}, el envío es gratis y lo pagamos nosotros.` : ''}
           </li>
           <li>Te enviamos el número de guía por correo apenas despachamos, para que sigas el paquete.</li>
           <li>

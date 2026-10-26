@@ -21,7 +21,6 @@ import {
   getHomeSectionOrder,
   getHeroImages,
   getFreeShippingThresholdCents,
-  getShippingRates,
   getLegalInfo,
 } from '@/lib/content';
 import { generateThemeVars, themeVarsToCss } from '@/lib/theme';
@@ -147,7 +146,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               showColors={content['catalog.show_colors_on_card'] === 'true'}
               showSizes={content['catalog.show_sizes_on_card'] === 'true'}
               freeShippingThresholdCents={getFreeShippingThresholdCents(content)}
-              shippingRates={getShippingRates(content)}
             >
               <StorefrontOnly>
                 <Navbar

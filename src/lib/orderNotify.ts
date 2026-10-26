@@ -1,12 +1,12 @@
 import { formatCOP } from '@/lib/format';
 import { getConfigValue } from '@/lib/config';
-import { getSiteContent } from '@/lib/content';
+import { getFreeShippingThresholdCents, getSiteContent } from '@/lib/content';
 import { prisma } from '@/lib/prisma';
 import { setConfigValue } from '@/lib/config';
 import { sendOrderConfirmationEmail, type DeliveryLog } from '@/lib/email';
 import { buildOrderConfirmationMessage, getStoreWhatsAppNumber, normalizePhone } from '@/lib/whatsapp';
 import { isWhatsAppOrder, PLACEHOLDER_ADDRESS } from '@/lib/orderSource';
-import { orderShippingCents } from '@/lib/pricing';
+import { orderFreightOnDelivery, orderShippingText } from '@/lib/pricing';
 
 // Internal heads-up to the store's own WhatsApp (the number set in Admin >
 // Contenido) whenever an order is confirmed. Sent through a personal-use
@@ -40,7 +40,7 @@ type OrderForAlert = {
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://wearafra.com').replace(/\/$/, '');
 
-export function buildStoreOrderAlert(order: OrderForAlert): string {
+export function buildStoreOrderAlert(order: OrderForAlert, freeShippingThresholdCents = 0): string {
   const viaWhatsApp = isWhatsAppOrder(order.wompiReference);
   const address = [
     order.shippingAddress,
@@ -54,7 +54,6 @@ export function buildStoreOrderAlert(order: OrderForAlert): string {
     (i) =>
       `• ${i.quantity}x ${i.product.name} — Talla ${i.size}${i.color ? `, ${i.color}` : ''} (${formatCOP(i.priceCents * i.quantity)})`
   );
-  const shippingCents = orderShippingCents(order);
   return [
     viaWhatsApp
       ? `📲 *Pedido por WhatsApp en AFRA* (${order.wompiReference})\nEl cliente va a escribirte para confirmarlo.`
@@ -65,7 +64,7 @@ export function buildStoreOrderAlert(order: OrderForAlert): string {
     order.discountCents > 0
       ? `Subtotal: ${formatCOP(order.subtotalCents)} · Descuento${order.couponCode ? ` (${order.couponCode})` : ''}: -${formatCOP(order.discountCents)}`
       : null,
-    viaWhatsApp ? null : `Envío: ${shippingCents > 0 ? formatCOP(shippingCents) : 'Gratis'}`,
+    viaWhatsApp ? null : `Envío: ${orderShippingText(order, freeShippingThresholdCents)}`,
     `*Total: ${formatCOP(order.totalCents)}*`,
     viaWhatsApp ? '💬 Pago y envío por acordar en el chat' : order.paymentMethod === 'COD' ? '💵 Pago contra entrega' : '✅ Pagado con Wompi',
     '',
@@ -172,7 +171,8 @@ export async function sendStoreAlert(
 }
 
 export async function notifyStoreNewOrder(order: OrderForAlert): Promise<void> {
-  const { results } = await sendStoreAlert(buildStoreOrderAlert(order));
+  const threshold = getFreeShippingThresholdCents(await getSiteContent());
+  const { results } = await sendStoreAlert(buildStoreOrderAlert(order, threshold));
   for (const r of results) if (!r.ok) console.warn(`Aviso de pedido por ${r.channel} no enviado:`, r.error);
 }
 
@@ -216,7 +216,11 @@ export async function notifyOrderConfirmed(order: OrderForAlert): Promise<void> 
   // TextMeBot needs a few seconds between messages from the same number,
   // and the store alert may have just gone out through it.
   await pause(6000);
-  const result = await sendCustomerWhatsApp(order.shippingPhone, buildOrderConfirmationMessage(order));
+  const threshold = getFreeShippingThresholdCents(await getSiteContent());
+  const result = await sendCustomerWhatsApp(
+    order.shippingPhone,
+    buildOrderConfirmationMessage(order, orderFreightOnDelivery(order, threshold))
+  );
   if (result.ok && order.id) {
     await prisma.order.update({ where: { id: order.id }, data: { whatsappConfirmedAt: new Date() } }).catch(() => {});
   }

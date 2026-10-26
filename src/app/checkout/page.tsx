@@ -10,10 +10,9 @@ import { useCatalogSettings } from '@/lib/catalogSettings';
 import { formatCOP } from '@/lib/format';
 import {
   computeDiscountCents,
-  computeShippingCents,
-  minShippingCents,
-  shippingZone,
-  ZONE_LABELS,
+  qualifiesForFreeShipping,
+  SHIPPING_EXTRA,
+  SHIPPING_EXTRA_NOTE,
   type CouponTerms,
 } from '@/lib/pricing';
 import { COLOMBIA_DEPARTMENTS } from '@/lib/colombia';
@@ -118,7 +117,7 @@ function extractError(error: unknown): string {
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, subtotalCents, hasSoldOut, removeItem } = useCart();
-  const { freeShippingThresholdCents, shippingRates } = useCatalogSettings();
+  const { freeShippingThresholdCents } = useCatalogSettings();
 
   const [step, setStep] = useState<Step>(1);
   const [direction, setDirection] = useState(1);
@@ -208,14 +207,10 @@ export default function CheckoutPage() {
   }, [step, checkoutData]);
 
   const discountCents = computeDiscountCents(coupon, subtotalCents);
-  // Unknown (null) until the shopper picks a department: the carrier's
-  // rate depends on the destination zone.
-  const shippingCents = form.shippingDepartment
-    ? computeShippingCents(subtotalCents, freeShippingThresholdCents, shippingRates, form.shippingDepartment)
-    : null;
-  const shippingFromCents = minShippingCents(shippingRates);
-  const shippingLabel = form.shippingDepartment ? ZONE_LABELS[shippingZone(form.shippingDepartment, shippingRates)] : '';
-  const totalCents = checkoutData?.amountInCents ?? subtotalCents - discountCents + (shippingCents ?? 0);
+  // Shipping isn't charged here: it's free over the threshold, otherwise the
+  // shopper pays Interrapidísimo on delivery ("+ envío").
+  const freeShipping = qualifiesForFreeShipping(subtotalCents, freeShippingThresholdCents);
+  const totalCents = checkoutData?.amountInCents ?? subtotalCents - discountCents;
   const itemCount = items.reduce((n, i) => n + i.quantity, 0);
   const firstName = form.customerName.trim().split(/\s+/)[0] || '';
 
@@ -384,8 +379,7 @@ export default function CheckoutPage() {
       subtotalCents={subtotalCents}
       discountCents={discountCents}
       couponCode={coupon?.code}
-      shippingCents={shippingCents}
-      shippingFromCents={shippingFromCents}
+      freeShipping={freeShipping}
       totalCents={totalCents}
       thresholdCents={freeShippingThresholdCents}
     />
@@ -425,7 +419,10 @@ export default function CheckoutPage() {
             {summaryOpen ? 'Ocultar pedido' : `Ver pedido (${itemCount})`}
             <ChevronDownIcon open={summaryOpen} />
           </span>
-          <span className="text-base font-semibold tabular-nums text-coffee-900">{formatCOP(totalCents)}</span>
+          <span className="text-base font-semibold tabular-nums text-coffee-900">
+            {formatCOP(totalCents)}
+            {!freeShipping && <span className="ml-1 text-xs font-normal text-coffee-500">{SHIPPING_EXTRA}</span>}
+          </span>
         </button>
         <AnimatePresence initial={false}>
           {summaryOpen && (
@@ -620,9 +617,7 @@ export default function CheckoutPage() {
                   )}
 
                   <ShippingNote
-                    shippingCents={shippingCents}
-                    shippingFromCents={shippingFromCents}
-                    zoneLabel={shippingLabel}
+                    free={freeShipping}
                     thresholdCents={freeShippingThresholdCents}
                     subtotalCents={subtotalCents}
                   />
@@ -660,8 +655,8 @@ export default function CheckoutPage() {
                       <p>
                         {form.shippingCity}, {form.shippingDepartment}
                       </p>
-                      <p className={shippingCents === 0 ? 'font-medium text-green-700' : ''}>
-                        {shippingCents === 0 ? 'Envío gratis' : `${shippingLabel} · ${formatCOP(shippingCents ?? 0)}`}
+                      <p className={freeShipping ? 'font-medium text-green-700' : ''}>
+                        {freeShipping ? 'Envío gratis' : 'Envío con Interrapidísimo: lo pagas al recibir'}
                       </p>
                     </ReviewRow>
                   </div>
@@ -682,7 +677,7 @@ export default function CheckoutPage() {
                         onSelect={() => setPaymentMethod('COD')}
                         icon={<CashIcon />}
                         title="Pagar al recibir"
-                        description={`Pagas ${formatCOP(totalCents)} en efectivo o datáfono cuando te llegue.`}
+                        description={`Pagas ${formatCOP(totalCents)}${freeShipping ? '' : ' más el envío'} en efectivo o datáfono cuando te llegue.`}
                         tags={['Contra entrega']}
                       />
                     </div>
@@ -1134,19 +1129,14 @@ function CouponBox({
 }
 
 function ShippingNote({
-  shippingCents,
-  shippingFromCents,
-  zoneLabel,
+  free,
   thresholdCents,
   subtotalCents,
 }: {
-  shippingCents: number | null;
-  shippingFromCents: number;
-  zoneLabel: string;
+  free: boolean;
   thresholdCents: number;
   subtotalCents: number;
 }) {
-  const free = shippingCents === 0;
   return (
     <div
       className={`flex items-start gap-3 rounded-xl px-4 py-3.5 text-sm ${
@@ -1164,16 +1154,7 @@ function ShippingNote({
           </>
         ) : (
           <>
-            {shippingCents === null ? (
-              <>
-                Elige el departamento y calculamos tu envío con Interrapidísimo (desde{' '}
-                <strong className="font-semibold">{formatCOP(shippingFromCents)}</strong>).
-              </>
-            ) : (
-              <>
-                {zoneLabel} con Interrapidísimo: <strong className="font-semibold">{formatCOP(shippingCents)}</strong>.
-              </>
-            )}
+            <strong className="font-semibold">{SHIPPING_EXTRA}.</strong> {SHIPPING_EXTRA_NOTE}
             {thresholdCents > 0 && (
               <> Gratis si tu pedido llega a {formatCOP(thresholdCents)} (te faltan {formatCOP(thresholdCents - subtotalCents)}).</>
             )}
@@ -1232,8 +1213,7 @@ function OrderSummary({
   subtotalCents,
   discountCents,
   couponCode,
-  shippingCents,
-  shippingFromCents,
+  freeShipping,
   totalCents,
   thresholdCents,
 }: {
@@ -1241,8 +1221,7 @@ function OrderSummary({
   subtotalCents: number;
   discountCents: number;
   couponCode?: string;
-  shippingCents: number | null;
-  shippingFromCents: number;
+  freeShipping: boolean;
   totalCents: number;
   thresholdCents: number;
 }) {
@@ -1292,19 +1271,16 @@ function OrderSummary({
         )}
         <div className="flex justify-between text-coffee-600">
           <dt>Envío</dt>
-          <dd className={shippingCents === 0 ? 'font-medium text-green-700' : 'tabular-nums'}>
-            {shippingCents === 0
-              ? 'Gratis'
-              : shippingCents === null
-                ? `Desde ${formatCOP(shippingFromCents)}`
-                : formatCOP(shippingCents)}
+          <dd className={freeShipping ? 'font-medium text-green-700' : ''}>
+            {freeShipping ? 'Gratis' : 'Lo pagas al recibir'}
           </dd>
         </div>
         <div className="flex items-baseline justify-between border-t border-cream-200 pt-3">
-          <dt className="font-semibold text-coffee-900">{shippingCents === null ? 'Total sin envío' : 'Total'}</dt>
+          <dt className="font-semibold text-coffee-900">Total</dt>
           <dd className="text-xl font-semibold tabular-nums text-coffee-900">
             <span className="mr-1 text-xs font-normal text-coffee-500">COP</span>
             {formatCOP(totalCents)}
+            {!freeShipping && <span className="ml-1 text-sm font-medium text-coffee-500">{SHIPPING_EXTRA}</span>}
           </dd>
         </div>
       </dl>

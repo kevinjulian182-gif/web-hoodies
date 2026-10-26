@@ -34,7 +34,7 @@ export function getStoreWhatsAppNumber(content: Pick<SiteContent, 'site.whatsapp
 export function buildWhatsAppOrderMessage(
   items: { name: string; size: string; color?: string; quantity: number; priceCents: number }[],
   subtotalCents: number,
-  customer?: { name: string; city?: string; reference?: string; shipping?: { free: boolean; fromCents: number } }
+  customer?: { name: string; city?: string; reference?: string; shipping?: { free: boolean } }
 ): string {
   const shipping = customer?.shipping;
   const lines = items.map(
@@ -51,9 +51,7 @@ export function buildWhatsAppOrderMessage(
       ? []
       : shipping.free
         ? ['Envío: Gratis', `Total: ${formatCOP(subtotalCents)}`]
-        : shipping.fromCents > 0
-          ? [`Envío: según mi ciudad (desde ${formatCOP(shipping.fromCents)})`]
-          : []),
+        : ['Envío: lo pago al recibir (tarifa de Interrapidísimo)']),
     '',
     ...(customer
       ? [
@@ -75,14 +73,14 @@ export function buildOrderConfirmationMessage(order: {
   shippingDepartment?: string | null;
   wompiReference?: string;
   items: { quantity: number; size?: string; color?: string | null; product: { name: string } }[];
-}): string {
+}, freightOnDelivery = false): string {
   const total = formatCOP(order.totalCents);
   const firstName = order.customerName.trim().split(/\s+/)[0] || order.customerName;
   const address = `${order.shippingAddress}${order.shippingAddressComplement ? `, ${order.shippingAddressComplement}` : ''}, ${order.shippingCity}${order.shippingDepartment ? `, ${order.shippingDepartment}` : ''}`;
   const paymentLine =
     order.paymentMethod === 'COD'
-      ? `💵 Pagas ${total} contra entrega, en efectivo o con datáfono.`
-      : `✅ Tu pago de ${total} ya fue confirmado.`;
+      ? `💵 Pagas ${total}${freightOnDelivery ? ' más el envío' : ''} contra entrega, en efectivo o con datáfono.`
+      : `✅ Tu pago de ${total} ya fue confirmado.${freightOnDelivery ? ' El envío lo pagas al recibir.' : ''}`;
   const productsLine = order.items
     .map((i) => {
       const detail = [i.size && `Talla ${i.size}`, i.color].filter(Boolean).join(', ');

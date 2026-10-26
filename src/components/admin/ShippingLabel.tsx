@@ -22,6 +22,8 @@ export type LabelData = {
   cod: boolean;
   amount: string;
   declaredValue: string;
+  /** Freight collected from the recipient ("al cobro") instead of paid by the store. */
+  freightOnDelivery: boolean;
 };
 
 const pesos = (value: string) => {
@@ -108,11 +110,19 @@ export default function ShippingLabel({ data, sender, size }: { data: LabelData;
         {data.cod ? (
           <>
             <p className={`${label} font-semibold uppercase tracking-[0.14em] opacity-80`}>Pago contra entrega · cobrar</p>
-            <p className={`${small ? 'text-[16pt]' : 'text-[22pt]'} font-bold leading-tight`}>{amount || '$ —'}</p>
+            <p className={`${small ? 'text-[16pt]' : 'text-[22pt]'} font-bold leading-tight`}>
+              {amount || '$ —'}
+              {data.freightOnDelivery && <span className={`${small ? 'text-[10pt]' : 'text-[13pt]'} font-semibold`}> + flete</span>}
+            </p>
           </>
         ) : (
-          <p className={`${small ? 'text-[12pt]' : 'text-[15pt]'} font-bold uppercase tracking-[0.08em]`}>Pagado · no cobrar</p>
+          <p className={`${small ? 'text-[12pt]' : 'text-[15pt]'} font-bold uppercase tracking-[0.08em]`}>
+            {data.freightOnDelivery ? 'Producto pagado · cobrar solo flete' : 'Pagado · no cobrar'}
+          </p>
         )}
+        <p className={`${label} mt-[1mm] font-semibold uppercase tracking-[0.14em] ${data.cod ? 'opacity-80' : 'text-coffee-700'}`}>
+          Flete: {data.freightOnDelivery ? 'al cobro (lo paga el destinatario)' : 'pagado por el remitente'}
+        </p>
       </div>
     </div>
   );

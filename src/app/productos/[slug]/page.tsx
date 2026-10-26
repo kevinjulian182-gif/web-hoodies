@@ -12,7 +12,7 @@ import MobileBuyBar from '@/components/MobileBuyBar';
 import ReviewsSection from '@/components/ReviewsSection';
 import ComparisonTable from '@/components/ComparisonTable';
 import FaqSection from '@/components/FaqSection';
-import { getSiteContent, getFaqItems, getLegalInfo, getShippingRates, getFreeShippingThresholdCents } from '@/lib/content';
+import { getSiteContent, getFaqItems, getLegalInfo, getFreeShippingThresholdCents } from '@/lib/content';
 import { parseColorImages } from '@/lib/colors';
 import { ProductColorProvider } from '@/lib/productColor';
 import { getStoreWhatsAppNumber } from '@/lib/whatsapp';
@@ -90,7 +90,6 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const productUrl = `${SITE_URL}/productos/${product.slug}`;
   const stock = product.variants.length > 0 ? product.variants.reduce((n, v) => n + v.stock, 0) : product.stock;
   const legal = getLegalInfo(content);
-  const shippingCents = getShippingRates(content).nationalCents;
   const freeOverCents = getFreeShippingThresholdCents(content);
   const ratingCount = reviews.length;
   const ratingValue = ratingCount ? reviews.reduce((n, r) => n + r.rating, 0) / ratingCount : 0;
@@ -124,20 +123,22 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       availability: stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
       itemCondition: 'https://schema.org/NewCondition',
       seller: { '@type': 'Organization', name: legal.name },
-      shippingDetails: {
-        '@type': 'OfferShippingDetails',
-        shippingRate: {
-          '@type': 'MonetaryAmount',
-          value: freeOverCents > 0 && product.priceCents >= freeOverCents ? 0 : Math.round(shippingCents / 100),
-          currency: 'COP',
-        },
-        shippingDestination: { '@type': 'DefinedRegion', addressCountry: 'CO' },
-        deliveryTime: {
-          '@type': 'ShippingDeliveryTime',
-          handlingTime: { '@type': 'QuantitativeValue', minValue: 0, maxValue: 1, unitCode: 'DAY' },
-          transitTime: { '@type': 'QuantitativeValue', minValue: 1, maxValue: 5, unitCode: 'DAY' },
-        },
-      },
+      // Shipping is only stated when it's free: otherwise it varies by
+      // destination and is paid to the carrier on delivery.
+      ...(freeOverCents > 0 && product.priceCents >= freeOverCents
+        ? {
+            shippingDetails: {
+              '@type': 'OfferShippingDetails',
+              shippingRate: { '@type': 'MonetaryAmount', value: 0, currency: 'COP' },
+              shippingDestination: { '@type': 'DefinedRegion', addressCountry: 'CO' },
+              deliveryTime: {
+                '@type': 'ShippingDeliveryTime',
+                handlingTime: { '@type': 'QuantitativeValue', minValue: 0, maxValue: 1, unitCode: 'DAY' },
+                transitTime: { '@type': 'QuantitativeValue', minValue: 1, maxValue: 5, unitCode: 'DAY' },
+              },
+            },
+          }
+        : {}),
       hasMerchantReturnPolicy: {
         '@type': 'MerchantReturnPolicy',
         applicableCountry: 'CO',

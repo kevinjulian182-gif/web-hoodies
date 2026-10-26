@@ -71,7 +71,7 @@ export default function WhatsAppOrderButton({
       // storage unavailable
     }
     let reference: string | undefined;
-    let shipping: { free: boolean; fromCents: number } | undefined;
+    let shipping: { free: boolean } | undefined;
     try {
       const res = await fetch('/api/orders/whatsapp', {
         method: 'POST',
@@ -95,7 +95,7 @@ export default function WhatsAppOrderButton({
         const data = await res.json();
         reference = data.reference;
         track('whatsapp_order', { value: Math.round(subtotalCents / 100) });
-        shipping = { free: data.freeShipping, fromCents: data.shippingFromCents };
+        shipping = { free: data.freeShipping };
       }
     } catch {
       // still open the chat

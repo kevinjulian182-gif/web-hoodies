@@ -9,13 +9,12 @@ import { useCart, type CartItem } from '@/lib/cart';
 import WhatsAppOrderButton from '@/components/WhatsAppOrderButton';
 import { formatCOP } from '@/lib/format';
 import { useCatalogSettings } from '@/lib/catalogSettings';
-import { minShippingCents, qualifiesForFreeShipping } from '@/lib/pricing';
+import { qualifiesForFreeShipping, SHIPPING_EXTRA, SHIPPING_EXTRA_NOTE } from '@/lib/pricing';
 
 export default function CartDrawer({ whatsappNumber }: { whatsappNumber?: string }) {
   const { items, isOpen, closeCart, updateQuantity, removeItem, subtotalCents, hasSoldOut } = useCart();
-  const { freeShippingThresholdCents, shippingRates } = useCatalogSettings();
+  const { freeShippingThresholdCents } = useCatalogSettings();
   const freeShipping = qualifiesForFreeShipping(subtotalCents, freeShippingThresholdCents);
-  const shippingFromCents = minShippingCents(shippingRates);
   const pathname = usePathname();
 
   // Never show the drawer over the distraction-free checkout itself.
@@ -99,7 +98,6 @@ export default function CartDrawer({ whatsappNumber }: { whatsappNumber?: string
                   <FreeShippingBar
                     subtotalCents={subtotalCents}
                     thresholdCents={freeShippingThresholdCents}
-                    shippingFromCents={shippingFromCents}
                   />
                 )}
                 <ul className="flex-1 overflow-y-auto overscroll-contain px-6 py-4">
@@ -124,16 +122,15 @@ export default function CartDrawer({ whatsappNumber }: { whatsappNumber?: string
                     <div className="flex justify-between text-coffee-600">
                       <dt>Envío</dt>
                       <dd className={freeShipping ? 'font-medium text-green-700' : 'tabular-nums'}>
-                        {freeShipping
-                          ? 'Gratis'
-                          : shippingFromCents > 0
-                            ? `Desde ${formatCOP(shippingFromCents)}`
-                            : 'Gratis'}
+                        {freeShipping ? 'Gratis' : SHIPPING_EXTRA}
                       </dd>
                     </div>
                     <div className="flex items-baseline justify-between pt-1">
-                      <dt className="font-medium text-coffee-900">{freeShipping ? 'Total' : 'Total sin envío'}</dt>
-                      <dd className="text-lg font-semibold tabular-nums text-coffee-900">{formatCOP(subtotalCents)}</dd>
+                      <dt className="font-medium text-coffee-900">Total</dt>
+                      <dd className="text-lg font-semibold tabular-nums text-coffee-900">
+                        {formatCOP(subtotalCents)}
+                        {!freeShipping && <span className="ml-1 text-xs font-normal text-coffee-500">{SHIPPING_EXTRA}</span>}
+                      </dd>
                     </div>
                   </dl>
                   {hasSoldOut ? (
@@ -176,7 +173,7 @@ export default function CartDrawer({ whatsappNumber }: { whatsappNumber?: string
                       Seguir comprando
                     </button>
                   </div>
-                  <p className="mt-3 text-center text-xs text-coffee-500">El envío exacto se calcula con tu ciudad en el pago.</p>
+                  {!freeShipping && <p className="mt-3 text-center text-xs text-coffee-500">{SHIPPING_EXTRA_NOTE}</p>}
                 </div>
               </>
             )}
@@ -190,11 +187,9 @@ export default function CartDrawer({ whatsappNumber }: { whatsappNumber?: string
 function FreeShippingBar({
   subtotalCents,
   thresholdCents,
-  shippingFromCents,
 }: {
   subtotalCents: number;
   thresholdCents: number;
-  shippingFromCents: number;
 }) {
   const unlocked = subtotalCents >= thresholdCents;
   const pct = Math.min(100, Math.round((subtotalCents / thresholdCents) * 100));
@@ -224,10 +219,8 @@ function FreeShippingBar({
           )}
         </motion.p>
       </AnimatePresence>
-      {!unlocked && shippingFromCents > 0 && (
-        <p className="mb-2 -mt-1 pl-[22px] text-xs text-coffee-500">
-          Mientras tanto, el envío cuesta desde {formatCOP(shippingFromCents)} según tu ciudad.
-        </p>
+      {!unlocked && (
+        <p className="mb-2 -mt-1 pl-[22px] text-xs text-coffee-500">Mientras tanto, el envío lo pagas al recibir.</p>
       )}
 
       <motion.div

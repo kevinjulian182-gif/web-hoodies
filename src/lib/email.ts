@@ -1,9 +1,9 @@
 import { createHmac, timingSafeEqual } from 'crypto';
 import { Resend } from 'resend';
 import { getConfigValue, setConfigValue } from '@/lib/config';
-import { getSiteContent } from '@/lib/content';
+import { getFreeShippingThresholdCents, getSiteContent } from '@/lib/content';
 import { getStoreWhatsAppNumber } from '@/lib/whatsapp';
-import { orderShippingCents } from '@/lib/pricing';
+import { orderFreightOnDelivery, orderShippingText } from '@/lib/pricing';
 import { formatCOP } from '@/lib/format';
 import { isWhatsAppOrder } from '@/lib/orderSource';
 
@@ -77,10 +77,11 @@ function explainResendError(message: string): string {
   return message;
 }
 
-export function buildOrderEmail(order: OrderForEmail, whatsappNumber: string) {
+export function buildOrderEmail(order: OrderForEmail, whatsappNumber: string, freeShippingThresholdCents = 0) {
   const isCod = order.paymentMethod === 'COD';
   const firstName = esc(order.customerName.trim().split(/\s+/)[0] || order.customerName);
-  const shippingCents = orderShippingCents(order);
+  const shippingText = orderShippingText(order, freeShippingThresholdCents);
+  const freightOnDelivery = orderFreightOnDelivery(order, freeShippingThresholdCents);
   const address = [
     order.shippingAddress,
     order.shippingAddressComplement,
@@ -169,8 +170,8 @@ export function buildOrderEmail(order: OrderForEmail, whatsappNumber: string) {
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;">
             ${row('Subtotal', formatCOP(order.subtotalCents))}
             ${order.discountCents > 0 ? row(`Descuento${order.couponCode ? ` (${esc(order.couponCode)})` : ''}`, `-${formatCOP(order.discountCents)}`, '#15803D') : ''}
-            ${row('Envío', shippingCents > 0 ? formatCOP(shippingCents) : 'Gratis', shippingCents > 0 ? '#4F3624' : '#15803D')}
-            <tr><td style="padding:12px 0 0;border-top:1px solid #F1E6D2;font-size:16px;font-weight:700;color:#291C13;">${isCod ? 'Total a pagar al recibir' : 'Total pagado'}</td>
+            ${row('Envío', shippingText, shippingText === 'Gratis' ? '#15803D' : '#4F3624')}
+            <tr><td style="padding:12px 0 0;border-top:1px solid #F1E6D2;font-size:16px;font-weight:700;color:#291C13;">${isCod ? 'Total a pagar al recibir' : 'Total pagado'}${freightOnDelivery ? ' (+ envío)' : ''}</td>
             <td style="padding:12px 0 0;border-top:1px solid #F1E6D2;font-size:20px;font-weight:700;color:#291C13;text-align:right;">${formatCOP(order.totalCents)}</td></tr>
           </table>
 
@@ -214,8 +215,8 @@ export function buildOrderEmail(order: OrderForEmail, whatsappNumber: string) {
     '',
     `Subtotal: ${formatCOP(order.subtotalCents)}`,
     order.discountCents > 0 ? `Descuento: -${formatCOP(order.discountCents)}` : null,
-    `Envío: ${shippingCents > 0 ? formatCOP(shippingCents) : 'Gratis'}`,
-    `${isCod ? 'Total a pagar al recibir' : 'Total pagado'}: ${formatCOP(order.totalCents)}`,
+    `Envío: ${shippingText}`,
+    `${isCod ? 'Total a pagar al recibir' : 'Total pagado'}${freightOnDelivery ? ' (+ envío)' : ''}: ${formatCOP(order.totalCents)}`,
     '',
     `Lo enviamos a: ${[order.shippingAddress, order.shippingAddressComplement, order.shippingCity, order.shippingDepartment].filter(Boolean).join(', ')}`,
     '',
@@ -260,7 +261,7 @@ async function logEmailResult(result: EmailResult, to: string, reference: string
 
 export async function sendOrderEmail(order: OrderForEmail, to = order.customerEmail): Promise<EmailResult> {
   const content = await getSiteContent();
-  return sendEmail(to, buildOrderEmail(order, getStoreWhatsAppNumber(content)));
+  return sendEmail(to, buildOrderEmail(order, getStoreWhatsAppNumber(content), getFreeShippingThresholdCents(content)));
 }
 
 /** Confirmation to the shopper once an order is committed (COD at creation,

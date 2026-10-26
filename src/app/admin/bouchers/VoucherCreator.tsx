@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { useSearchParams } from 'next/navigation';
 import { COLOMBIA_DEPARTMENTS } from '@/lib/colombia';
 import ShippingLabel, { type LabelData, type LabelSize, type Sender } from '@/components/admin/ShippingLabel';
+import { orderFreightOnDelivery } from '@/lib/pricing';
 
 type Order = {
   id: string;
@@ -17,6 +18,8 @@ type Order = {
   shippingPhone: string;
   deliveryNotes: string | null;
   wompiReference: string;
+  subtotalCents: number;
+  discountCents: number;
   totalCents: number;
   status: string;
   paymentMethod: 'WOMPI' | 'COD';
@@ -40,9 +43,10 @@ const EMPTY: LabelData = {
   cod: true,
   amount: '',
   declaredValue: '',
+  freightOnDelivery: true,
 };
 
-function fromOrder(order: Order): LabelData {
+function fromOrder(order: Order, freeShippingThresholdCents: number): LabelData {
   const pieces = order.items.reduce((n, i) => n + i.quantity, 0);
   const pesos = String(Math.round(order.totalCents / 100));
   return {
@@ -63,6 +67,7 @@ function fromOrder(order: Order): LabelData {
     cod: order.paymentMethod === 'COD',
     amount: order.paymentMethod === 'COD' ? pesos : '',
     declaredValue: pesos,
+    freightOnDelivery: orderFreightOnDelivery(order, freeShippingThresholdCents),
   };
 }
 
@@ -77,7 +82,7 @@ const field =
   'mt-1 w-full rounded-lg border border-cream-200 bg-white px-3 py-2.5 text-base text-coffee-900 outline-none transition-colors focus:border-coffee-600 sm:text-sm';
 const caption = 'text-xs font-medium text-coffee-700';
 
-export default function VoucherCreator({ sender }: { sender: Sender }) {
+export default function VoucherCreator({ sender, freeShippingThresholdCents }: { sender: Sender; freeShippingThresholdCents: number }) {
   const params = useSearchParams();
   const [data, setData] = useState<LabelData>(EMPTY);
   const [size, setSize] = useState<LabelSize>('etiqueta');
@@ -97,8 +102,8 @@ export default function VoucherCreator({ sender }: { sender: Sender }) {
   useEffect(() => {
     if (!orderId) return;
     const order = orders.find((o) => o.id === orderId);
-    if (order) setData(fromOrder(order));
-  }, [orderId, orders]);
+    if (order) setData(fromOrder(order, freeShippingThresholdCents));
+  }, [orderId, orders, freeShippingThresholdCents]);
 
   const set = <K extends keyof LabelData>(key: K, value: LabelData[K]) => setData((d) => ({ ...d, [key]: value }));
 
@@ -283,6 +288,18 @@ export default function VoucherCreator({ sender }: { sender: Sender }) {
                 </button>
               ))}
             </div>
+            <label className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-cream-200 bg-white px-3 py-2.5 text-sm text-coffee-800">
+              <input
+                type="checkbox"
+                checked={data.freightOnDelivery}
+                onChange={(e) => set('freightOnDelivery', e.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-coffee-900"
+              />
+              <span>
+                Flete al cobro: el destinatario le paga el envío a la transportadora.
+                <span className="block text-xs text-coffee-500">Desmárcalo si el envío es gratis (lo paga la tienda).</span>
+              </span>
+            </label>
             {data.cod && (
               <label className="block">
                 <span className={caption}>Valor a cobrar ($) *</span>
@@ -291,7 +308,7 @@ export default function VoucherCreator({ sender }: { sender: Sender }) {
                   onChange={(e) => set('amount', e.target.value.replace(/\D/g, ''))}
                   inputMode="numeric"
                   required
-                  placeholder="Incluye el envío"
+                  placeholder="Valor de los productos"
                   className={field}
                 />
               </label>

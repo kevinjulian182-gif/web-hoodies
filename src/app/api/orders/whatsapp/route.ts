@@ -7,8 +7,8 @@ import { recordConsent } from '@/lib/consent';
 import { checkStock, buildStockDecrementOps, type ProductWithVariants } from '@/lib/stock';
 import { revalidateProductListings, revalidateProduct } from '@/lib/revalidate';
 import { WHATSAPP_ORDER_PREFIX, PLACEHOLDER_ADDRESS } from '@/lib/orderSource';
-import { getSiteContent, getFreeShippingThresholdCents, getShippingRates } from '@/lib/content';
-import { minShippingCents, qualifiesForFreeShipping } from '@/lib/pricing';
+import { getSiteContent, getFreeShippingThresholdCents } from '@/lib/content';
+import { qualifiesForFreeShipping } from '@/lib/pricing';
 
 const schema = z.object({
   customerName: z.string().trim().min(2).max(80),
@@ -62,11 +62,9 @@ export async function POST(req: NextRequest) {
 
   const subtotalCents = valid.reduce((sum, i) => sum + priceById.get(i.productId)! * i.quantity, 0);
   const content = await getSiteContent();
-  // The chat only knows the city, not the department, so the exact rate is
-  // agreed there; the order total holds the products alone unless shipping
-  // is already free.
+  // The order total holds the products alone: shipping is free over the
+  // threshold or paid to the carrier on delivery.
   const freeShipping = qualifiesForFreeShipping(subtotalCents, getFreeShippingThresholdCents(content));
-  const shippingFromCents = minShippingCents(getShippingRates(content));
   const reference = `${WHATSAPP_ORDER_PREFIX}${Date.now().toString(36).toUpperCase()}${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
 
   const order = await prisma.order.create({
@@ -107,5 +105,5 @@ export async function POST(req: NextRequest) {
     acceptedPrivacy: true,
   });
   await notifyStoreNewOrder(order);
-  return NextResponse.json({ reference, orderId: order.id, freeShipping, shippingFromCents });
+  return NextResponse.json({ reference, orderId: order.id, freeShipping });
 }
