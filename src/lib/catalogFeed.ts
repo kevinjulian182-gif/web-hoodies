@@ -25,6 +25,10 @@ export type CatalogItem = {
   groupId: string | null;
   color: string | null;
   sizes: string[];
+  /** Units per size for this color (aggregate stock when there are no variants). */
+  stockBySize: Record<string, number>;
+  /** False when the product only tracks one total stock shared by all sizes. */
+  stockPerSize: boolean;
   productType: string | null;
 };
 
@@ -53,11 +57,15 @@ export async function getCatalogItems(): Promise<CatalogItem[]> {
       if (images.length === 0) continue; // catalogs reject items without a photo
 
       const variants = product.variants.filter((v) => color === null || (v.color ?? null) === color);
-      const inStockSizes = product.sizes.filter((size) =>
-        product.variants.length === 0
-          ? product.stock > 0
-          : (product.variants.find((v) => variantKey(v.size, v.color) === variantKey(size, color))?.stock ?? 0) > 0
+      const stockBySize = Object.fromEntries(
+        product.sizes.map((size) => [
+          size,
+          product.variants.length === 0
+            ? product.stock
+            : product.variants.find((v) => variantKey(v.size, v.color) === variantKey(size, color))?.stock ?? 0,
+        ])
       );
+      const inStockSizes = product.sizes.filter((size) => stockBySize[size] > 0);
       const stock = product.variants.length === 0 ? product.stock : variants.reduce((sum, v) => sum + v.stock, 0);
       const multiColor = Boolean(color && product.colors.length > 1);
 
@@ -85,6 +93,8 @@ export async function getCatalogItems(): Promise<CatalogItem[]> {
         groupId: product.colors.length > 1 ? product.id : null,
         color,
         sizes: inStockSizes,
+        stockBySize,
+        stockPerSize: product.variants.length > 0,
         productType: product.category,
       });
     }

@@ -5,6 +5,7 @@ import WhatsAppAlertsCard from '@/components/admin/WhatsAppAlertsCard';
 import CustomerConfirmationCard from '@/components/admin/CustomerConfirmationCard';
 import WhatsAppCatalogCard from '@/components/admin/WhatsAppCatalogCard';
 import GoogleMerchantCard from '@/components/admin/GoogleMerchantCard';
+import WompiStatusCard from '@/components/admin/WompiStatusCard';
 
 const inputClass =
   'mt-1 w-full rounded-lg border border-cream-200 bg-white px-3 py-2.5 text-sm text-coffee-900 outline-none transition-colors focus:border-coffee-600';
@@ -166,6 +167,7 @@ export default function AccountPage() {
         </button>
       </form>
       </div>
+      <WompiStatusCard />
       <WhatsAppAlertsCard />
       <CustomerConfirmationCard />
       <WhatsAppCatalogCard />

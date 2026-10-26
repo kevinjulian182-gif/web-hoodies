@@ -87,6 +87,20 @@ export default function OrdersPage() {
     fetch(`/api/orders/${order.id}/whatsapp-sent`, { method: 'PATCH' }).catch(() => {});
   };
 
+  const [verifying, setVerifying] = useState<string | null>(null);
+
+  const handleVerifyPayment = async (order: Order) => {
+    setVerifying(order.id);
+    const res = await fetch(`/api/orders/${order.id}/verify-payment`, { method: 'POST' });
+    const data = await res.json().catch(() => ({}));
+    setVerifying(null);
+    setShipNotice((n) => ({
+      ...n,
+      [order.id]: res.ok ? { ok: true, text: data.text } : { ok: false, text: data.error ?? 'No se pudo consultar Wompi.' },
+    }));
+    if (res.ok) load();
+  };
+
   const handleDelete = async (order: Order) => {
     if (!confirm(`¿Eliminar el pedido de ${order.customerName} (${order.wompiReference})? Esta acción no se puede deshacer.`)) {
       return;
@@ -190,8 +204,19 @@ export default function OrdersPage() {
               {order.whatsappConfirmedAt && (
                 <span className="text-xs text-green-700">✓ Enviado {formatSentAt(order.whatsappConfirmedAt)}</span>
               )}
+              {order.paymentMethod === 'WOMPI' &&
+                !isWhatsAppOrder(order.wompiReference) &&
+                (order.status === 'PENDING' || order.status === 'CANCELLED') && (
+                  <button
+                    onClick={() => handleVerifyPayment(order)}
+                    disabled={verifying === order.id}
+                    className="text-sm font-medium text-coffee-900 underline underline-offset-4 transition-colors hover:text-coffee-700 disabled:opacity-50"
+                  >
+                    {verifying === order.id ? 'Consultando Wompi…' : 'Verificar pago en Wompi'}
+                  </button>
+                )}
               <Link
-                href={`/voucher/${order.id}`}
+                href={`/admin/bouchers?pedido=${order.id}`}
                 target="_blank"
                 className="text-sm text-coffee-700 transition-colors hover:text-coffee-900"
               >

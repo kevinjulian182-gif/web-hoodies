@@ -9,7 +9,9 @@ type NavItem = { href: string; label: string; icon: React.ReactNode };
 const NAV: NavItem[] = [
   { href: '/admin/orders', label: 'Pedidos', icon: <BagIcon /> },
   { href: '/admin/products', label: 'Productos', icon: <TagIcon /> },
+  { href: '/admin/bouchers', label: 'Bouchers de envío', icon: <BoxIcon /> },
   { href: '/admin/coupons', label: 'Cupones', icon: <TicketIcon /> },
+  { href: '/admin/marketplaces', label: 'Mercado Libre y FB', icon: <StoreIcon /> },
   { href: '/admin/contenido', label: 'Contenido web', icon: <LayoutIcon /> },
   { href: '/admin/analitica', label: 'Analítica', icon: <ChartIcon /> },
   { href: '/admin/consentimientos', label: 'Consentimientos', icon: <ShieldIcon /> },
@@ -149,6 +151,12 @@ function BagIcon() {
 }
 function TagIcon() {
   return <Svg><path d="M3 12V4h8l10 10-8 8L3 12Z" /><circle cx="7.5" cy="8.5" r="1.3" /></Svg>;
+}
+function StoreIcon() {
+  return <Svg><path d="M4 9.5 5.5 4h13L20 9.5" /><path d="M4 9.5a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0 2.7 2.7 0 0 0 5.3 0" /><path d="M5 12v8h14v-8M10 20v-5h4v5" /></Svg>;
+}
+function BoxIcon() {
+  return <Svg><path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5v-9Z" /><path d="m3 7.5 9 4.5 9-4.5M12 12v9" /></Svg>;
 }
 function TicketIcon() {
   return <Svg><path d="M3 8a2 2 0 0 0 0 4v4h18v-4a2 2 0 0 1 0-4V4H3v4Z" /><path d="M14 4v12" strokeDasharray="2 2" /></Svg>;
