@@ -13,7 +13,7 @@ export async function GET() {
 }
 
 const schema = z.object({
-  code: z.string().min(3).toUpperCase(),
+  code: z.string().trim().min(3).toUpperCase(),
   discountType: z.enum(['PERCENT', 'FIXED']),
   value: z.number().int().positive(),
   expiresAt: z.string().datetime().optional(),
@@ -29,6 +29,9 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
+
+  const exists = await prisma.coupon.findUnique({ where: { code: parsed.data.code } });
+  if (exists) return NextResponse.json({ error: `Ya existe un cupón con el código ${parsed.data.code}.` }, { status: 409 });
 
   const coupon = await prisma.coupon.create({
     data: {

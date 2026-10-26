@@ -1,18 +1,35 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { formatCOP } from '@/lib/format';
+import { buildOrderConfirmationMessage, buildWhatsAppLink } from '@/lib/whatsapp';
+import { useCatalogSettings } from '@/lib/catalogSettings';
+import { orderFreightOnDelivery } from '@/lib/pricing';
+import { isWhatsAppOrder, PLACEHOLDER_ADDRESS } from '@/lib/orderSource';
 
 type Order = {
   id: string;
   customerName: string;
+  customerDocument: string | null;
   customerEmail: string;
+  shippingAddress: string;
+  shippingAddressComplement: string | null;
+  shippingDepartment: string | null;
+  shippingCity: string;
+  shippingPhone: string;
+  deliveryNotes: string | null;
   status: 'PENDING' | 'PAID' | 'SHIPPED' | 'CANCELLED';
+  paymentMethod: 'WOMPI' | 'COD';
+  whatsappConfirmedAt: string | null;
+  subtotalCents: number;
+  discountCents: number;
   totalCents: number;
   trackingNumber: string | null;
   carrier: string;
   wompiReference: string;
   createdAt: string;
+  items: { id: string; quantity: number; product: { name: string } }[];
 };
 
 const STATUS_LABEL: Record<Order['status'], string> = {
@@ -22,7 +39,13 @@ const STATUS_LABEL: Record<Order['status'], string> = {
   CANCELLED: 'Cancelado',
 };
 
+const PAYMENT_LABEL: Record<Order['paymentMethod'], string> = {
+  WOMPI: 'Wompi',
+  COD: 'Contra entrega',
+};
+
 export default function OrdersPage() {
+  const { freeShippingThresholdCents } = useCatalogSettings();
   const [orders, setOrders] = useState<Order[]>([]);
   const [tracking, setTracking] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -37,14 +60,57 @@ export default function OrdersPage() {
     load();
   }, []);
 
+  const [shipNotice, setShipNotice] = useState<Record<string, { ok: boolean; text: string }>>({});
+
   const handleShip = async (orderId: string) => {
-    const trackingNumber = tracking[orderId];
+    const trackingNumber = tracking[orderId]?.trim();
     if (!trackingNumber) return;
     const res = await fetch(`/api/orders/${orderId}/shipping`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ trackingNumber, carrier: 'Inter Rapidísimo' }),
     });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.email) {
+      setShipNotice((n) => ({
+        ...n,
+        [orderId]: data.email.ok
+          ? { ok: true, text: `✓ Correo con la guía enviado a ${data.customerEmail}` }
+          : { ok: false, text: `No se envió el correo con la guía: ${data.email.error}` },
+      }));
+    }
+    load();
+  };
+
+  const handleWhatsAppSent = (order: Order) => {
+    // Fire-and-forget: opening the wa.me link (native <a target="_blank">)
+    // already handles the actual navigation, this just records it happened.
+    setOrders((prev) =>
+      prev.map((o) => (o.id === order.id ? { ...o, whatsappConfirmedAt: new Date().toISOString() } : o))
+    );
+    fetch(`/api/orders/${order.id}/whatsapp-sent`, { method: 'PATCH' }).catch(() => {});
+  };
+
+  const [verifying, setVerifying] = useState<string | null>(null);
+
+  const handleVerifyPayment = async (order: Order) => {
+    setVerifying(order.id);
+    const res = await fetch(`/api/orders/${order.id}/verify-payment`, { method: 'POST' });
+    const data = await res.json().catch(() => ({}));
+    setVerifying(null);
+    setShipNotice((n) => ({
+      ...n,
+      [order.id]: res.ok ? { ok: true, text: data.text } : { ok: false, text: data.error ?? 'No se pudo consultar Wompi.' },
+    }));
+    if (res.ok) load();
+  };
+
+  const handleDelete = async (order: Order) => {
+    if (!confirm(`¿Eliminar el pedido de ${order.customerName} (${order.wompiReference})? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+    const res = await fetch(`/api/orders/${order.id}`, { method: 'DELETE' });
     if (res.ok) load();
   };
 
@@ -55,48 +121,131 @@ export default function OrdersPage() {
       <h1 className="text-2xl font-semibold tracking-tightest text-coffee-900 mb-6">Pedidos</h1>
       <div className="space-y-4">
         {orders.map((order) => (
-          <div key={order.id} className="border border-cream-200 rounded-xl p-4 flex items-center justify-between gap-4">
-            <div>
-              <p className="font-medium text-coffee-900">{order.customerName}</p>
-              <p className="text-sm text-coffee-600">{order.customerEmail}</p>
-              <p className="text-xs text-coffee-500">{order.wompiReference}</p>
-            </div>
-            <div className="text-sm font-medium text-coffee-800">{formatCOP(order.totalCents)}</div>
-            <span
-              className={`text-xs px-3 py-1 rounded-full ${
-                order.status === 'PAID'
-                  ? 'bg-yellow-100 text-yellow-800'
-                  : order.status === 'SHIPPED'
-                  ? 'bg-green-100 text-green-800'
-                  : order.status === 'CANCELLED'
-                  ? 'bg-red-100 text-red-800'
-                  : 'bg-cream-200 text-coffee-700'
-              }`}
-            >
-              {STATUS_LABEL[order.status]}
-            </span>
-            {order.status === 'PAID' && (
-              <div className="flex gap-2">
-                <input
-                  placeholder="Guía Inter Rapidísimo"
-                  value={tracking[order.id] ?? ''}
-                  onChange={(e) => setTracking({ ...tracking, [order.id]: e.target.value })}
-                  className="border border-cream-200 rounded-lg px-3 py-2 text-sm"
-                />
-                <button
-                  onClick={() => handleShip(order.id)}
-                  className="bg-coffee-900 text-cream-50 px-4 py-2 rounded-lg text-sm"
-                >
-                  Marcar enviado
-                </button>
+          <div key={order.id} className="border border-cream-200 rounded-xl p-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="min-w-0">
+                <p className="font-medium text-coffee-900">{order.customerName}</p>
+                {order.customerEmail && <p className="text-sm text-coffee-600">{order.customerEmail}</p>}
+                <p className="text-xs text-coffee-500">{order.wompiReference}</p>
+                {order.shippingAddress === PLACEHOLDER_ADDRESS ? (
+                  <p className="mt-1.5 text-xs text-coffee-600">
+                    {order.shippingCity} · {order.shippingPhone} — dirección por confirmar en el chat
+                  </p>
+                ) : (
+                <p className="mt-1.5 text-xs text-coffee-600">
+                  {order.shippingAddress}
+                  {order.shippingAddressComplement && `, ${order.shippingAddressComplement}`} —{' '}
+                  {order.shippingCity}
+                  {order.shippingDepartment && `, ${order.shippingDepartment}`} · {order.shippingPhone}
+                </p>
+                )}
+                {order.deliveryNotes && (
+                  <p className="mt-1 text-xs italic text-amber-700">Nota: {order.deliveryNotes}</p>
+                )}
               </div>
-            )}
-            {order.status === 'SHIPPED' && order.trackingNumber && (
-              <p className="text-xs text-coffee-600">Guía: {order.trackingNumber}</p>
-            )}
+              <div className="text-sm font-medium text-coffee-800">{formatCOP(order.totalCents)}</div>
+              <div className="flex items-center gap-1.5">
+                <span
+                  className={`text-xs px-3 py-1 rounded-full ${
+                    order.status === 'PAID'
+                      ? 'bg-yellow-100 text-yellow-800'
+                      : order.status === 'SHIPPED'
+                      ? 'bg-green-100 text-green-800'
+                      : order.status === 'CANCELLED'
+                      ? 'bg-red-100 text-red-800'
+                      : 'bg-cream-200 text-coffee-700'
+                  }`}
+                >
+                  {STATUS_LABEL[order.status]}
+                </span>
+                {isWhatsAppOrder(order.wompiReference) ? (
+                  <span className="rounded-full bg-[#25D366]/15 px-3 py-1 text-xs font-medium text-[#128C4B]">Pedido por WhatsApp</span>
+                ) : (
+                <span
+                  className={`text-xs px-3 py-1 rounded-full ${
+                    order.paymentMethod === 'COD' ? 'bg-amber-50 text-amber-700' : 'bg-cream-200 text-coffee-700'
+                  }`}
+                >
+                  {PAYMENT_LABEL[order.paymentMethod]}
+                </span>
+                )}
+              </div>
+              {(order.status === 'PAID' || (order.paymentMethod === 'COD' && order.status === 'PENDING')) && (
+                <div className="flex gap-2">
+                  <input
+                    placeholder="Guía Inter Rapidísimo"
+                    value={tracking[order.id] ?? ''}
+                    onChange={(e) => setTracking({ ...tracking, [order.id]: e.target.value })}
+                    className="border border-cream-200 rounded-lg px-3 py-2 text-sm"
+                  />
+                  <button
+                    onClick={() => handleShip(order.id)}
+                    className="bg-coffee-900 text-cream-50 px-4 py-2 rounded-lg text-sm"
+                  >
+                    Marcar enviado
+                  </button>
+                </div>
+              )}
+              {order.status === 'SHIPPED' && order.trackingNumber && (
+                <p className="text-xs text-coffee-600">Guía: {order.trackingNumber}</p>
+              )}
+              {shipNotice[order.id] && (
+                <p className={`text-xs ${shipNotice[order.id].ok ? 'text-green-700' : 'text-red-700'}`}>
+                  {shipNotice[order.id].text}
+                </p>
+              )}
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-cream-200 pt-3">
+              <a
+                href={buildWhatsAppLink(order.shippingPhone, buildOrderConfirmationMessage(order, orderFreightOnDelivery(order, freeShippingThresholdCents)))}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => handleWhatsAppSent(order)}
+                className="text-sm text-[#128C7E] transition-colors hover:text-[#0e6b60]"
+              >
+                {order.whatsappConfirmedAt ? 'Reenviar confirmación por WhatsApp' : 'Enviar confirmación por WhatsApp'}
+              </a>
+              {order.whatsappConfirmedAt && (
+                <span className="text-xs text-green-700">✓ Enviado {formatSentAt(order.whatsappConfirmedAt)}</span>
+              )}
+              {order.paymentMethod === 'WOMPI' &&
+                !isWhatsAppOrder(order.wompiReference) &&
+                (order.status === 'PENDING' || order.status === 'CANCELLED') && (
+                  <button
+                    onClick={() => handleVerifyPayment(order)}
+                    disabled={verifying === order.id}
+                    className="text-sm font-medium text-coffee-900 underline underline-offset-4 transition-colors hover:text-coffee-700 disabled:opacity-50"
+                  >
+                    {verifying === order.id ? 'Consultando Wompi…' : 'Verificar pago en Wompi'}
+                  </button>
+                )}
+              <Link
+                href={`/admin/bouchers?pedido=${order.id}`}
+                target="_blank"
+                className="text-sm text-coffee-700 transition-colors hover:text-coffee-900"
+              >
+                Generar boucher
+              </Link>
+              <button
+                onClick={() => handleDelete(order)}
+                className="text-sm text-red-600 transition-colors hover:text-red-800"
+              >
+                Eliminar pedido
+              </button>
+            </div>
           </div>
         ))}
       </div>
     </div>
   );
+}
+
+function formatSentAt(iso: string) {
+  return new Date(iso).toLocaleString('es-CO', {
+    day: 'numeric',
+    month: 'short',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 }

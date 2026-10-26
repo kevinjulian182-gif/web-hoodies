@@ -1,42 +1,436 @@
+import { createHmac, timingSafeEqual } from 'crypto';
 import { Resend } from 'resend';
-import { getConfigValue } from '@/lib/config';
-import type { Order, OrderItem, Product } from '@prisma/client';
+import { getConfigValue, setConfigValue } from '@/lib/config';
+import { getFreeShippingThresholdCents, getSiteContent } from '@/lib/content';
+import { getStoreWhatsAppNumber } from '@/lib/whatsapp';
+import { orderFreightOnDelivery, orderShippingText } from '@/lib/pricing';
+import { formatCOP } from '@/lib/format';
+import { isWhatsAppOrder } from '@/lib/orderSource';
 
-type OrderWithItems = Order & { items: (OrderItem & { product: Product })[] };
+// Two sending subdomains, each verified separately in Resend: store email
+// (orders, tracking) and marketing (newsletter). Keeping them apart means a
+// marketing campaign marked as spam never hurts order confirmations.
+export const DEFAULT_EMAIL_FROM = 'AFRA <pedidos@mail.wearafra.com>';
+export const DEFAULT_MARKETING_FROM = 'AFRA <hola@news.wearafra.com>';
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://wearafra.com').replace(/\/$/, '');
 
-export async function sendOrderConfirmationEmail(order: OrderWithItems) {
-  const apiKey = await getConfigValue('RESEND_API_KEY');
-  if (!apiKey) {
-    console.warn('RESEND_API_KEY no configurado; se omite el correo de confirmación');
-    return;
+type OrderForEmail = {
+  wompiReference: string;
+  customerName: string;
+  customerEmail: string;
+  shippingPhone: string;
+  shippingAddress: string;
+  shippingAddressComplement?: string | null;
+  shippingCity: string;
+  shippingDepartment?: string | null;
+  deliveryNotes?: string | null;
+  paymentMethod: 'WOMPI' | 'COD';
+  subtotalCents: number;
+  discountCents: number;
+  totalCents: number;
+  couponCode?: string | null;
+  items: {
+    quantity: number;
+    size: string;
+    color?: string | null;
+    priceCents: number;
+    product: { name: string; images?: string[] };
+  }[];
+};
+
+export type EmailResult = { ok: true; id?: string } | { ok: false; error: string };
+
+const esc = (s: string) =>
+  s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+
+export async function getEmailSettings() {
+  const [apiKey, from, marketingFrom] = await Promise.all([
+    getConfigValue('RESEND_API_KEY'),
+    getConfigValue('EMAIL_FROM'),
+    getConfigValue('EMAIL_FROM_MARKETING'),
+  ]);
+  return { apiKey, from: from || DEFAULT_EMAIL_FROM, marketingFrom: marketingFrom || DEFAULT_MARKETING_FROM };
+}
+
+export type DeliveryLog = { ok: boolean; to: string; reference: string; at: string; error?: string };
+
+/** Last confirmation attempt, so the admin can see why a customer didn't get it. */
+export async function getLastEmailResult(): Promise<DeliveryLog | null> {
+  try {
+    return JSON.parse((await getConfigValue('EMAIL_LAST_RESULT')) || 'null');
+  } catch {
+    return null;
   }
+}
 
-  const resend = new Resend(apiKey);
+/** Turns Resend's error into something the store owner can act on. */
+function explainResendError(message: string): string {
+  if (/domain.*not verified|verify a domain|not verified/i.test(message)) {
+    return `El dominio del remitente no está verificado en Resend. Verifica mail.wearafra.com y news.wearafra.com en resend.com/domains (registros DNS) o usa un remitente de un dominio verificado. (${message})`;
+  }
+  if (/api key|unauthori[sz]ed|invalid_api_key/i.test(message)) {
+    return `La API key de Resend no es válida. Crea una nueva en resend.com/api-keys y guárdala de nuevo. (${message})`;
+  }
+  if (/testing emails|own email address/i.test(message)) {
+    return `Resend está en modo de prueba: solo deja enviar a tu propio correo hasta que verifiques el dominio. (${message})`;
+  }
+  return message;
+}
+
+export function buildOrderEmail(order: OrderForEmail, whatsappNumber: string, freeShippingThresholdCents = 0) {
+  const isCod = order.paymentMethod === 'COD';
+  const firstName = esc(order.customerName.trim().split(/\s+/)[0] || order.customerName);
+  const shippingText = orderShippingText(order, freeShippingThresholdCents);
+  const freightOnDelivery = orderFreightOnDelivery(order, freeShippingThresholdCents);
+  const address = [
+    order.shippingAddress,
+    order.shippingAddressComplement,
+    [order.shippingCity, order.shippingDepartment].filter(Boolean).join(', '),
+  ]
+    .filter(Boolean)
+    .map((line) => esc(line!))
+    .join('<br>');
+
   const itemsHtml = order.items
-    .map(
-      (item) =>
-        `<tr><td style="padding:8px 0;color:#3A2E24;">${item.product.name} · Talla ${item.size} × ${item.quantity}</td></tr>`
-    )
+    .map((item) => {
+      const image = item.product.images?.[0];
+      const detail = [`Talla ${item.size}`, item.color, item.quantity > 1 ? `${item.quantity} unidades` : null]
+        .filter(Boolean)
+        .join(' · ');
+      return `
+        <tr>
+          <td style="padding:12px 0;border-bottom:1px solid #F1E6D2;width:64px;vertical-align:top;">
+            ${
+              image && /^https?:\/\//.test(image)
+                ? `<img src="${esc(image)}" width="56" height="70" alt="" style="display:block;width:56px;height:70px;object-fit:cover;border-radius:8px;background:#F7EEDB;">`
+                : `<div style="width:56px;height:70px;border-radius:8px;background:#F7EEDB;"></div>`
+            }
+          </td>
+          <td style="padding:12px 12px;border-bottom:1px solid #F1E6D2;vertical-align:top;">
+            <div style="font-size:15px;font-weight:600;color:#291C13;">${esc(item.product.name)}</div>
+            <div style="font-size:13px;color:#83593D;margin-top:2px;">${esc(detail)}</div>
+          </td>
+          <td style="padding:12px 0;border-bottom:1px solid #F1E6D2;vertical-align:top;text-align:right;white-space:nowrap;font-size:15px;color:#291C13;">
+            ${formatCOP(item.priceCents * item.quantity)}
+          </td>
+        </tr>`;
+    })
     .join('');
 
-  const total = (order.totalCents / 100).toLocaleString('es-CO', { style: 'currency', currency: 'COP' });
+  const row = (label: string, value: string, color = '#4F3624') =>
+    `<tr><td style="padding:4px 0;font-size:14px;color:${color};">${label}</td><td style="padding:4px 0;font-size:14px;color:${color};text-align:right;">${value}</td></tr>`;
 
-  await resend.emails.send({
-    from: 'AFRA <pedidos@afra.co>',
-    to: order.customerEmail,
-    subject: 'Tu compra ha sido exitosa',
-    html: `
-      <div style="font-family: -apple-system, sans-serif; background:#FDFCFA; padding:32px; color:#2A2119;">
-        <h1 style="font-weight:600; letter-spacing:-0.02em;">Gracias por tu compra, ${order.customerName}</h1>
-        <p style="font-size:16px; line-height:1.6;">
-          Tu compra ha sido exitosa. Tu producto será enviado el día de mañana y te compartiremos tu guía de seguimiento.
-        </p>
-        <table style="width:100%; margin:24px 0; border-top:1px solid #F1EADD; border-bottom:1px solid #F1EADD;">
-          ${itemsHtml}
-        </table>
-        <p style="font-size:18px; font-weight:600;">Total: ${total}</p>
-        <p style="font-size:14px; color:#4A3B2F;">Referencia de pedido: ${order.wompiReference}</p>
-      </div>
-    `,
-  });
+  const steps = isCod
+    ? [
+        'Preparamos tu pedido y lo despachamos en 24 horas hábiles.',
+        'Te enviamos el número de guía para que lo rastrees.',
+        `Pagas ${formatCOP(order.totalCents)} en efectivo o datáfono cuando lo recibas.`,
+      ]
+    : [
+        'Tu pago ya está confirmado.',
+        'Despachamos tu pedido en 24 horas hábiles.',
+        'Te enviamos el número de guía para que lo rastrees.',
+      ];
+
+  const waLink = whatsappNumber
+    ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Hola, tengo una pregunta sobre mi pedido ${order.wompiReference}`)}`
+    : '';
+
+  const subject = isCod
+    ? `Pedido confirmado ${order.wompiReference} · AFRA`
+    : `Pago recibido · tu pedido ${order.wompiReference} · AFRA`;
+
+  const html = `<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(subject)}</title></head>
+<body style="margin:0;padding:0;background:#FBF6EC;">
+  <div style="display:none;max-height:0;overflow:hidden;">${isCod ? 'Recibimos tu pedido. Pagas al recibir.' : 'Tu pago fue aprobado.'} Total ${formatCOP(order.totalCents)}.</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FBF6EC;">
+    <tr><td align="center" style="padding:32px 16px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+        <tr><td style="padding-bottom:24px;text-align:center;">
+          <a href="${SITE_URL}" style="font-size:26px;font-weight:800;letter-spacing:0.18em;color:#291C13;text-decoration:none;">AFRA</a>
+        </td></tr>
+        <tr><td style="background:#FFFFFF;border-radius:20px;padding:32px 28px;">
+          <div style="font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#83593D;">Pedido ${esc(order.wompiReference)}</div>
+          <h1 style="margin:8px 0 0;font-size:26px;line-height:1.25;color:#291C13;letter-spacing:-0.02em;">
+            ${isCod ? `¡Gracias, ${firstName}! Tu pedido está confirmado.` : `¡Gracias, ${firstName}! Recibimos tu pago.`}
+          </h1>
+          <p style="margin:12px 0 0;font-size:15px;line-height:1.6;color:#4F3624;">
+            ${
+              isCod
+                ? 'Ya estamos preparando tu pedido. Pagas en efectivo o con datáfono cuando lo recibas.'
+                : 'Tu compra está lista y la despachamos en las próximas 24 horas hábiles.'
+            }
+          </p>
+
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;border-top:1px solid #F1E6D2;">
+            ${itemsHtml}
+          </table>
+
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;">
+            ${row('Subtotal', formatCOP(order.subtotalCents))}
+            ${order.discountCents > 0 ? row(`Descuento${order.couponCode ? ` (${esc(order.couponCode)})` : ''}`, `-${formatCOP(order.discountCents)}`, '#15803D') : ''}
+            ${row('Envío', shippingText, shippingText === 'Gratis' ? '#15803D' : '#4F3624')}
+            <tr><td style="padding:12px 0 0;border-top:1px solid #F1E6D2;font-size:16px;font-weight:700;color:#291C13;">${isCod ? 'Total a pagar al recibir' : 'Total pagado'}${freightOnDelivery ? ' (+ envío)' : ''}</td>
+            <td style="padding:12px 0 0;border-top:1px solid #F1E6D2;font-size:20px;font-weight:700;color:#291C13;text-align:right;">${formatCOP(order.totalCents)}</td></tr>
+          </table>
+
+          <div style="margin-top:28px;padding:18px 20px;background:#FBF6EC;border-radius:14px;">
+            <div style="font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#83593D;">Lo enviamos a</div>
+            <div style="margin-top:6px;font-size:15px;line-height:1.55;color:#291C13;">
+              <strong>${esc(order.customerName)}</strong><br>${address}<br>Tel. ${esc(order.shippingPhone)}
+            </div>
+            ${order.deliveryNotes ? `<div style="margin-top:8px;font-size:13px;color:#83593D;">Indicaciones: ${esc(order.deliveryNotes)}</div>` : ''}
+          </div>
+
+          <div style="margin-top:24px;">
+            <div style="font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#83593D;">Qué sigue</div>
+            <ol style="margin:10px 0 0;padding-left:20px;font-size:15px;line-height:1.7;color:#4F3624;">
+              ${steps.map((s) => `<li>${s}</li>`).join('')}
+            </ol>
+          </div>
+
+          ${
+            waLink
+              ? `<div style="margin-top:28px;text-align:center;">
+                  <a href="${waLink}" style="display:inline-block;background:#291C13;color:#FBF6EC;text-decoration:none;font-size:15px;font-weight:600;padding:14px 28px;border-radius:999px;">¿Dudas? Escríbenos por WhatsApp</a>
+                </div>`
+              : ''
+          }
+        </td></tr>
+        <tr><td style="padding:20px 8px 0;text-align:center;font-size:12px;line-height:1.6;color:#83593D;">
+          Recibiste este correo porque hiciste un pedido en <a href="${SITE_URL}" style="color:#83593D;">wearafra.com</a>.<br>
+          Guarda este correo: el número de pedido te sirve para cualquier consulta.
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+
+  const text = [
+    isCod ? `¡Gracias, ${order.customerName}! Tu pedido está confirmado.` : `¡Gracias, ${order.customerName}! Recibimos tu pago.`,
+    `Pedido: ${order.wompiReference}`,
+    '',
+    ...order.items.map((i) => `• ${i.quantity} x ${i.product.name} — Talla ${i.size}${i.color ? `, ${i.color}` : ''} (${formatCOP(i.priceCents * i.quantity)})`),
+    '',
+    `Subtotal: ${formatCOP(order.subtotalCents)}`,
+    order.discountCents > 0 ? `Descuento: -${formatCOP(order.discountCents)}` : null,
+    `Envío: ${shippingText}`,
+    `${isCod ? 'Total a pagar al recibir' : 'Total pagado'}${freightOnDelivery ? ' (+ envío)' : ''}: ${formatCOP(order.totalCents)}`,
+    '',
+    `Lo enviamos a: ${[order.shippingAddress, order.shippingAddressComplement, order.shippingCity, order.shippingDepartment].filter(Boolean).join(', ')}`,
+    '',
+    ...steps.map((s, i) => `${i + 1}. ${s}`),
+    waLink ? `\n¿Dudas? ${waLink}` : null,
+  ]
+    .filter((l) => l !== null)
+    .join('\n');
+
+  return { subject, html, text };
+}
+
+async function sendEmail(
+  to: string,
+  message: { subject: string; html: string; text: string; headers?: Record<string, string> },
+  kind: 'transactional' | 'marketing' = 'transactional'
+): Promise<EmailResult> {
+  if (!to) return { ok: false, error: 'El pedido no tiene correo del cliente.' };
+  const settings = await getEmailSettings();
+  if (!settings.apiKey) return { ok: false, error: 'Falta la API key de Resend (Admin › Cuenta › Confirmación al cliente).' };
+  const from = kind === 'marketing' ? settings.marketingFrom : settings.from;
+  try {
+    // Resend reports failures in the result instead of throwing.
+    const { data, error } = await new Resend(settings.apiKey).emails.send({ from, to, ...message });
+    if (error) return { ok: false, error: explainResendError(error.message) };
+    return { ok: true, id: data?.id };
+  } catch (err) {
+    return { ok: false, error: explainResendError(err instanceof Error ? err.message : String(err)) };
+  }
+}
+
+async function logEmailResult(result: EmailResult, to: string, reference: string) {
+  const log: DeliveryLog = {
+    ok: result.ok,
+    to,
+    reference,
+    at: new Date().toISOString(),
+    error: result.ok ? undefined : result.error,
+  };
+  await setConfigValue('EMAIL_LAST_RESULT', JSON.stringify(log)).catch(() => {});
+}
+
+export async function sendOrderEmail(order: OrderForEmail, to = order.customerEmail): Promise<EmailResult> {
+  const content = await getSiteContent();
+  return sendEmail(to, buildOrderEmail(order, getStoreWhatsAppNumber(content), getFreeShippingThresholdCents(content)));
+}
+
+/** Confirmation to the shopper once an order is committed (COD at creation,
+ * Wompi when paid). Never throws: a failed email must not fail the order. */
+export async function sendOrderConfirmationEmail(order: OrderForEmail) {
+  if (isWhatsAppOrder(order.wompiReference)) return;
+  const result = await sendOrderEmail(order);
+  if (!result.ok) console.error(`Correo de confirmación no enviado (${order.wompiReference}): ${result.error}`);
+  await logEmailResult(result, order.customerEmail, order.wompiReference);
+}
+
+// ── Shipped: tracking number ─────────────────────────────────────────────
+
+type ShippedOrder = Pick<
+  OrderForEmail,
+  | 'wompiReference'
+  | 'customerName'
+  | 'customerEmail'
+  | 'shippingAddress'
+  | 'shippingAddressComplement'
+  | 'shippingCity'
+  | 'shippingDepartment'
+  | 'paymentMethod'
+  | 'totalCents'
+> & { trackingNumber: string; carrier: string; items: { quantity: number; size: string; color?: string | null; product: { name: string } }[] };
+
+/** Public tracking page for the carriers the store uses. */
+export function trackingUrl(carrier: string): string | null {
+  return /inter/i.test(carrier) ? 'https://interrapidisimo.com/sigue-tu-envio/' : null;
+}
+
+export function buildShippedEmail(order: ShippedOrder, whatsappNumber: string) {
+  const firstName = esc(order.customerName.trim().split(/\s+/)[0] || order.customerName);
+  const isCod = order.paymentMethod === 'COD';
+  const trackUrl = trackingUrl(order.carrier);
+  const address = [
+    order.shippingAddress,
+    order.shippingAddressComplement,
+    [order.shippingCity, order.shippingDepartment].filter(Boolean).join(', '),
+  ]
+    .filter(Boolean)
+    .map((line) => esc(line!))
+    .join('<br>');
+  const itemsList = order.items
+    .map((i) => `${i.quantity}x ${esc(i.product.name)} · Talla ${esc(i.size)}${i.color ? ` · ${esc(i.color)}` : ''}`)
+    .join('<br>');
+  const waLink = whatsappNumber
+    ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Hola, tengo una pregunta sobre el envío de mi pedido ${order.wompiReference} (guía ${order.trackingNumber})`)}`
+    : '';
+  const subject = `Tu pedido va en camino · Guía ${order.trackingNumber} · AFRA`;
+
+  const html = `<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(subject)}</title></head>
+<body style="margin:0;padding:0;background:#FBF6EC;">
+  <div style="display:none;max-height:0;overflow:hidden;">Tu número de guía es ${esc(order.trackingNumber)}.</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FBF6EC;">
+    <tr><td align="center" style="padding:32px 16px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+        <tr><td style="padding-bottom:24px;text-align:center;">
+          <a href="${SITE_URL}" style="font-size:26px;font-weight:800;letter-spacing:0.18em;color:#291C13;text-decoration:none;">AFRA</a>
+        </td></tr>
+        <tr><td style="background:#FFFFFF;border-radius:20px;padding:32px 28px;">
+          <div style="font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#83593D;">Pedido ${esc(order.wompiReference)}</div>
+          <h1 style="margin:8px 0 0;font-size:26px;line-height:1.25;color:#291C13;letter-spacing:-0.02em;">¡${firstName}, tu pedido va en camino! 🚚</h1>
+          <p style="margin:12px 0 0;font-size:15px;line-height:1.6;color:#4F3624;">Ya lo entregamos a ${esc(order.carrier)}. Con este número de guía puedes seguirlo:</p>
+
+          <div style="margin-top:20px;padding:22px 20px;background:#291C13;border-radius:16px;text-align:center;">
+            <div style="font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#EAD09C;">Número de guía · ${esc(order.carrier)}</div>
+            <div style="margin-top:8px;font-size:28px;font-weight:700;letter-spacing:0.06em;color:#FBF6EC;font-family:ui-monospace,Menlo,Consolas,monospace;">${esc(order.trackingNumber)}</div>
+          </div>
+
+          ${
+            trackUrl
+              ? `<div style="margin-top:20px;text-align:center;">
+                  <a href="${trackUrl}" style="display:inline-block;background:#291C13;color:#FBF6EC;text-decoration:none;font-size:15px;font-weight:600;padding:14px 28px;border-radius:999px;">Rastrear mi pedido</a>
+                  <div style="margin-top:8px;font-size:12px;color:#83593D;">Copia el número de guía y pégalo en la página de ${esc(order.carrier)}.</div>
+                </div>`
+              : ''
+          }
+
+          <div style="margin-top:28px;padding:18px 20px;background:#FBF6EC;border-radius:14px;">
+            <div style="font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#83593D;">Va para</div>
+            <div style="margin-top:6px;font-size:15px;line-height:1.55;color:#291C13;"><strong>${esc(order.customerName)}</strong><br>${address}</div>
+            <div style="margin-top:12px;font-size:14px;line-height:1.55;color:#4F3624;">${itemsList}</div>
+          </div>
+
+          ${
+            isCod
+              ? `<p style="margin:20px 0 0;font-size:15px;line-height:1.6;color:#4F3624;">Recuerda tener listo el pago de <strong>${formatCOP(order.totalCents)}</strong> (efectivo o datáfono) para cuando llegue.</p>`
+              : ''
+          }
+
+          ${
+            waLink
+              ? `<p style="margin:24px 0 0;font-size:14px;color:#4F3624;text-align:center;">¿Alguna duda con el envío? <a href="${waLink}" style="color:#291C13;font-weight:600;">Escríbenos por WhatsApp</a></p>`
+              : ''
+          }
+        </td></tr>
+        <tr><td style="padding:20px 8px 0;text-align:center;font-size:12px;line-height:1.6;color:#83593D;">
+          Recibiste este correo porque hiciste un pedido en <a href="${SITE_URL}" style="color:#83593D;">wearafra.com</a>.
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+
+  const text = [
+    `¡${order.customerName}, tu pedido ${order.wompiReference} va en camino!`,
+    '',
+    `Número de guía (${order.carrier}): ${order.trackingNumber}`,
+    trackUrl ? `Rastréalo en: ${trackUrl}` : null,
+    '',
+    ...order.items.map((i) => `• ${i.quantity}x ${i.product.name} — Talla ${i.size}${i.color ? `, ${i.color}` : ''}`),
+    '',
+    isCod ? `Ten listo el pago de ${formatCOP(order.totalCents)} para cuando llegue.` : null,
+    waLink ? `¿Dudas? ${waLink}` : null,
+  ]
+    .filter((l) => l !== null)
+    .join('\n');
+
+  return { subject, html, text };
+}
+
+/** Tells the shopper their tracking number. Never throws. */
+export async function sendShippedEmail(order: ShippedOrder): Promise<EmailResult> {
+  if (!order.customerEmail) return { ok: false, error: 'El pedido no tiene correo del cliente.' };
+  const content = await getSiteContent();
+  const result = await sendEmail(order.customerEmail, buildShippedEmail(order, getStoreWhatsAppNumber(content)));
+  if (!result.ok) console.error(`Correo de envío no enviado (${order.wompiReference}): ${result.error}`);
+  await logEmailResult(result, order.customerEmail, order.wompiReference);
+  return result;
+}
+
+
+// ── Marketing: newsletter welcome ────────────────────────────────────────
+
+/** Signed unsubscribe link so nobody can remove someone else's email. */
+export function unsubscribeUrl(email: string): string {
+  const token = createHmac('sha256', process.env.AUTH_SECRET || 'afra').update(email.toLowerCase()).digest('hex').slice(0, 32);
+  return `${SITE_URL}/api/newsletter/unsubscribe?email=${encodeURIComponent(email)}&token=${token}`;
+}
+
+export function verifyUnsubscribeToken(email: string, token: string): boolean {
+  const expected = new URL(unsubscribeUrl(email)).searchParams.get('token') ?? '';
+  return expected.length === token.length && timingSafeEqual(Buffer.from(expected), Buffer.from(token));
+}
+
+/** Welcome email from the marketing sender. Never throws. */
+export async function sendNewsletterWelcome(email: string): Promise<void> {
+  const unsubscribe = unsubscribeUrl(email);
+  const subject = 'Bienvenido a AFRA: lo nuevo te llega primero';
+  const html = `<!doctype html><html lang="es"><body style="margin:0;background:#FBF6EC;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FBF6EC;"><tr><td align="center" style="padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+    <tr><td style="padding-bottom:24px;text-align:center;"><a href="${SITE_URL}" style="font-size:26px;font-weight:800;letter-spacing:0.18em;color:#291C13;text-decoration:none;">AFRA</a></td></tr>
+    <tr><td style="background:#FFFFFF;border-radius:20px;padding:32px 28px;">
+      <h1 style="margin:0;font-size:24px;line-height:1.3;color:#291C13;">Ya eres parte de AFRA</h1>
+      <p style="margin:12px 0 0;font-size:15px;line-height:1.6;color:#4F3624;">Te vamos a escribir cuando lleguen piezas nuevas y cuando haya promociones. Pocas veces y solo con cosas que valen la pena.</p>
+      <div style="margin-top:24px;text-align:center;"><a href="${SITE_URL}/productos" style="display:inline-block;background:#291C13;color:#FBF6EC;text-decoration:none;font-size:15px;font-weight:600;padding:14px 28px;border-radius:999px;">Ver el catálogo</a></div>
+    </td></tr>
+    <tr><td style="padding:20px 8px 0;text-align:center;font-size:12px;line-height:1.6;color:#83593D;">
+      Recibes este correo porque te suscribiste en wearafra.com. <a href="${unsubscribe}" style="color:#83593D;">Darme de baja</a>
+    </td></tr>
+  </table></td></tr></table></body></html>`;
+  const text = `Ya eres parte de AFRA. Te escribiremos cuando lleguen piezas nuevas y promociones.\n\nVer el catálogo: ${SITE_URL}/productos\n\nDarte de baja: ${unsubscribe}`;
+  const result = await sendEmail(
+    email,
+    { subject, html, text, headers: { 'List-Unsubscribe': `<${unsubscribe}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' } },
+    'marketing'
+  );
+  if (!result.ok) console.error(`Correo de bienvenida no enviado (${email}): ${result.error}`);
 }
