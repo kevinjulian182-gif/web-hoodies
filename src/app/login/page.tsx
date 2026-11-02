@@ -22,7 +22,9 @@ export default function LoginPage() {
       setError(data.error ?? 'Error al iniciar sesión');
       return;
     }
-    router.push('/admin');
+    // Back to the back-office page that asked for the login, if any.
+    const from = new URLSearchParams(window.location.search).get('from') ?? '';
+    router.push(/^\/(admin|gestor)(\/|$)/.test(from) ? from : '/admin');
     router.refresh();
   };
 

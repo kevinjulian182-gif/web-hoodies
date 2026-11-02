@@ -7,7 +7,7 @@ import Logo from '@/components/Logo';
 type NavItem = { href: string; label: string; icon: React.ReactNode };
 
 const NAV: NavItem[] = [
-  { href: '/admin/gestor', label: 'Gestor de pedidos', icon: <ClipboardIcon /> },
+  { href: '/gestor', label: 'Gestor de pedidos', icon: <ClipboardIcon /> },
   { href: '/admin/orders', label: 'Pedidos', icon: <BagIcon /> },
   { href: '/admin/products', label: 'Productos', icon: <TagIcon /> },
   { href: '/admin/bouchers', label: 'Bouchers de envío', icon: <BoxIcon /> },

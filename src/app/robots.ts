@@ -9,7 +9,7 @@ export default function robots(): MetadataRoute.Robots {
         allow: '/',
         // Private or transactional pages. /feeds stays open: Google Merchant
         // and Meta fetch the catalogs and product photos from there.
-        disallow: ['/admin', '/api/', '/checkout', '/voucher/', '/favoritos', '/login'],
+        disallow: ['/admin', '/gestor', '/api/', '/checkout', '/voucher/', '/favoritos', '/login'],
       },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,
