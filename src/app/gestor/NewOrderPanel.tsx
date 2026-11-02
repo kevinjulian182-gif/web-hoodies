@@ -5,6 +5,7 @@ import { COLOMBIA_DEPARTMENTS } from '@/lib/colombia';
 import { formatCOP } from '@/lib/format';
 import { variantKey } from '@/lib/variants';
 import type { ManagedOrder } from './types';
+import type { ParsedOrder } from '@/lib/orderText';
 
 type Product = {
   id: string;
@@ -58,6 +59,9 @@ export default function NewOrderPanel({
   const [shipping, setShipping] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+  const [reading, setReading] = useState(false);
+  const [readNotice, setReadNotice] = useState<{ ok: boolean; text: string } | null>(null);
 
   useEffect(() => {
     fetch('/api/admin/gestor/products', { cache: 'no-store' })
@@ -91,6 +95,63 @@ export default function NewOrderPanel({
         return next;
       })
     );
+
+  /** Fills the form from a pasted customer message; the admin reviews it. */
+  const readMessage = async () => {
+    setReading(true);
+    setReadNotice(null);
+    const res = await fetch('/api/admin/gestor/parse', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: message }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setReading(false);
+    if (!res.ok) return setReadNotice({ ok: false, text: data.error ?? 'No se pudo leer el mensaje.' });
+
+    const order = data.order as ParsedOrder;
+    const found = Object.fromEntries(
+      (Object.keys(customer) as (keyof typeof customer)[])
+        .filter((key) => order[key])
+        .map((key) => [key, String(order[key])])
+    );
+    setCustomer((c) => ({ ...c, ...found }));
+    if (order.paymentMethod) setPaymentMethod(order.paymentMethod);
+    if (order.items.length) {
+      setLines(
+        order.items.map((item) => {
+          const product = byId.get(item.productId);
+          return {
+            key: nextKey++,
+            productId: item.productId,
+            color: item.color ?? '',
+            size: item.size ?? '',
+            quantity: item.quantity,
+            price: product ? String(Math.round(product.priceCents / 100)) : '',
+          };
+        })
+      );
+    }
+
+    const missing = [
+      !found.customerName && 'nombre',
+      !found.shippingPhone && 'celular',
+      !found.shippingAddress && 'dirección',
+      !found.shippingCity && 'ciudad',
+      !order.items.length && 'productos',
+      order.items.some((i) => !i.size) && 'talla',
+    ].filter(Boolean);
+    const filled = Object.keys(found).length + (order.items.length ? 1 : 0);
+    setReadNotice({
+      ok: filled > 0,
+      text:
+        filled === 0
+          ? 'No encontré datos del pedido en el mensaje. Llénalo a mano.'
+          : `${data.source === 'ai' ? 'Leído con IA' : 'Leído'}: revisa los datos antes de registrar.${
+              missing.length ? ` Falta: ${missing.join(', ')}.` : ''
+            }${data.warning ? ` ${data.warning}` : ''}`,
+    });
+  };
 
   const subtotalCents = lines.reduce((sum, l) => sum + (Number(l.price) || 0) * 100 * l.quantity, 0);
   const shippingCents = (Number(shipping) || 0) * 100;
@@ -147,6 +208,37 @@ export default function NewOrderPanel({
         </div>
 
         <div className="flex-1 space-y-7 overflow-y-auto overscroll-contain px-5 py-5">
+          <section className="rounded-xl border border-dashed border-coffee-300 bg-white p-3">
+            <label className="block">
+              <span className="text-sm font-semibold text-coffee-900">Pegar mensaje del cliente</span>
+              <span className="block text-xs text-coffee-500">
+                Copia el chat de WhatsApp o Instagram y los datos se llenan solos.
+              </span>
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                rows={4}
+                placeholder={'Nombre: Laura Restrepo\nCel: 315 777 8899\nDirección: Calle 10 # 34-56\nCali, Valle del Cauca\n1 Trefoil Hoodie talla S crema'}
+                className={`${field} resize-y font-normal`}
+              />
+            </label>
+            <div className="mt-2 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={readMessage}
+                disabled={reading || !message.trim() || products.length === 0}
+                className="rounded-lg bg-coffee-900 px-4 py-2 text-sm font-medium text-cream-50 transition-transform active:scale-[0.98] disabled:opacity-50"
+              >
+                {reading ? 'Leyendo…' : 'Llenar con el mensaje'}
+              </button>
+              {readNotice && (
+                <p role="status" className={`text-xs ${readNotice.ok ? 'text-green-700' : 'text-red-700'}`}>
+                  {readNotice.text}
+                </p>
+              )}
+            </div>
+          </section>
+
           <fieldset className="space-y-3">
             <legend className="mb-2 text-sm font-semibold text-coffee-900">Cliente</legend>
             <label className="block">
