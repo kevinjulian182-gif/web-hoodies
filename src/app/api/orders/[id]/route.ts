@@ -28,7 +28,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   const { id } = await params;
   // A deleted order that hadn't shipped gives its units back to the store.
   const order = await prisma.order.findUnique({ where: { id } });
-  if (order && order.status !== 'SHIPPED' && orderHoldsStock(order)) {
+  if (order && order.status !== 'SHIPPED' && order.status !== 'DELIVERED' && orderHoldsStock(order)) {
     const slugs = await releaseOrderStock(id);
     revalidateProductListings();
     for (const slug of new Set(slugs)) revalidateProduct(slug);

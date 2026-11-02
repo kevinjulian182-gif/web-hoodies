@@ -19,6 +19,7 @@ enum OrderStatus {
   PENDING
   PAID
   SHIPPED
+  DELIVERED
   CANCELLED
 }
 
@@ -30,6 +31,7 @@ enum DiscountType {
 enum PaymentMethod {
   WOMPI
   COD
+  TRANSFER
 }
 
 model User {
@@ -151,6 +153,10 @@ model Order {
   carrier           String      @default("Inter Rapidísimo")
   trackingNumber    String?
   shippedAt         DateTime?
+  deliveredAt       DateTime?
+  /// Last state reported by the carrier's tracking (e.g. "En reparto").
+  trackingStatus    String?
+  trackingCheckedAt DateTime?
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
 }

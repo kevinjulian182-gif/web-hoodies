@@ -8,6 +8,7 @@ const STATUS_LABEL: Record<string, string> = {
   PENDING: 'Pendiente',
   PAID: 'Pagado',
   SHIPPED: 'Enviado',
+  DELIVERED: 'Entregado',
   CANCELLED: 'Cancelado',
 };
 

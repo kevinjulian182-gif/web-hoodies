@@ -2,7 +2,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { variantKey } from '@/lib/variants';
 import { isWhatsAppOrder } from '@/lib/orderSource';
-import type { Product, ProductVariant } from '@prisma/client';
+import type { OrderStatus, PaymentMethod, Product, ProductVariant } from '@prisma/client';
 
 // costCents is omitted from the public `prisma` client's Product type (see
 // lib/prisma.ts) — both checkout routes read products through it, so this
@@ -97,15 +97,15 @@ const WOMPI_HOLD_MINUTES = 180;
 type OrderForStock = {
   id: string;
   wompiReference: string;
-  paymentMethod: 'WOMPI' | 'COD';
-  status: 'PENDING' | 'PAID' | 'SHIPPED' | 'CANCELLED';
+  paymentMethod: PaymentMethod;
+  status: OrderStatus;
   createdAt: Date;
 };
 
 /** Whether this order's units are currently out of stock. */
 export function orderHoldsStock(order: OrderForStock): boolean {
   if (order.status === 'CANCELLED') return false;
-  if (order.status === 'SHIPPED' || order.status === 'PAID') return true;
+  if (order.status === 'SHIPPED' || order.status === 'DELIVERED' || order.status === 'PAID') return true;
   // PENDING: contra entrega always took stock at checkout; Wompi and
   // WhatsApp orders only since STOCK_AT_ORDER_SINCE.
   if (order.paymentMethod === 'COD' && !isWhatsAppOrder(order.wompiReference)) return true;

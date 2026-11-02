@@ -19,8 +19,8 @@ type Order = {
   shippingCity: string;
   shippingPhone: string;
   deliveryNotes: string | null;
-  status: 'PENDING' | 'PAID' | 'SHIPPED' | 'CANCELLED';
-  paymentMethod: 'WOMPI' | 'COD';
+  status: 'PENDING' | 'PAID' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
+  paymentMethod: 'WOMPI' | 'COD' | 'TRANSFER';
   whatsappConfirmedAt: string | null;
   subtotalCents: number;
   discountCents: number;
@@ -36,12 +36,14 @@ const STATUS_LABEL: Record<Order['status'], string> = {
   PENDING: 'Pendiente',
   PAID: 'Pagado',
   SHIPPED: 'Enviado',
+  DELIVERED: 'Entregado',
   CANCELLED: 'Cancelado',
 };
 
 const PAYMENT_LABEL: Record<Order['paymentMethod'], string> = {
   WOMPI: 'Wompi',
   COD: 'Contra entrega',
+  TRANSFER: 'Transferencia',
 };
 
 export default function OrdersPage() {

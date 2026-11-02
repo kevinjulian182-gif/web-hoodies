@@ -7,6 +7,7 @@ import Logo from '@/components/Logo';
 type NavItem = { href: string; label: string; icon: React.ReactNode };
 
 const NAV: NavItem[] = [
+  { href: '/admin/gestor', label: 'Gestor de pedidos', icon: <ClipboardIcon /> },
   { href: '/admin/orders', label: 'Pedidos', icon: <BagIcon /> },
   { href: '/admin/products', label: 'Productos', icon: <TagIcon /> },
   { href: '/admin/bouchers', label: 'Bouchers de envío', icon: <BoxIcon /> },
@@ -154,6 +155,9 @@ function TagIcon() {
 }
 function StoreIcon() {
   return <Svg><path d="M4 9.5 5.5 4h13L20 9.5" /><path d="M4 9.5a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0 2.7 2.7 0 0 0 5.3 0" /><path d="M5 12v8h14v-8M10 20v-5h4v5" /></Svg>;
+}
+function ClipboardIcon() {
+  return <Svg><rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3" /></Svg>;
 }
 function BoxIcon() {
   return <Svg><path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5v-9Z" /><path d="m3 7.5 9 4.5 9-4.5M12 12v9" /></Svg>;

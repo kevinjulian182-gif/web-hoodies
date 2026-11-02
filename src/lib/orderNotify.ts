@@ -24,7 +24,7 @@ type OrderForAlert = {
   shippingCity: string;
   shippingDepartment?: string | null;
   deliveryNotes?: string | null;
-  paymentMethod: 'WOMPI' | 'COD';
+  paymentMethod: 'WOMPI' | 'COD' | 'TRANSFER';
   subtotalCents: number;
   discountCents: number;
   totalCents: number;
@@ -66,7 +66,13 @@ export function buildStoreOrderAlert(order: OrderForAlert, freeShippingThreshold
       : null,
     viaWhatsApp ? null : `Envío: ${orderShippingText(order, freeShippingThresholdCents)}`,
     `*Total: ${formatCOP(order.totalCents)}*`,
-    viaWhatsApp ? '💬 Pago y envío por acordar en el chat' : order.paymentMethod === 'COD' ? '💵 Pago contra entrega' : '✅ Pagado con Wompi',
+    viaWhatsApp
+      ? '💬 Pago y envío por acordar en el chat'
+      : order.paymentMethod === 'COD'
+        ? '💵 Pago contra entrega'
+        : order.paymentMethod === 'TRANSFER'
+          ? '✅ Pagado por transferencia'
+          : '✅ Pagado con Wompi',
     '',
     `👤 ${order.customerName}`,
     `📞 ${order.shippingPhone}`,

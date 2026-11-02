@@ -24,7 +24,7 @@ type OrderForEmail = {
   shippingCity: string;
   shippingDepartment?: string | null;
   deliveryNotes?: string | null;
-  paymentMethod: 'WOMPI' | 'COD';
+  paymentMethod: 'WOMPI' | 'COD' | 'TRANSFER';
   subtotalCents: number;
   discountCents: number;
   totalCents: number;
