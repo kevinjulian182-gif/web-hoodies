@@ -2,16 +2,17 @@ import type { Metadata } from 'next';
 import TrustSection from '@/components/TrustSection';
 import { getSiteContent } from '@/lib/content';
 
-export const dynamic = 'force-dynamic';
-
+// Cached statically — content edits call revalidateSite(), which busts
+// the whole layout tree this page lives under.
 export const metadata: Metadata = {
-  title: 'Sobre nosotros — AFRA',
-  description: 'La historia y los valores detrás de AFRA, streetwear de élite.',
+  title: 'Sobre nosotros: la historia detrás de AFRA',
+  description: 'Conoce quiénes somos, cómo elegimos cada prenda y por qué miles de personas compran streetwear de marca con AFRA en Colombia.',
+  alternates: { canonical: '/nosotros' },
 };
 
 const STATS = [
   { value: '7', label: 'marcas curadas' },
-  { value: '100%', label: 'piezas originales' },
+  { value: '100%', label: 'garantía de cambio' },
   { value: '2024', label: 'año de fundación' },
 ];
 
@@ -30,7 +31,7 @@ export default async function AboutPage() {
         <p className="text-xs font-medium uppercase tracking-[0.3em] text-coffee-600 mb-6">
           {content['nosotros.eyebrow']}
         </p>
-        <h1 className="font-display text-5xl md:text-7xl font-semibold italic text-coffee-900 leading-[1.05]">
+        <h1 className="text-4xl md:text-6xl font-semibold tracking-tightest text-coffee-900 leading-[1.05]">
           {content['nosotros.title_line1']}
           <br />
           {content['nosotros.title_line2']}

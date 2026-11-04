@@ -1,20 +1,47 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCart } from '@/lib/cart';
 import { useWishlist } from '@/lib/wishlist';
 import SearchOverlay from '@/components/SearchOverlay';
+import Logo from '@/components/Logo';
 
 const LINKS = [
   { href: '/productos', label: 'Catálogo' },
+  { href: '/promos', label: 'Promos' },
   { href: '/blog', label: 'Blog' },
   { href: '/nosotros', label: 'Nosotros' },
 ];
 
-export default function Navbar() {
+function Wordmark({ logoUrl, className }: { logoUrl?: string; className: string }) {
+  if (logoUrl) {
+    return <Image src={logoUrl} alt="AFRA" width={140} height={40} className="h-8 w-auto object-contain" />;
+  }
+  return <Logo className={`block h-5 w-auto transition-colors ${className}`} />;
+}
+
+type SocialLinks = {
+  instagramUrl?: string;
+  tiktokUrl?: string;
+  facebookUrl?: string;
+  xUrl?: string;
+};
+
+export default function Navbar({
+  logoUrl,
+  transparentOverHero,
+  whatsappNumber,
+  social,
+}: {
+  logoUrl?: string;
+  transparentOverHero?: boolean;
+  whatsappNumber?: string;
+  social?: SocialLinks;
+}) {
   const pathname = usePathname();
   const { items, openCart } = useCart();
   const { ids: wishlistIds } = useWishlist();
@@ -34,37 +61,58 @@ export default function Navbar() {
     setSearchOpen(false);
   }, [pathname]);
 
-  if (pathname.startsWith('/checkout')) return null;
+  if (pathname.startsWith('/checkout') || pathname.startsWith('/voucher')) return null;
 
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
+  // Float transparently over the hero's own dark media instead of drawing a
+  // visible bar on top of it; once scrolled past it, behave like a normal bar.
+  const overHero = Boolean(transparentOverHero) && pathname === '/' && !scrolled;
 
   return (
     <>
       <header
         className={`sticky top-0 z-50 transition-all duration-300 ${
-          scrolled
-            ? 'bg-cream-50/85 backdrop-blur-md border-b border-cream-200 shadow-[0_1px_0_0_rgba(42,33,25,0.04)]'
-            : 'bg-cream-50/60 backdrop-blur-sm border-b border-transparent'
+          overHero
+            ? 'bg-transparent border-b border-transparent'
+            : scrolled
+              ? 'bg-cream-50/85 backdrop-blur-md border-b border-cream-200 shadow-[0_1px_0_0_rgba(42,33,25,0.04)]'
+              : 'bg-cream-50/60 backdrop-blur-sm border-b border-transparent'
         }`}
       >
-        <nav className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="font-display text-2xl italic font-semibold text-coffee-900">
-            AFRA°
+        <nav className="mx-auto flex h-16 max-w-screen-2xl items-center justify-center px-6 md:justify-between md:px-10">
+          <Link href="/" aria-label="AFRA — inicio">
+            <Wordmark logoUrl={logoUrl} className={overHero ? 'text-cream-50' : 'text-coffee-900'} />
           </Link>
 
           <div className="hidden md:flex items-center gap-10 text-sm font-medium text-coffee-700">
-            {LINKS.map((link) => (
-              <NavLink key={link.href} href={link.href} active={pathname.startsWith(link.href)}>
-                {link.label}
-              </NavLink>
-            ))}
+            {LINKS.map((link) =>
+              link.href === '/promos' ? (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`py-1 font-semibold transition-colors duration-200 ${
+                    overHero
+                      ? 'text-red-400 hover:text-red-300'
+                      : pathname.startsWith(link.href)
+                        ? 'text-red-700'
+                        : 'text-red-700/90 hover:text-red-700'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ) : (
+                <NavLink key={link.href} href={link.href} active={pathname.startsWith(link.href)} light={overHero}>
+                  {link.label}
+                </NavLink>
+              )
+            )}
           </div>
 
-          <div className="flex items-center gap-5">
+          <div className={`hidden items-center gap-5 md:flex ${overHero ? 'text-cream-50' : 'text-coffee-800'}`}>
             <button
               aria-label="Buscar"
               onClick={() => setSearchOpen(true)}
-              className="hidden sm:block text-coffee-800 hover:text-coffee-600 transition-colors"
+              className={`transition-all active:scale-90 ${overHero ? 'hover:text-cream-200' : 'hover:text-coffee-600'}`}
             >
               <SearchIcon />
             </button>
@@ -72,7 +120,7 @@ export default function Navbar() {
             <Link
               href="/favoritos"
               aria-label={`Favoritos${wishlistIds.length > 0 ? ` (${wishlistIds.length})` : ''}`}
-              className="relative hidden sm:block text-coffee-800 hover:text-coffee-600 transition-colors"
+              className={`relative transition-colors ${overHero ? 'hover:text-cream-200' : 'hover:text-coffee-600'}`}
             >
               <HeartIcon />
               {wishlistIds.length > 0 && (
@@ -85,7 +133,7 @@ export default function Navbar() {
             <button
               aria-label={`Ver carrito${itemCount > 0 ? ` (${itemCount} productos)` : ''}`}
               onClick={openCart}
-              className="relative flex items-center gap-2 text-coffee-800"
+              className="relative flex items-center gap-2 transition-transform active:scale-90"
             >
               <BagIcon />
               <AnimatePresence>
@@ -104,13 +152,6 @@ export default function Navbar() {
               </AnimatePresence>
             </button>
 
-            <button
-              aria-label="Abrir menú"
-              onClick={() => setMenuOpen(true)}
-              className="md:hidden text-coffee-900"
-            >
-              <MenuIcon />
-            </button>
           </div>
         </nav>
       </header>
@@ -128,69 +169,273 @@ export default function Navbar() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-cream-50 md:hidden"
           >
-            <div className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
-              <Link href="/" className="font-display text-2xl italic font-semibold text-coffee-900">
-                AFRA°
-              </Link>
-              <button aria-label="Cerrar menú" onClick={() => setMenuOpen(false)} className="text-coffee-900">
-                <CloseIcon />
-              </button>
-            </div>
-            <motion.div
-              initial={{ y: 16, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.1, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              className="flex flex-col gap-6 px-6 pt-12"
-            >
-              {LINKS.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="text-4xl font-semibold tracking-tightest text-coffee-900"
-                >
-                  {link.label}
+            <div className="flex h-full flex-col">
+              <div className="mx-auto flex h-16 w-full max-w-7xl shrink-0 items-center justify-between px-6">
+                <Link href="/" aria-label="AFRA — inicio">
+                  <Wordmark logoUrl={logoUrl} className="text-coffee-900" />
                 </Link>
-              ))}
-              <Link
-                href="/favoritos"
-                className="text-4xl font-semibold tracking-tightest text-coffee-900"
-              >
-                Favoritos{wishlistIds.length > 0 && ` (${wishlistIds.length})`}
-              </Link>
-              <button
-                onClick={() => {
-                  setMenuOpen(false);
-                  setSearchOpen(true);
-                }}
-                className="text-left text-4xl font-semibold tracking-tightest text-coffee-900"
-              >
-                Buscar
-              </button>
-              <button
-                onClick={() => {
-                  setMenuOpen(false);
-                  openCart();
-                }}
-                className="text-left text-4xl font-semibold tracking-tightest text-coffee-900"
-              >
-                Carrito{itemCount > 0 && ` (${itemCount})`}
-              </button>
-            </motion.div>
+                <button aria-label="Cerrar menú" onClick={() => setMenuOpen(false)} className="text-coffee-900">
+                  <CloseIcon />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto overscroll-contain px-6 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-6">
+                <motion.nav
+                  initial={{ y: 16, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.08, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                  className="flex flex-col gap-2"
+                >
+                  {LINKS.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className={`py-2 text-3xl font-semibold tracking-tightest ${
+                        link.href === '/promos' ? 'text-red-700' : 'text-coffee-900'
+                      }`}
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                </motion.nav>
+
+                {social && Object.values(social).some(Boolean) && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.22, duration: 0.4 }}
+                    className="mt-10 flex items-center gap-3 border-t border-cream-200 pt-6"
+                  >
+                    {social.instagramUrl && (
+                      <SocialIconLink href={social.instagramUrl} label="Instagram">
+                        <InstagramIcon />
+                      </SocialIconLink>
+                    )}
+                    {social.tiktokUrl && (
+                      <SocialIconLink href={social.tiktokUrl} label="TikTok">
+                        <TikTokIcon />
+                      </SocialIconLink>
+                    )}
+                    {social.facebookUrl && (
+                      <SocialIconLink href={social.facebookUrl} label="Facebook">
+                        <FacebookIcon />
+                      </SocialIconLink>
+                    )}
+                    {social.xUrl && (
+                      <SocialIconLink href={social.xUrl} label="X (Twitter)">
+                        <XIcon />
+                      </SocialIconLink>
+                    )}
+                  </motion.div>
+                )}
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {!pathname.startsWith('/admin') && (
+        <MobileTabBar
+          menuOpen={menuOpen}
+          onMenu={() => {
+            setSearchOpen(false);
+            setMenuOpen((open) => !open);
+          }}
+          onSearch={() => {
+            setMenuOpen(false);
+            setSearchOpen(true);
+          }}
+          onCart={() => {
+            setMenuOpen(false);
+            openCart();
+          }}
+          itemCount={itemCount}
+          wishlistCount={wishlistIds.length}
+          whatsappNumber={whatsappNumber}
+          favoritesActive={pathname.startsWith('/favoritos')}
+        />
+      )}
     </>
   );
 }
 
-function NavLink({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
+// Phone-only bottom tab bar: the main actions within thumb reach, the way a
+// native shopping app does it. Stays above the full-screen menu (so "Menú"
+// toggles it closed) but below the cart drawer and search, which cover it.
+function MobileTabBar({
+  menuOpen,
+  onMenu,
+  onSearch,
+  onCart,
+  itemCount,
+  wishlistCount,
+  whatsappNumber,
+  favoritesActive,
+}: {
+  menuOpen: boolean;
+  onMenu: () => void;
+  onSearch: () => void;
+  onCart: () => void;
+  itemCount: number;
+  wishlistCount: number;
+  whatsappNumber?: string;
+  favoritesActive: boolean;
+}) {
+  const tab =
+    'relative flex flex-1 flex-col items-center justify-center gap-1 pt-2 pb-1.5 text-[10px] font-medium uppercase tracking-[0.08em] transition-colors select-none [&>svg]:transition-transform active:[&>svg]:scale-90';
+  const tone = (active: boolean) => (active ? 'text-coffee-900' : 'text-coffee-500');
+
+  return (
+    <nav
+      aria-label="Navegación principal"
+      className="fixed inset-x-0 bottom-0 z-[55] border-t border-cream-200 bg-cream-50 pb-[env(safe-area-inset-bottom)] md:hidden"
+    >
+      <div className="mx-auto flex h-14 max-w-md items-stretch">
+        <button onClick={onMenu} aria-expanded={menuOpen} className={`${tab} ${tone(menuOpen)}`}>
+          {menuOpen ? <CloseIcon /> : <MenuIcon />}
+          {menuOpen ? 'Cerrar' : 'Menú'}
+        </button>
+        <button onClick={onSearch} className={`${tab} ${tone(false)}`}>
+          <SearchIcon />
+          Buscar
+        </button>
+        <button
+          onClick={onCart}
+          aria-label={`Carrito${itemCount > 0 ? ` (${itemCount} productos)` : ''}`}
+          className={`${tab} ${tone(itemCount > 0)}`}
+        >
+          <BagIcon />
+          <AnimatePresence>
+            {itemCount > 0 && (
+              <motion.span
+                key={itemCount}
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.5, opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                className="absolute left-1/2 top-1 ml-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-coffee-900 px-1 text-[9px] font-semibold tracking-normal text-cream-50"
+              >
+                {itemCount}
+              </motion.span>
+            )}
+          </AnimatePresence>
+          Carrito
+        </button>
+        {whatsappNumber && (
+          <a
+            href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent('Hola, tengo una pregunta sobre un producto de AFRA.')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`${tab} ${tone(false)}`}
+          >
+            <ChatIcon />
+            Escríbenos
+          </a>
+        )}
+        <Link
+          href="/favoritos"
+          aria-label={`Favoritos${wishlistCount > 0 ? ` (${wishlistCount})` : ''}`}
+          aria-current={favoritesActive ? 'page' : undefined}
+          className={`${tab} ${tone(favoritesActive)}`}
+        >
+          <HeartIcon />
+          {wishlistCount > 0 && (
+            <span className="absolute left-1/2 top-1 ml-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-coffee-900 px-1 text-[9px] font-semibold tracking-normal text-cream-50">
+              {wishlistCount}
+            </span>
+          )}
+          Favoritos
+        </Link>
+      </div>
+    </nav>
+  );
+}
+
+function ChatIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+      <path d="M3.5 20.5l1.4-4.2A8.5 8.5 0 1 1 8 19.3l-4.5 1.2Z" strokeLinejoin="round" />
+      <path d="M9.2 8.6c.3 1.9 2.3 4.1 4.6 4.9l1-1.1 1.7.8-.4 1.6c-3.6.2-7.6-3.4-7.7-7.2l1.6-.4.8 1.7-1.1 1" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function SocialIconLink({ href, label, children }: { href: string; label: string; children: React.ReactNode }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={label}
+      className="flex h-10 w-10 items-center justify-center rounded-full border border-cream-200 text-coffee-700"
+    >
+      {children}
+    </a>
+  );
+}
+
+function InstagramIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+      <rect x="3" y="3" width="18" height="18" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function TikTokIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M16.5 2h-3v13.5a3 3 0 1 1-2.4-2.94V9.4a6.1 6.1 0 1 0 5.4 6.06V8.8a7.3 7.3 0 0 0 4.5 1.55V7.3a4.4 4.4 0 0 1-4.5-4.3V2Z" />
+    </svg>
+  );
+}
+
+function FacebookIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M13.5 21v-7.8h2.6l.4-3h-3v-1.9c0-.87.24-1.46 1.5-1.46h1.6V4.14C15.9 4.1 14.9 4 13.7 4c-2.4 0-4 1.47-4 4.16v2.05H7v3h2.7V21h3.8Z" />
+    </svg>
+  );
+}
+
+function XIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M4 3h4.2l4 5.5L16.8 3H21l-6.6 8.4L21 21h-4.2l-4.3-5.9L7.2 21H3l6.9-8.8L4 3Z" />
+    </svg>
+  );
+}
+
+function NavLink({
+  href,
+  active,
+  light,
+  children,
+}: {
+  href: string;
+  active: boolean;
+  light?: boolean;
+  children: React.ReactNode;
+}) {
   return (
     <Link href={href} className="group relative py-1">
-      <span className={active ? 'text-coffee-900' : 'text-coffee-700 group-hover:text-coffee-900'}>
+      <span
+        className={`transition-colors duration-200 ${
+          light
+            ? active
+              ? 'text-cream-50'
+              : 'text-cream-100/80 group-hover:text-cream-50'
+            : active
+              ? 'text-coffee-900'
+              : 'text-coffee-700 group-hover:text-coffee-900'
+        }`}
+      >
         {children}
       </span>
       <span
-        className={`absolute -bottom-0.5 left-0 h-px bg-coffee-900 transition-all duration-300 ${
+        className={`absolute -bottom-0.5 left-0 h-px transition-all duration-300 ${light ? 'bg-cream-50' : 'bg-coffee-900'} ${
           active ? 'w-full' : 'w-0 group-hover:w-full'
         }`}
       />

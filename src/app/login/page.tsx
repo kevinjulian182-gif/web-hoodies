@@ -22,7 +22,9 @@ export default function LoginPage() {
       setError(data.error ?? 'Error al iniciar sesión');
       return;
     }
-    router.push('/admin');
+    // Back to the back-office page that asked for the login, if any.
+    const from = new URLSearchParams(window.location.search).get('from') ?? '';
+    router.push(/^\/(admin|gestor)(\/|$)/.test(from) ? from : '/admin');
     router.refresh();
   };
 
@@ -32,6 +34,7 @@ export default function LoginPage() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <input
           type="email"
+          autoComplete="email"
           placeholder="Correo"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -40,6 +43,7 @@ export default function LoginPage() {
         />
         <input
           type="password"
+          autoComplete="current-password"
           placeholder="Contraseña"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -49,7 +53,7 @@ export default function LoginPage() {
         {error && <p className="text-sm text-red-600">{error}</p>}
         <button
           type="submit"
-          className="w-full bg-coffee-900 text-cream-50 py-3 rounded-full text-sm font-medium"
+          className="w-full bg-coffee-900 text-cream-50 py-3 rounded-full text-sm font-medium transition-colors hover:bg-coffee-800 active:scale-[0.98]"
         >
           Entrar
         </button>

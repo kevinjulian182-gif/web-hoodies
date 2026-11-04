@@ -1,0 +1,30 @@
+export type Status = 'PENDING' | 'PAID' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
+
+export type ManagedOrder = {
+  id: string;
+  customerName: string;
+  customerEmail: string;
+  customerDocument: string | null;
+  deliveryNotes: string | null;
+  shippingPhone: string;
+  shippingAddress: string;
+  shippingAddressComplement: string | null;
+  shippingCity: string;
+  shippingDepartment: string | null;
+  status: Status;
+  paymentMethod: 'WOMPI' | 'COD' | 'TRANSFER' | 'CREDIT';
+  wompiTransactionId: string | null;
+  creditPayments?: { amountCents: number }[];
+  subtotalCents: number;
+  discountCents: number;
+  totalCents: number;
+  wompiReference: string;
+  whatsappTrackingSentAt: string | null;
+  trackingNumber: string | null;
+  trackingStatus: string | null;
+  trackingCheckedAt: string | null;
+  shippedAt: string | null;
+  deliveredAt: string | null;
+  createdAt: string;
+  items: { id: string; productId: string; quantity: number; size: string; color: string | null; priceCents: number; product: { name: string; images?: string[]; colorImages?: unknown } }[];
+};

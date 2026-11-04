@@ -20,7 +20,7 @@ export default function TrustSection({ content }: { content: TrustContent }) {
 
   return (
     <section className="border-t border-cream-200 bg-cream-50">
-      <div className="mx-auto max-w-7xl px-6 py-20 grid gap-12 md:grid-cols-3">
+      <div className="mx-auto max-w-7xl px-6 py-20 grid grid-cols-1 gap-12 md:grid-cols-3">
         {features.map((feature, i) => (
           <motion.div
             key={feature.title}

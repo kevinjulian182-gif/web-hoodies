@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { getSession, requireRole } from '@/lib/auth';
 import { CONTENT_DEFAULTS, getSiteContent } from '@/lib/content';
+import { revalidateSite } from '@/lib/revalidate';
 
 const VALID_KEYS = new Set(Object.keys(CONTENT_DEFAULTS));
 
@@ -42,5 +43,6 @@ export async function PATCH(req: NextRequest) {
     )
   );
 
+  revalidateSite();
   return NextResponse.json({ ok: true });
 }

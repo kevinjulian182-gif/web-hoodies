@@ -3,11 +3,12 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 
-export const dynamic = 'force-dynamic';
-
+// Cached statically — a blog post only changes when an admin saves one,
+// and that save calls revalidateBlogListing() to bust this immediately.
 export const metadata: Metadata = {
-  title: 'Blog — AFRA',
-  description: 'Guías de cuidado, autenticidad e historia del streetwear que vendemos.',
+  title: 'Blog de streetwear: guías, cuidado y tendencias',
+  description: 'Guías para elegir talla, cuidar tus prendas y conocer la historia de las marcas de streetwear que vendemos en AFRA.',
+  alternates: { canonical: '/blog' },
 };
 
 export default async function BlogPage() {
@@ -15,15 +16,15 @@ export default async function BlogPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-20">
-      <h1 className="font-display text-5xl md:text-6xl font-semibold italic text-coffee-900">Blog</h1>
+      <h1 className="text-4xl font-semibold tracking-tightest text-coffee-900">Blog</h1>
       <p className="mt-3 text-coffee-600 max-w-xl">
-        Guías de cuidado, autenticidad e historia detrás de las marcas que vendemos.
+        Guías de cuidado, garantía e historia detrás de las marcas que vendemos.
       </p>
 
-      <div className="mt-14 grid gap-12 md:grid-cols-2">
+      <div className="mt-14 grid grid-cols-1 gap-12 md:grid-cols-2">
         {posts.map((post) => (
           <Link key={post.id} href={`/blog/${post.slug}`} className="group block">
-            <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-cream-100">
+            <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-cream-50">
               <Image
                 src={post.coverImage}
                 alt={post.title}

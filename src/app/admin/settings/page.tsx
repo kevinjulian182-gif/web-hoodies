@@ -8,7 +8,12 @@ const LABELS: Record<string, string> = {
   WOMPI_INTEGRITY_SECRET: 'Wompi — Secreto de integridad',
   WOMPI_EVENTS_SECRET: 'Wompi — Secreto de eventos (webhook)',
   INTER_RAPIDISIMO_API_KEY: 'Inter Rapidísimo — API Key',
+  TRACKINGMORE_API_KEY: 'TrackingMore — API Key (seguimiento automático de guías)',
+  ANTHROPIC_API_KEY: 'Anthropic — API Key (leer pedidos pegados con IA, opcional)',
   RESEND_API_KEY: 'Resend — API Key (correos)',
+  EMAIL_FROM: 'Remitente de correos (ej: AFRA <pedidos@wearafra.com>)',
+  CALLMEBOT_API_KEY: 'CallMeBot — API Key (avisos de pedidos por WhatsApp)',
+  TEXTMEBOT_API_KEY: 'TextMeBot — API Key (avisos de pedidos por WhatsApp)',
 };
 
 export default function SettingsPage() {
