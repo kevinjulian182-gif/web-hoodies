@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import { formatCOP } from '@/lib/format';
+import { parseColorImages } from '@/lib/colors';
 
 export type OrderItemView = {
   id: string;
@@ -7,7 +8,7 @@ export type OrderItemView = {
   size: string;
   color: string | null;
   priceCents: number;
-  product: { name: string; images?: string[] };
+  product: { name: string; images?: string[]; colorImages?: unknown };
 };
 
 /** What the customer bought: photo, product, size/color, units and price. */
@@ -15,7 +16,10 @@ export default function OrderItems({ items }: { items: OrderItemView[] }) {
   return (
     <ul className="mt-3 grid gap-2 sm:grid-cols-2">
       {items.map((item) => {
-        const image = item.product.images?.[0];
+        // Products with photos per color keep them in colorImages, not images.
+        const byColor = parseColorImages(item.product.colorImages);
+        const image =
+          (item.color && byColor[item.color]?.[0]) || item.product.images?.[0] || Object.values(byColor)[0]?.[0];
         return (
           <li key={item.id} className="flex items-center gap-3 rounded-xl bg-cream-100/70 p-2">
             <div className="relative h-14 w-12 shrink-0 overflow-hidden rounded-lg bg-cream-200">

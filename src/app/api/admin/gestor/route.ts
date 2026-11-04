@@ -8,7 +8,7 @@ import { MANUAL_ORDER_PREFIX } from '@/lib/orderSource';
 import { revalidateProductListings, revalidateProduct } from '@/lib/revalidate';
 import { getTrackingApiKey, refreshShippedOrders } from '@/lib/tracking';
 
-const ORDER_INCLUDE = { items: { include: { product: { select: { name: true, slug: true, images: true } } } } } as const;
+const ORDER_INCLUDE = { items: { include: { product: { select: { name: true, slug: true, images: true, colorImages: true } } } } } as const;
 
 export async function GET() {
   const session = await getSession();

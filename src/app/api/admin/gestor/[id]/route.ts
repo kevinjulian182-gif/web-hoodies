@@ -69,7 +69,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const order = await prisma.order.update({
     where: { id },
     data,
-    include: { items: { include: { product: { select: { name: true, slug: true, images: true } } } } },
+    include: { items: { include: { product: { select: { name: true, slug: true, images: true, colorImages: true } } } } },
   });
   refreshListings(slugs);
 
