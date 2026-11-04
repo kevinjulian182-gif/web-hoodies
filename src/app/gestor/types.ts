@@ -13,8 +13,11 @@ export type ManagedOrder = {
   paymentMethod: 'WOMPI' | 'COD' | 'TRANSFER' | 'CREDIT';
   wompiTransactionId: string | null;
   creditPayments?: { amountCents: number }[];
+  subtotalCents: number;
+  discountCents: number;
   totalCents: number;
   wompiReference: string;
+  whatsappTrackingSentAt: string | null;
   trackingNumber: string | null;
   trackingStatus: string | null;
   trackingCheckedAt: string | null;

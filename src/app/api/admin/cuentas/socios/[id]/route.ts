@@ -40,6 +40,12 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
   const { id } = await params;
-  await prismaInternal.partner.deleteMany({ where: { id } });
+  const partner = await prismaInternal.partner.findUnique({ where: { id }, include: { user: true } });
+  if (!partner) return NextResponse.json({ ok: true });
+  // Leaving the list also closes their panel login (never the super admin's or your own).
+  if (partner.user && partner.user.role === 'ADMIN' && partner.user.id !== session!.sub) {
+    await prismaInternal.user.update({ where: { id: partner.user.id }, data: { role: 'CUSTOMER' } });
+  }
+  await prismaInternal.partner.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }

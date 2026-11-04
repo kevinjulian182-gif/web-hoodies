@@ -90,6 +90,15 @@ const STATEMENTS = [
       ALTER TABLE "CreditPayment" ADD CONSTRAINT "CreditPayment_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE CASCADE ON UPDATE CASCADE;
     END IF;
   END $$`,
+  // Partners' own logins, and the guía sent to the buyer over WhatsApp.
+  `ALTER TABLE "Partner" ADD COLUMN IF NOT EXISTS "userId" TEXT`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "Partner_userId_key" ON "Partner"("userId")`,
+  `DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Partner_userId_fkey') THEN
+      ALTER TABLE "Partner" ADD CONSTRAINT "Partner_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+    END IF;
+  END $$`,
+  `ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "whatsappTrackingSentAt" TIMESTAMP(3)`,
 ];
 
 const prisma = new PrismaClient({ datasources: { db: { url } } });

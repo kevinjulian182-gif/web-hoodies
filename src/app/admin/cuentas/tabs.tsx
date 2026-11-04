@@ -757,8 +757,188 @@ function PartnerForm({
   );
 }
 
+type Access = Accounts['partners'][number]['access'];
+
+const makePassword = () => {
+  const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  const bytes = crypto.getRandomValues(new Uint8Array(10));
+  return Array.from(bytes, (b) => chars[b % chars.length]).join('');
+};
+
+/** Creates or updates a partner's own login to the panel. */
+function AccessForm({
+  partner,
+  onDone,
+  onCancel,
+}: {
+  partner: { id: string; name: string; phone: string | null; access: Access };
+  onDone: () => void;
+  onCancel: () => void;
+}) {
+  const hasAccount = Boolean(partner.access);
+  const canSetPassword = !partner.access?.superAdmin && !partner.access?.isViewer;
+  const [email, setEmail] = useState(partner.access?.email ?? '');
+  const [password, setPassword] = useState(hasAccount ? '' : makePassword());
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [sent, setSent] = useState<{ email: string; password: string; linked: boolean } | null>(null);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+    const res = await fetch(`/api/admin/cuentas/socios/${partner.id}/acceso`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: canSetPassword ? password : '' }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setSaving(false);
+    if (!res.ok) return setError(data.error ?? 'No se pudo guardar.');
+    setSent({ email: email.trim().toLowerCase(), password: data.passwordSet ? password : '', linked: Boolean(data.linked) });
+  };
+
+  if (sent) {
+    const loginUrl = `${window.location.origin}/login`;
+    const message = [
+      `Hola ${partner.name.split(' ')[0]}, ya tienes tu cuenta en el panel de AFRA:`,
+      loginUrl,
+      `Correo: ${sent.email}`,
+      ...(sent.password ? [`Contraseña: ${sent.password}`, '', 'Cámbiala apenas entres, en «Mi cuenta».'] : []),
+    ].join('\n');
+    return (
+      <div className="mt-3 rounded-xl bg-green-50 p-3 text-sm text-green-900">
+        <p className="font-medium">
+          {sent.linked ? `Listo: ${partner.name} queda unido a la cuenta ${sent.email}.` : `Listo: ${partner.name} ya puede entrar al panel.`}
+        </p>
+        {sent.password && (
+          <p className="mt-1 text-xs">
+            Correo <span className="font-mono">{sent.email}</span> · contraseña <span className="font-mono font-semibold">{sent.password}</span>. Pásasela
+            ahora: no se vuelve a mostrar.
+          </p>
+        )}
+        <div className="mt-2 flex flex-wrap gap-3 text-sm">
+          {partner.phone && (
+            <a href={buildWhatsAppLink(partner.phone, message)} target="_blank" rel="noreferrer" className="font-medium text-[#128C7E] underline underline-offset-2">
+              Enviárselo por WhatsApp
+            </a>
+          )}
+          <button type="button" onClick={() => navigator.clipboard?.writeText(message).catch(() => {})} className="font-medium underline underline-offset-2">
+            Copiar datos
+          </button>
+          <button type="button" onClick={onDone} className="font-medium underline underline-offset-2">
+            Cerrar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={submit} className="mt-3 grid gap-2 rounded-xl bg-cream-50 p-3 sm:grid-cols-[1.3fr_1fr_auto] sm:items-end">
+      <label className="block text-xs text-coffee-700">
+        Correo para entrar
+        <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required autoCapitalize="none" autoCorrect="off" className={field} />
+      </label>
+      {canSetPassword ? (
+        <label className="block text-xs text-coffee-700">
+          {hasAccount ? 'Nueva contraseña (opcional)' : 'Contraseña'}
+          <span className="mt-1 flex gap-1">
+            <input
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              minLength={8}
+              required={!hasAccount}
+              placeholder={hasAccount ? 'Déjala vacía para no cambiarla' : ''}
+              autoCapitalize="none"
+              autoCorrect="off"
+              className={`${field.replace('mt-1 ', '')} font-mono`}
+            />
+            <button type="button" onClick={() => setPassword(makePassword())} className="shrink-0 rounded-lg px-2 text-xs font-medium text-coffee-700 hover:bg-cream-100">
+              Generar
+            </button>
+          </span>
+        </label>
+      ) : (
+        <p className="text-xs text-coffee-500">Su contraseña se cambia desde «Mi cuenta».</p>
+      )}
+      <div className="flex items-center gap-2">
+        <button type="submit" disabled={saving} className={primaryButton}>
+          {saving ? 'Guardando…' : hasAccount ? 'Guardar' : 'Crear cuenta'}
+        </button>
+        <button type="button" onClick={onCancel} className="text-sm text-coffee-700 hover:text-coffee-900">
+          Cancelar
+        </button>
+      </div>
+      <p className="text-xs text-coffee-500 sm:col-span-3">
+        Con su cuenta entra al panel y al Gestor de pedidos para registrar ventas, gastos y abonos. La configuración de pagos sigue siendo solo del super admin.
+      </p>
+      {error && <p className="text-xs text-red-700 sm:col-span-3">{error}</p>}
+    </form>
+  );
+}
+
+function AccessLine({
+  partner,
+  onEdit,
+  onChanged,
+}: {
+  partner: { id: string; name: string; access: Access };
+  onEdit: () => void;
+  onChanged: () => void;
+}) {
+  const a = partner.access;
+  const [error, setError] = useState('');
+  const revoke = async () => {
+    if (!confirm(`¿Quitarle a ${partner.name} el acceso al panel? Sus registros no cambian.`)) return;
+    const res = await fetch(`/api/admin/cuentas/socios/${partner.id}/acceso`, { method: 'DELETE' });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return setError(data.error ?? 'No se pudo quitar.');
+    onChanged();
+  };
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+      {!a ? (
+        <>
+          <span className="text-coffee-500">Sin cuenta para entrar al panel</span>
+          <button type="button" onClick={onEdit} className="font-medium text-coffee-800 underline underline-offset-2 hover:text-coffee-900">
+            Crear su cuenta
+          </button>
+        </>
+      ) : a.active ? (
+        <>
+          <span className="inline-flex items-center gap-1.5 text-coffee-700">
+            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-green-600" />
+            Entra con <span className="font-mono">{a.email}</span>
+            {a.isViewer && <span className="rounded bg-cream-100 px-1.5 font-medium">tú</span>}
+          </span>
+          <button type="button" onClick={onEdit} className="font-medium text-coffee-800 underline underline-offset-2 hover:text-coffee-900">
+            Cambiar acceso
+          </button>
+          {!a.isViewer && !a.superAdmin && (
+            <button type="button" onClick={revoke} className="font-medium text-red-600 hover:text-red-800">
+              Quitar acceso
+            </button>
+          )}
+        </>
+      ) : (
+        <>
+          <span className="text-coffee-500">
+            Acceso quitado (<span className="font-mono">{a.email}</span>)
+          </span>
+          <button type="button" onClick={onEdit} className="font-medium text-coffee-800 underline underline-offset-2 hover:text-coffee-900">
+            Devolverle el acceso
+          </button>
+        </>
+      )}
+      {error && <span className="text-red-700">{error}</span>}
+    </div>
+  );
+}
+
 export function PartnersTab({ data, actions }: { data: Accounts; actions: TabActions }) {
   const [editing, setEditing] = useState<string | null>(null);
+  const [accessFor, setAccessFor] = useState<string | null>(null);
   const partnerPaid = data.movements.filter((m) => !m.storeCash);
 
   // Saved people plus anyone who appears in the accounts without being saved.
@@ -768,7 +948,7 @@ export function PartnersTab({ data, actions }: { data: Accounts; actions: TabAct
     const savedNames = new Set(data.partners.map((p) => p.name.toLowerCase()));
     const unsaved = data.storeOwes
       .filter((o) => !savedNames.has(o.person.toLowerCase()))
-      .map((o) => ({ id: `unsaved-${o.person}`, name: o.person, phone: null, role: null, saved: false, owes: o }));
+      .map((o) => ({ id: `unsaved-${o.person}`, name: o.person, phone: null, role: null, access: null as Access, saved: false, owes: o }));
     return [...saved, ...unsaved];
   }, [data.partners, data.storeOwes]);
 
@@ -853,6 +1033,20 @@ export function PartnersTab({ data, actions }: { data: Accounts; actions: TabAct
                   </div>
                 </div>
               )}
+              {r.saved &&
+                editing !== r.id &&
+                (accessFor === r.id ? (
+                  <AccessForm
+                    partner={r}
+                    onCancel={() => setAccessFor(null)}
+                    onDone={() => {
+                      setAccessFor(null);
+                      actions.reload();
+                    }}
+                  />
+                ) : (
+                  <AccessLine partner={r} onEdit={() => setAccessFor(r.id)} onChanged={actions.reload} />
+                ))}
             </li>
           ))}
         </ul>

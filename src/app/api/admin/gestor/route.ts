@@ -7,6 +7,7 @@ import { buildStockDecrementOps, checkStock, type ProductWithVariants } from '@/
 import { MANUAL_ORDER_PREFIX } from '@/lib/orderSource';
 import { revalidateProductListings, revalidateProduct } from '@/lib/revalidate';
 import { getTrackingApiKey, refreshShippedOrders } from '@/lib/tracking';
+import { getFreeShippingThresholdCents, getSiteContent } from '@/lib/content';
 
 const ORDER_INCLUDE = {
   items: { include: { product: { select: { name: true, slug: true, images: true, colorImages: true } } } },
@@ -18,14 +19,19 @@ export async function GET() {
   if (!requireRole(session, ['ADMIN', 'SUPER_ADMIN'])) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
-  const [orders, trackingKey] = await Promise.all([
+  const [orders, trackingKey, content] = await Promise.all([
     prisma.order.findMany({ orderBy: { createdAt: 'desc' }, include: ORDER_INCLUDE, take: 500 }),
     getTrackingApiKey(),
+    getSiteContent(),
   ]);
   // Opening the manager also refreshes guías not checked in the last 3 hours,
   // in the background, so the next load shows newer carrier states.
   if (trackingKey) after(() => refreshShippedOrders(180).catch(() => {}));
-  return NextResponse.json({ orders, trackingEnabled: Boolean(trackingKey) });
+  return NextResponse.json({
+    orders,
+    trackingEnabled: Boolean(trackingKey),
+    freeShippingThresholdCents: getFreeShippingThresholdCents(content),
+  });
 }
 
 const schema = z.object({

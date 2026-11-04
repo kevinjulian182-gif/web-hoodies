@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { formatCOP } from '@/lib/format';
-import { buildOrderConfirmationMessage, buildWhatsAppLink } from '@/lib/whatsapp';
+import { buildOrderConfirmationMessage, buildTrackingMessage, buildWhatsAppLink } from '@/lib/whatsapp';
 import { useCatalogSettings } from '@/lib/catalogSettings';
 import { orderFreightOnDelivery } from '@/lib/pricing';
 import { isWhatsAppOrder, PLACEHOLDER_ADDRESS } from '@/lib/orderSource';
@@ -23,6 +23,7 @@ type Order = {
   status: 'PENDING' | 'PAID' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
   paymentMethod: 'WOMPI' | 'COD' | 'TRANSFER' | 'CREDIT';
   whatsappConfirmedAt: string | null;
+  whatsappTrackingSentAt: string | null;
   subtotalCents: number;
   discountCents: number;
   totalCents: number;
@@ -94,6 +95,15 @@ export default function OrdersPage() {
       prev.map((o) => (o.id === order.id ? { ...o, whatsappConfirmedAt: new Date().toISOString() } : o))
     );
     fetch(`/api/orders/${order.id}/whatsapp-sent`, { method: 'PATCH' }).catch(() => {});
+  };
+
+  const handleTrackingSent = (order: Order) => {
+    setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, whatsappTrackingSentAt: new Date().toISOString() } : o)));
+    fetch(`/api/admin/gestor/${order.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ whatsappTrackingSent: true }),
+    }).catch(() => {});
   };
 
   const [verifying, setVerifying] = useState<string | null>(null);
@@ -191,7 +201,24 @@ export default function OrdersPage() {
                 </div>
               )}
               {order.status === 'SHIPPED' && order.trackingNumber && (
-                <p className="text-xs text-coffee-600">Guía: {order.trackingNumber}</p>
+                <p className="flex flex-wrap items-center gap-x-3 text-xs text-coffee-600">
+                  Guía: {order.trackingNumber}
+                  <a
+                    href={buildWhatsAppLink(
+                      order.shippingPhone,
+                      buildTrackingMessage(
+                        { ...order, trackingNumber: order.trackingNumber },
+                        orderFreightOnDelivery(order, freeShippingThresholdCents)
+                      )
+                    )}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => handleTrackingSent(order)}
+                    className="font-medium text-[#128C7E] hover:text-[#0e6b60]"
+                  >
+                    {order.whatsappTrackingSentAt ? '✓ Guía enviada · reenviar por WhatsApp' : 'Enviar guía por WhatsApp'}
+                  </a>
+                </p>
               )}
               {shipNotice[order.id] && (
                 <p className={`text-xs ${shipNotice[order.id].ok ? 'text-green-700' : 'text-red-700'}`}>

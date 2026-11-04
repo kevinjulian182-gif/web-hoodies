@@ -10,6 +10,8 @@ import { getTrackingApiKey, refreshOrderTracking } from '@/lib/tracking';
 const schema = z.object({
   status: z.enum(['PENDING', 'SHIPPED', 'DELIVERED', 'CANCELLED']).optional(),
   trackingNumber: z.string().trim().max(60).nullable().optional(),
+  // The guía was just sent to the buyer over WhatsApp.
+  whatsappTrackingSent: z.literal(true).optional(),
 });
 
 const refreshListings = (slugs: string[]) => {
@@ -27,7 +29,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 });
-  const { status: target, trackingNumber: guide } = parsed.data;
+  const { status: target, trackingNumber: guide, whatsappTrackingSent } = parsed.data;
 
   const { id } = await params;
   const existing = await prisma.order.findUnique({ where: { id } });
@@ -39,7 +41,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const trackingNumber = guide === undefined ? existing.trackingNumber : guide || null;
   const guideChanged = trackingNumber !== existing.trackingNumber;
   const data: Record<string, unknown> = {};
-  if (guideChanged) Object.assign(data, { trackingNumber, trackingStatus: null, trackingCheckedAt: null });
+  if (guideChanged) Object.assign(data, { trackingNumber, trackingStatus: null, trackingCheckedAt: null, whatsappTrackingSentAt: null });
+  if (whatsappTrackingSent && trackingNumber) data.whatsappTrackingSentAt = new Date();
 
   let slugs: string[] = [];
   if (target && target !== existing.status) {

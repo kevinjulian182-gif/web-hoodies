@@ -38,12 +38,22 @@ export async function getSession(): Promise<SessionPayload | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE)?.value;
   if (!token) return null;
+  let session: SessionPayload;
   try {
     const { payload } = await jwtVerify(token, secret());
-    return payload as unknown as SessionPayload;
+    session = payload as unknown as SessionPayload;
   } catch {
     return null;
   }
+  // Panel access can be taken away (e.g. a partner's), so for staff the
+  // role comes from the database, not the 7-day token.
+  if (session.role === 'ADMIN' || session.role === 'SUPER_ADMIN') {
+    const { prisma } = await import('@/lib/prisma');
+    const user = await prisma.user.findUnique({ where: { id: session.sub }, select: { role: true } });
+    if (!user) return null;
+    session = { ...session, role: user.role };
+  }
+  return session;
 }
 
 export async function verifySessionToken(token: string): Promise<SessionPayload | null> {

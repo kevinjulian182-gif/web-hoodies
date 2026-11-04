@@ -101,3 +101,40 @@ export function buildOrderConfirmationMessage(order: {
     `¿Dudas? Responde este mensaje 😊`,
   ].join('\n');
 }
+
+/** Message for the buyer once the order has its Interrapidísimo guía. */
+export function buildTrackingMessage(
+  order: {
+    customerName: string;
+    trackingNumber: string;
+    totalCents: number;
+    paymentMethod: 'WOMPI' | 'COD' | 'TRANSFER' | 'CREDIT';
+    items: { quantity: number; size?: string; color?: string | null; product: { name: string } }[];
+  },
+  freightOnDelivery = false
+): string {
+  const firstName = order.customerName.trim().split(/\s+/)[0] || order.customerName;
+  const products = order.items
+    .map((i) => {
+      const detail = [i.size && `Talla ${i.size}`, i.color].filter(Boolean).join(', ');
+      return `• ${i.quantity}x ${i.product.name}${detail ? ` (${detail})` : ''}`;
+    })
+    .join('\n');
+  const payment =
+    order.paymentMethod === 'COD'
+      ? `💵 Al recibir pagas ${formatCOP(order.totalCents)}${freightOnDelivery ? ' más el envío' : ''}.`
+      : freightOnDelivery
+        ? '💵 El envío lo pagas al recibir.'
+        : null;
+  return [
+    `👋 ¡Hola ${firstName}! Tu pedido de AFRA ya va en camino 🚚`,
+    '',
+    products,
+    '',
+    `📦 Guía Interrapidísimo: *${order.trackingNumber}*`,
+    '🔎 Síguelo aquí (pega el número de guía): https://interrapidisimo.com/sigue-tu-envio/',
+    ...(payment ? ['', payment] : []),
+    '',
+    '¿Dudas? Responde este mensaje 😊',
+  ].join('\n');
+}

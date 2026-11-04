@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { formatCOP } from '@/lib/format';
 import { isManualOrder, isWhatsAppOrder } from '@/lib/orderSource';
 import { INTER_TRACKING_PAGE } from '@/lib/trackingLinks';
+import { orderFreightOnDelivery } from '@/lib/pricing';
+import { buildTrackingMessage, buildWhatsAppLink } from '@/lib/whatsapp';
 import NewOrderPanel from './NewOrderPanel';
 import OrderItems from '@/components/admin/OrderItems';
 import type { ManagedOrder, Status } from './types';
@@ -55,6 +57,7 @@ const shortDate = (iso: string) =>
 export default function OrderManagerPage() {
   const [orders, setOrders] = useState<ManagedOrder[]>([]);
   const [trackingEnabled, setTrackingEnabled] = useState(false);
+  const [freeShippingThresholdCents, setFreeShippingThresholdCents] = useState(0);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Stage | 'ALL'>('PENDING');
   const [query, setQuery] = useState('');
@@ -72,6 +75,7 @@ export default function OrderManagerPage() {
       const data = await res.json();
       setOrders(data.orders);
       setTrackingEnabled(data.trackingEnabled);
+      setFreeShippingThresholdCents(data.freeShippingThresholdCents ?? 0);
     }
     setLoading(false);
   };
@@ -213,7 +217,13 @@ export default function OrderManagerPage() {
       ) : (
         <div className="space-y-3">
           {visible.map((order) => (
-            <OrderCard key={order.id} order={order} trackingEnabled={trackingEnabled} onChange={replace} />
+            <OrderCard
+              key={order.id}
+              order={order}
+              trackingEnabled={trackingEnabled}
+              freeShippingThresholdCents={freeShippingThresholdCents}
+              onChange={replace}
+            />
           ))}
         </div>
       )}
@@ -240,10 +250,12 @@ export default function OrderManagerPage() {
 function OrderCard({
   order,
   trackingEnabled,
+  freeShippingThresholdCents,
   onChange,
 }: {
   order: ManagedOrder;
   trackingEnabled: boolean;
+  freeShippingThresholdCents: number;
   onChange: (order: ManagedOrder) => void;
 }) {
   const [guide, setGuide] = useState(order.trackingNumber ?? '');
@@ -272,7 +284,9 @@ function OrderCard({
       return false;
     }
     onChange(data.order);
-    if (data.email) {
+    if (data.email && !data.order.customerEmail) {
+      setNotice({ ok: true, text: 'Guía guardada. Este pedido no tiene correo: envíasela por WhatsApp.' });
+    } else if (data.email) {
       setNotice(
         data.email.ok
           ? { ok: true, text: `Guía enviada al cliente por correo (${data.order.customerEmail}).` }
@@ -319,6 +333,26 @@ function OrderCard({
   };
 
   const guideDirty = guide.trim() !== (order.trackingNumber ?? '');
+  const firstName = order.customerName.trim().split(/\s+/)[0];
+  const trackingLink = order.trackingNumber
+    ? buildWhatsAppLink(
+        order.shippingPhone,
+        buildTrackingMessage(
+          { ...order, trackingNumber: order.trackingNumber },
+          orderFreightOnDelivery(order, freeShippingThresholdCents)
+        )
+      )
+    : '';
+
+  // Opening wa.me is the sending; this only records that it happened.
+  const markWhatsAppSent = () => {
+    onChange({ ...order, whatsappTrackingSentAt: new Date().toISOString() });
+    fetch(`/api/admin/gestor/${order.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ whatsappTrackingSent: true }),
+    }).catch(() => {});
+  };
 
   return (
     <article className={`rounded-2xl border border-cream-200 bg-white p-4 sm:p-5 ${cancelled ? 'opacity-60' : ''}`}>
@@ -393,6 +427,38 @@ function OrderCard({
               </button>
             )}
           </div>
+        </div>
+      )}
+
+      {order.trackingNumber && !cancelled && !guideDirty && (
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+          {order.whatsappTrackingSentAt ? (
+            <>
+              <span className="text-xs font-medium text-[#128C4B]">✓ Guía enviada por WhatsApp · {shortDate(order.whatsappTrackingSentAt)}</span>
+              <a
+                href={trackingLink}
+                target="_blank"
+                rel="noreferrer"
+                onClick={markWhatsAppSent}
+                className="text-xs font-medium text-coffee-700 underline underline-offset-2 hover:text-coffee-900"
+              >
+                Reenviar
+              </a>
+            </>
+          ) : (
+            <a
+              href={trackingLink}
+              target="_blank"
+              rel="noreferrer"
+              onClick={markWhatsAppSent}
+              className="inline-flex items-center gap-2 rounded-lg bg-[#1f9d55] px-3.5 py-2 text-sm font-medium text-white transition-transform active:scale-[0.98]"
+            >
+              <svg aria-hidden viewBox="0 0 24 24" className="h-4 w-4 fill-current">
+                <path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3Z" />
+              </svg>
+              Enviarle la guía a {firstName} por WhatsApp
+            </a>
+          )}
         </div>
       )}
 

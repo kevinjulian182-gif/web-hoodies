@@ -14,7 +14,7 @@ import { CASH_ONLY_CATEGORIES, PURCHASE_CATEGORY, REIMBURSEMENT_CATEGORY, STORE_
 // then a COD order is "por cobrar". A fiado's money only enters the cash
 // with each abono (CreditPayment); what's left is what the customer owes.
 
-export type Period = { from: string; to: string };
+export type Period = { from: string; to: string; viewerId?: string };
 
 const dayStart = (ymd: string) => new Date(`${ymd}T00:00:00${TZ_OFFSET}`);
 /** "YYYY-MM-DD" of a date in Colombian time. */
@@ -59,7 +59,7 @@ function costOf(o: OrderRow, linkedCost: Map<string, number>) {
   return { cost, missing };
 }
 
-export async function computeAccounts({ from, to }: Period) {
+export async function computeAccounts({ from, to, viewerId }: Period) {
   const start = dayStart(from);
   const end = new Date(dayStart(to).getTime() + 86400_000);
   const inPeriod = (d: Date) => d >= start && d < end;
@@ -77,7 +77,7 @@ export async function computeAccounts({ from, to }: Period) {
       prismaInternal.purchase.findMany({ where: { paidBy: { not: null } }, select: { paidBy: true, totalCents: true } }),
       prismaInternal.ledgerEntry.findMany({ where: { paidBy: { not: null }, type: 'EXPENSE' }, select: { paidBy: true, amountCents: true, category: true } }),
     ]),
-    prismaInternal.partner.findMany({ orderBy: { name: 'asc' } }),
+    prismaInternal.partner.findMany({ orderBy: { name: 'asc' }, include: { user: { select: { id: true, email: true, role: true } } } }),
   ]);
   const linkedCost = new Map<string, number>();
   const linkedSuppliers = new Map<string, string[]>();
@@ -347,7 +347,16 @@ export async function computeAccounts({ from, to }: Period) {
     credits,
     spendingByPerson,
     storeOwes,
-    partners: partners.map((p) => ({ id: p.id, name: p.name, phone: p.phone, role: p.role })),
+    partners: partners.map((p) => ({
+      id: p.id,
+      name: p.name,
+      phone: p.phone,
+      role: p.role,
+      // Their own login to the panel; active is false once access is taken away.
+      access: p.user
+        ? { email: p.user.email, active: p.user.role !== 'CUSTOMER', superAdmin: p.user.role === 'SUPER_ADMIN', isViewer: p.user.id === viewerId }
+        : null,
+    })),
     purchases: purchases.map((p) => {
       const order = p.orderId ? orders.find((o) => o.id === p.orderId) : undefined;
       return {

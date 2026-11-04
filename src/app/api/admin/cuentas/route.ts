@@ -18,5 +18,5 @@ export async function GET(req: NextRequest) {
   if (!YMD.test(from) || !YMD.test(to) || from > to) {
     return NextResponse.json({ error: 'Rango de fechas inválido' }, { status: 400 });
   }
-  return NextResponse.json(await computeAccounts({ from, to }));
+  return NextResponse.json(await computeAccounts({ from, to, viewerId: session!.sub }));
 }

@@ -43,6 +43,8 @@ model User {
   name         String?
   role         Role     @default(CUSTOMER)
   orders       Order[]
+  // Set when the account belongs to one of the store's partners.
+  partner      Partner?
   createdAt    DateTime @default(now())
 }
 
@@ -150,6 +152,8 @@ model Order {
   status                    OrderStatus     @default(PENDING)
   paymentMethod             PaymentMethod   @default(WOMPI)
   whatsappConfirmedAt       DateTime?
+  // When the guía was last sent to the buyer over WhatsApp.
+  whatsappTrackingSentAt    DateTime?
   wompiReference            String          @unique
   wompiTransactionId        String?
   carrier                   String          @default("Inter Rapidísimo")
@@ -342,5 +346,8 @@ model Partner {
   name      String   @unique
   phone     String?
   role      String?
+  // The partner's own login to the panel (an ADMIN user), if they have one.
+  userId    String?  @unique
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
 }
