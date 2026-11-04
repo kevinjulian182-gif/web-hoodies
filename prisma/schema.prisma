@@ -32,6 +32,8 @@ enum PaymentMethod {
   WOMPI
   COD
   TRANSFER
+  /// Fiado: the customer took it and pays later, in one or more abonos.
+  CREDIT
 }
 
 model User {
@@ -128,8 +130,8 @@ model Review {
 }
 
 model Order {
-  id                        String        @id @default(cuid())
-  user                      User?         @relation(fields: [userId], references: [id])
+  id                        String          @id @default(cuid())
+  user                      User?           @relation(fields: [userId], references: [id])
   userId                    String?
   customerEmail             String
   customerName              String
@@ -142,23 +144,24 @@ model Order {
   deliveryNotes             String?
   items                     OrderItem[]
   subtotalCents             Int
-  discountCents             Int           @default(0)
+  discountCents             Int             @default(0)
   totalCents                Int
   couponCode                String?
-  status                    OrderStatus   @default(PENDING)
-  paymentMethod             PaymentMethod @default(WOMPI)
+  status                    OrderStatus     @default(PENDING)
+  paymentMethod             PaymentMethod   @default(WOMPI)
   whatsappConfirmedAt       DateTime?
-  wompiReference            String        @unique
+  wompiReference            String          @unique
   wompiTransactionId        String?
-  carrier                   String        @default("Inter Rapidísimo")
+  carrier                   String          @default("Inter Rapidísimo")
   trackingNumber            String?
   shippedAt                 DateTime?
   deliveredAt               DateTime?
   /// Last state reported by the carrier's tracking (e.g. "En reparto").
   trackingStatus            String?
   trackingCheckedAt         DateTime?
-  createdAt                 DateTime      @default(now())
-  updatedAt                 DateTime      @updatedAt
+  creditPayments            CreditPayment[]
+  createdAt                 DateTime        @default(now())
+  updatedAt                 DateTime        @updatedAt
 }
 
 model OrderItem {
@@ -269,6 +272,10 @@ model Purchase {
   invoiceNumber String?
   /// Efectivo, Transferencia, Nequi, Daviplata, Tarjeta, Crédito, Otro.
   paymentMethod String
+  /// Who paid it (the owner, a partner, the store's account…).
+  paidBy        String?
+  /// Bought for one specific sale (sold straight to the customer): its cost is that sale's cost.
+  orderId       String?
   notes         String?
   totalCents    Int
   addedToStock  Boolean        @default(false)
@@ -276,6 +283,7 @@ model Purchase {
   items         PurchaseItem[]
 
   @@index([date])
+  @@index([orderId])
 }
 
 model PurchaseItem {
@@ -303,8 +311,25 @@ model LedgerEntry {
   description String
   amountCents Int
   method      String
+  /// Who paid it (expense) or received it (income).
+  paidBy      String?
   reference   String?
   createdAt   DateTime @default(now())
 
   @@index([date])
+}
+
+/// An abono toward a fiado (an order with paymentMethod CREDIT).
+model CreditPayment {
+  id          String   @id @default(cuid())
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId     String
+  date        DateTime
+  amountCents Int
+  method      String
+  receivedBy  String?
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  @@index([orderId])
 }

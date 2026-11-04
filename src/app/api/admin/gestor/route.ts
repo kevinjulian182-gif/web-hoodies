@@ -8,7 +8,10 @@ import { MANUAL_ORDER_PREFIX } from '@/lib/orderSource';
 import { revalidateProductListings, revalidateProduct } from '@/lib/revalidate';
 import { getTrackingApiKey, refreshShippedOrders } from '@/lib/tracking';
 
-const ORDER_INCLUDE = { items: { include: { product: { select: { name: true, slug: true, images: true, colorImages: true } } } } } as const;
+const ORDER_INCLUDE = {
+  items: { include: { product: { select: { name: true, slug: true, images: true, colorImages: true } } } },
+  creditPayments: { select: { amountCents: true } },
+} as const;
 
 export async function GET() {
   const session = await getSession();
@@ -35,7 +38,7 @@ const schema = z.object({
   shippingCity: z.string().trim().min(2, 'Escribe la ciudad.'),
   shippingDepartment: z.string().trim().optional(),
   deliveryNotes: z.string().trim().optional(),
-  paymentMethod: z.enum(['COD', 'TRANSFER']),
+  paymentMethod: z.enum(['COD', 'TRANSFER', 'CREDIT']),
   shippingCents: z.number().int().min(0).default(0),
   items: z
     .array(

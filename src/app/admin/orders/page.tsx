@@ -21,7 +21,7 @@ type Order = {
   shippingPhone: string;
   deliveryNotes: string | null;
   status: 'PENDING' | 'PAID' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
-  paymentMethod: 'WOMPI' | 'COD' | 'TRANSFER';
+  paymentMethod: 'WOMPI' | 'COD' | 'TRANSFER' | 'CREDIT';
   whatsappConfirmedAt: string | null;
   subtotalCents: number;
   discountCents: number;
@@ -45,6 +45,7 @@ const PAYMENT_LABEL: Record<Order['paymentMethod'], string> = {
   WOMPI: 'Wompi',
   COD: 'Contra entrega',
   TRANSFER: 'Transferencia',
+  CREDIT: 'Fiado',
 };
 
 export default function OrdersPage() {
@@ -173,7 +174,7 @@ export default function OrdersPage() {
                 </span>
                 )}
               </div>
-              {(order.status === 'PAID' || (order.paymentMethod === 'COD' && order.status === 'PENDING')) && (
+              {(order.status === 'PAID' || ((order.paymentMethod === 'COD' || order.paymentMethod === 'CREDIT') && order.status === 'PENDING')) && (
                 <div className="flex gap-2">
                   <input
                     placeholder="Guía Inter Rapidísimo"

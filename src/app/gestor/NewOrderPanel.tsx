@@ -38,9 +38,11 @@ const emptyLine = (): Line => ({ key: nextKey++, productId: '', color: '', size:
 export default function NewOrderPanel({
   onClose,
   onCreated,
+  initialPayment = 'COD',
 }: {
   onClose: () => void;
   onCreated: (order: ManagedOrder) => void;
+  initialPayment?: 'COD' | 'TRANSFER' | 'CREDIT';
 }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [customer, setCustomer] = useState({
@@ -55,7 +57,7 @@ export default function NewOrderPanel({
     deliveryNotes: '',
   });
   const [lines, setLines] = useState<Line[]>([emptyLine()]);
-  const [paymentMethod, setPaymentMethod] = useState<'COD' | 'TRANSFER'>('COD');
+  const [paymentMethod, setPaymentMethod] = useState<'COD' | 'TRANSFER' | 'CREDIT'>(initialPayment);
   const [shipping, setShipping] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -400,11 +402,12 @@ export default function NewOrderPanel({
 
           <fieldset className="space-y-3">
             <legend className="mb-2 text-sm font-semibold text-coffee-900">Pago</legend>
-            <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Pago">
+            <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Pago">
               {(
                 [
                   ['COD', 'Contra entrega'],
-                  ['TRANSFER', 'Ya pagó (transferencia, Nequi…)'],
+                  ['TRANSFER', 'Ya pagó'],
+                  ['CREDIT', 'Fiado'],
                 ] as const
               ).map(([value, text]) => (
                 <button
@@ -423,6 +426,11 @@ export default function NewOrderPanel({
                 </button>
               ))}
             </div>
+            {paymentMethod === 'CREDIT' && (
+              <p className="text-xs text-coffee-600">
+                Se entrega ahora y lo paga después. Los abonos se registran en Cuentas › Fiados.
+              </p>
+            )}
             <label className="block">
               <span className={caption}>Envío cobrado en el pedido ($) — déjalo vacío si el cliente lo paga al recibir</span>
               <input value={shipping} onChange={(e) => setShipping(e.target.value.replace(/\D/g, ''))} inputMode="numeric" placeholder="0" className={field} />

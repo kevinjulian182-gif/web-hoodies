@@ -20,7 +20,7 @@ const OrderSchema = z.object({
   shippingCity: z.string().nullable(),
   shippingDepartment: z.string().nullable(),
   deliveryNotes: z.string().nullable(),
-  paymentMethod: z.enum(['COD', 'TRANSFER']).nullable(),
+  paymentMethod: z.enum(['COD', 'TRANSFER', 'CREDIT']).nullable(),
   items: z.array(
     z.object({
       productId: z.string(),
@@ -39,7 +39,7 @@ Reglas:
 - customerDocument: solo dígitos de la cédula o NIT.
 - shippingAddress: la dirección principal (calle/carrera y número). Apartamento, torre, barrio o conjunto van en shippingAddressComplement.
 - shippingDepartment: uno de estos nombres exactos: ${COLOMBIA_DEPARTMENTS.join(', ')}. Dedúcelo de la ciudad si es obvio (Medellín → Antioquia, Cali → Valle del Cauca, Bogotá → Bogotá D.C.).
-- paymentMethod: "COD" si pagará contra entrega, "TRANSFER" si ya pagó o pagará por transferencia, Nequi, Daviplata, etc.; null si no lo dice. "El envío lo pago al recibir" se refiere al envío, no al pago del pedido.
+- paymentMethod: "CREDIT" si se lo fían (lo paga después, a crédito); "COD" si pagará contra entrega, "TRANSFER" si ya pagó o pagará por transferencia, Nequi, Daviplata, etc.; null si no lo dice. "El envío lo pago al recibir" se refiere al envío, no al pago del pedido.
 - items: solo productos del inventario dado, con su id exacto. size y color deben ser uno de los valores de ese producto, o null si el mensaje no lo dice. quantity es 1 si no se indica.
 - deliveryNotes: indicaciones para el mensajero (portería, horario, referencias), si las hay.`;
 

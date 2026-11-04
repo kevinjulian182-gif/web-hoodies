@@ -58,6 +58,29 @@ const STATEMENTS = [
       ALTER TABLE "PurchaseItem" ADD CONSTRAINT "PurchaseItem_purchaseId_fkey" FOREIGN KEY ("purchaseId") REFERENCES "Purchase"("id") ON DELETE CASCADE ON UPDATE CASCADE;
     END IF;
   END $$`,
+  // Who paid each expense/purchase, and fiados (credit orders) with their abonos.
+  `ALTER TABLE "Purchase" ADD COLUMN IF NOT EXISTS "paidBy" TEXT`,
+  `ALTER TABLE "LedgerEntry" ADD COLUMN IF NOT EXISTS "paidBy" TEXT`,
+  `ALTER TABLE "Purchase" ADD COLUMN IF NOT EXISTS "orderId" TEXT`,
+  `CREATE INDEX IF NOT EXISTS "Purchase_orderId_idx" ON "Purchase"("orderId")`,
+  `ALTER TYPE "PaymentMethod" ADD VALUE IF NOT EXISTS 'CREDIT'`,
+  `CREATE TABLE IF NOT EXISTS "CreditPayment" (
+    "id" TEXT NOT NULL,
+    "orderId" TEXT NOT NULL,
+    "date" TIMESTAMP(3) NOT NULL,
+    "amountCents" INTEGER NOT NULL,
+    "method" TEXT NOT NULL,
+    "receivedBy" TEXT,
+    "notes" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "CreditPayment_pkey" PRIMARY KEY ("id")
+  )`,
+  `CREATE INDEX IF NOT EXISTS "CreditPayment_orderId_idx" ON "CreditPayment"("orderId")`,
+  `DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'CreditPayment_orderId_fkey') THEN
+      ALTER TABLE "CreditPayment" ADD CONSTRAINT "CreditPayment_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    END IF;
+  END $$`,
 ];
 
 const prisma = new PrismaClient({ datasources: { db: { url } } });

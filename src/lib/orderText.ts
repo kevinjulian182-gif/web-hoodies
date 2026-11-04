@@ -18,7 +18,7 @@ export type ParsedOrder = {
   shippingCity: string | null;
   shippingDepartment: string | null;
   deliveryNotes: string | null;
-  paymentMethod: 'COD' | 'TRANSFER' | null;
+  paymentMethod: 'COD' | 'TRANSFER' | 'CREDIT' | null;
   items: { productId: string; size: string | null; color: string | null; quantity: number }[];
 };
 
@@ -157,7 +157,8 @@ export function parseOrderText(text: string, inventory: InventoryItem[]): Parsed
 
   // The shipping line ("Envío: lo pago al recibir") says nothing about payment.
   const n = norm(lines.filter((l) => !/^env[ií]o/i.test(l)).join(' '));
-  if (/contra ?entrega|pag(?:o|ar|a) (?:en efectivo )?(?:al recibir|en casa)/.test(n)) out.paymentMethod = 'COD';
+  if (/\bfiad[oa]s?\b|me lo fias|a credito/.test(n)) out.paymentMethod = 'CREDIT';
+  else if (/contra ?entrega|pag(?:o|ar|a) (?:en efectivo )?(?:al recibir|en casa)/.test(n)) out.paymentMethod = 'COD';
   else if (/transferencia|nequi|daviplata|bancolombia|ya pag|consignaci|pagado/.test(n)) out.paymentMethod = 'TRANSFER';
 
   return out;

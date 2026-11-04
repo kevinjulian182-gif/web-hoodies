@@ -22,7 +22,7 @@ type Order = {
   discountCents: number;
   totalCents: number;
   status: string;
-  paymentMethod: 'WOMPI' | 'COD' | 'TRANSFER';
+  paymentMethod: 'WOMPI' | 'COD' | 'TRANSFER' | 'CREDIT';
   trackingNumber: string | null;
   items: { quantity: number; size: string; color: string | null; product: { name: string } }[];
 };

@@ -66,7 +66,7 @@ export function buildWhatsAppOrderMessage(
 export function buildOrderConfirmationMessage(order: {
   customerName: string;
   totalCents: number;
-  paymentMethod: 'WOMPI' | 'COD' | 'TRANSFER';
+  paymentMethod: 'WOMPI' | 'COD' | 'TRANSFER' | 'CREDIT';
   shippingAddress: string;
   shippingAddressComplement?: string | null;
   shippingCity: string;

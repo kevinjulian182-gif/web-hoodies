@@ -57,6 +57,8 @@ export async function GET(req: NextRequest) {
     { label: 'Unidades vendidas', value: s.units },
     { label: 'Ticket promedio', value: pesos(s.averageTicketCents) },
     { label: 'Por cobrar (contra entrega en curso)', value: pesos(s.receivableCents) },
+    { label: 'Te deben por fiados', value: pesos(s.creditOwedCents) },
+    { label: 'La tienda les debe a socios', value: pesos(s.storeOwesCents) },
     { label: 'Inventario a costo', value: pesos(a.inventory.atCost) },
     { label: 'Inventario a precio de venta', value: pesos(a.inventory.atPrice) },
   ]);
@@ -95,6 +97,8 @@ export async function GET(req: NextRequest) {
     { header: 'Proveedor', key: 'supplier', width: 24 },
     { header: 'Factura', key: 'invoice', width: 14 },
     { header: 'Pago', key: 'method', width: 14 },
+    { header: 'Pagó', key: 'paidBy', width: 16 },
+    { header: 'Para la venta', key: 'order', width: 28 },
     { header: 'Artículo', key: 'item', width: 36 },
     { header: 'Cantidad', key: 'qty', width: 10 },
     { header: 'Costo unitario', key: 'unit', width: 15, money: true },
@@ -107,6 +111,8 @@ export async function GET(req: NextRequest) {
         supplier: p.supplier,
         invoice: p.invoiceNumber ?? '',
         method: p.paymentMethod,
+        paidBy: p.paidBy || 'La tienda',
+        order: p.orderLabel ?? '',
         item: [i.description, i.size, i.color].filter(Boolean).join(' · '),
         qty: i.quantity,
         unit: pesos(i.unitCostCents),
@@ -122,6 +128,8 @@ export async function GET(req: NextRequest) {
     { header: 'Categoría', key: 'category', width: 28 },
     { header: 'Descripción', key: 'description', width: 40 },
     { header: 'Medio', key: 'method', width: 15 },
+    { header: 'Persona', key: 'person', width: 16 },
+    { header: '¿Salió de la caja?', key: 'cash', width: 16 },
     { header: 'Entrada', key: 'in', width: 14, money: true },
     { header: 'Salida', key: 'out', width: 14, money: true },
   ]);
@@ -133,6 +141,8 @@ export async function GET(req: NextRequest) {
       category: m.category,
       description: m.description,
       method: m.method,
+      person: m.person,
+      cash: m.storeCash ? 'Sí' : 'No (lo pagó un socio)',
       in: m.type === 'INCOME' ? pesos(m.amountCents) : null,
       out: m.type === 'EXPENSE' ? pesos(m.amountCents) : null,
     });
@@ -157,6 +167,35 @@ export async function GET(req: NextRequest) {
     });
   }
   products.getColumn('margin').numFmt = '0%';
+
+  const credits = sheet('Fiados', [
+    { header: 'Fecha', key: 'date', width: 12 },
+    { header: 'Cliente', key: 'customer', width: 24 },
+    { header: 'Celular', key: 'phone', width: 14 },
+    { header: 'Productos', key: 'items', width: 40 },
+    { header: 'Total', key: 'total', width: 14, money: true },
+    { header: 'Abonado', key: 'paid', width: 14, money: true },
+    { header: 'Debe', key: 'owed', width: 14, money: true },
+  ]);
+  for (const c of a.credits) {
+    credits.addRow({
+      date: day(c.date),
+      customer: c.customer,
+      phone: c.phone,
+      items: c.items.map((i) => `${i.quantity}× ${i.name}`).join('; '),
+      total: pesos(c.totalCents),
+      paid: pesos(c.paidCents),
+      owed: pesos(c.balanceCents),
+    });
+  }
+
+  const owes = sheet('La tienda debe', [
+    { header: 'Persona', key: 'person', width: 22 },
+    { header: 'Pagó de su bolsillo', key: 'paid', width: 18, money: true },
+    { header: 'Le han devuelto', key: 'repaid', width: 16, money: true },
+    { header: 'Se le debe', key: 'owed', width: 14, money: true },
+  ]);
+  for (const o of a.storeOwes) owes.addRow({ person: o.person, paid: pesos(o.paidCents), repaid: pesos(o.repaidCents), owed: pesos(o.owedCents) });
 
   const buffer = await wb.xlsx.writeBuffer();
   return new NextResponse(buffer, {

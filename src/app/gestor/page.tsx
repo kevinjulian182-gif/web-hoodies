@@ -38,6 +38,12 @@ function sourceOf(order: ManagedOrder) {
 function paymentOf(order: ManagedOrder) {
   if (order.paymentMethod === 'COD') return { label: 'Contra entrega', className: 'bg-amber-50 text-amber-800' };
   if (order.paymentMethod === 'TRANSFER') return { label: 'Pagado · transferencia', className: 'bg-green-50 text-green-800' };
+  if (order.paymentMethod === 'CREDIT') {
+    const owed = order.totalCents - (order.creditPayments ?? []).reduce((n, p) => n + p.amountCents, 0);
+    return owed > 0
+      ? { label: `Fiado · debe ${formatCOP(owed)}`, className: 'bg-violet-50 text-violet-800' }
+      : { label: 'Fiado · pagado', className: 'bg-green-50 text-green-800' };
+  }
   return order.status === 'PENDING' && !order.wompiTransactionId
     ? { label: 'Esperando pago Wompi', className: 'bg-red-50 text-red-700' }
     : { label: 'Pagado · Wompi', className: 'bg-green-50 text-green-800' };
@@ -53,6 +59,7 @@ export default function OrderManagerPage() {
   const [filter, setFilter] = useState<Stage | 'ALL'>('PENDING');
   const [query, setQuery] = useState('');
   const [panelOpen, setPanelOpen] = useState(false);
+  const [newPayment, setNewPayment] = useState<'COD' | 'CREDIT'>('COD');
   const [refreshing, setRefreshing] = useState(false);
   const [banner, setBanner] = useState<{ ok: boolean; text: string } | null>(null);
   // Orders just changed stay on screen until the filter changes, so a card
@@ -71,6 +78,11 @@ export default function OrderManagerPage() {
 
   useEffect(() => {
     load();
+    // "Nuevo fiado" from Cuentas opens the form with Fiado chosen.
+    if (new URLSearchParams(window.location.search).get('nuevo') === 'fiado') {
+      setNewPayment('CREDIT');
+      setPanelOpen(true);
+    }
   }, []);
 
   const counts = useMemo(() => {
@@ -208,7 +220,11 @@ export default function OrderManagerPage() {
 
       {panelOpen && (
         <NewOrderPanel
-          onClose={() => setPanelOpen(false)}
+          initialPayment={newPayment}
+          onClose={() => {
+            setPanelOpen(false);
+            setNewPayment('COD');
+          }}
           onCreated={(order) => {
             setOrders((prev) => [order, ...prev]);
             setFilter('PENDING');

@@ -10,8 +10,9 @@ export type ManagedOrder = {
   shippingCity: string;
   shippingDepartment: string | null;
   status: Status;
-  paymentMethod: 'WOMPI' | 'COD' | 'TRANSFER';
+  paymentMethod: 'WOMPI' | 'COD' | 'TRANSFER' | 'CREDIT';
   wompiTransactionId: string | null;
+  creditPayments?: { amountCents: number }[];
   totalCents: number;
   wompiReference: string;
   trackingNumber: string | null;

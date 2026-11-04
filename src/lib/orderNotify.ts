@@ -24,7 +24,7 @@ type OrderForAlert = {
   shippingCity: string;
   shippingDepartment?: string | null;
   deliveryNotes?: string | null;
-  paymentMethod: 'WOMPI' | 'COD' | 'TRANSFER';
+  paymentMethod: 'WOMPI' | 'COD' | 'TRANSFER' | 'CREDIT';
   subtotalCents: number;
   discountCents: number;
   totalCents: number;
@@ -72,6 +72,8 @@ export function buildStoreOrderAlert(order: OrderForAlert, freeShippingThreshold
         ? '💵 Pago contra entrega'
         : order.paymentMethod === 'TRANSFER'
           ? '✅ Pagado por transferencia'
+          : order.paymentMethod === 'CREDIT'
+            ? '📒 Fiado'
           : '✅ Pagado con Wompi',
     '',
     `👤 ${order.customerName}`,
