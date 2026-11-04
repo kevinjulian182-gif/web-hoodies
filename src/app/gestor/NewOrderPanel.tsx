@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { COLOMBIA_DEPARTMENTS } from '@/lib/colombia';
 import { formatCOP } from '@/lib/format';
 import { variantKey } from '@/lib/variants';
+import { orderShippingCents } from '@/lib/pricing';
 import type { ManagedOrder } from './types';
 import type { ParsedOrder } from '@/lib/orderText';
 
@@ -35,30 +36,60 @@ function available(product: Product, size: string, color: string) {
 let nextKey = 1;
 const emptyLine = (): Line => ({ key: nextKey++, productId: '', color: '', size: '', quantity: 1, price: '' });
 
+const pesos = (cents: number) => (cents > 0 ? String(Math.round(cents / 100)) : '');
+
+/** Registers a new order, or fixes one (`editing`) that was typed in wrong. */
 export default function NewOrderPanel({
   onClose,
   onCreated,
   initialPayment = 'COD',
+  editing,
 }: {
   onClose: () => void;
   onCreated: (order: ManagedOrder) => void;
   initialPayment?: 'COD' | 'TRANSFER' | 'CREDIT';
+  editing?: ManagedOrder;
 }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [customer, setCustomer] = useState({
-    customerName: '',
-    shippingPhone: '',
-    customerDocument: '',
-    customerEmail: '',
-    shippingAddress: '',
-    shippingAddressComplement: '',
-    shippingCity: '',
-    shippingDepartment: '',
-    deliveryNotes: '',
+    customerName: editing?.customerName ?? '',
+    shippingPhone: editing?.shippingPhone ?? '',
+    customerDocument: editing?.customerDocument ?? '',
+    customerEmail: editing?.customerEmail ?? '',
+    shippingAddress: editing?.shippingAddress ?? '',
+    shippingAddressComplement: editing?.shippingAddressComplement ?? '',
+    shippingCity: editing?.shippingCity ?? '',
+    shippingDepartment: editing?.shippingDepartment ?? '',
+    deliveryNotes: editing?.deliveryNotes ?? '',
   });
-  const [lines, setLines] = useState<Line[]>([emptyLine()]);
-  const [paymentMethod, setPaymentMethod] = useState<'COD' | 'TRANSFER' | 'CREDIT'>(initialPayment);
-  const [shipping, setShipping] = useState('');
+  const [lines, setLines] = useState<Line[]>(() =>
+    editing
+      ? editing.items.map((i) => ({
+          key: nextKey++,
+          productId: i.productId,
+          color: i.color ?? '',
+          size: i.size,
+          quantity: i.quantity,
+          price: String(Math.round(i.priceCents / 100)),
+        }))
+      : [emptyLine()]
+  );
+  const [paymentMethod, setPaymentMethod] = useState<'COD' | 'TRANSFER' | 'CREDIT'>(
+    editing && editing.paymentMethod !== 'WOMPI' ? editing.paymentMethod : initialPayment
+  );
+  const [shipping, setShipping] = useState(editing ? pesos(orderShippingCents(editing)) : '');
+  const [discount, setDiscount] = useState(editing ? pesos(editing.discountCents) : '');
+  // A web order paid online keeps its products and charge; only its data changes.
+  const customerOnly = editing?.paymentMethod === 'WOMPI';
+  // Units this order already holds count as available while editing it.
+  const holdsStock = Boolean(editing) && !(editing!.paymentMethod === 'WOMPI' && editing!.status === 'PENDING');
+  const unitsLeft = (product: Product, size: string, color: string) =>
+    available(product, size, color) +
+    (holdsStock
+      ? editing!.items
+          .filter((i) => i.productId === product.id && variantKey(i.size, i.color) === variantKey(size, color || null))
+          .reduce((sum, i) => sum + i.quantity, 0)
+      : 0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -157,26 +188,32 @@ export default function NewOrderPanel({
 
   const subtotalCents = lines.reduce((sum, l) => sum + (Number(l.price) || 0) * 100 * l.quantity, 0);
   const shippingCents = (Number(shipping) || 0) * 100;
+  const discountCents = Math.min((Number(discount) || 0) * 100, subtotalCents);
+  const totalCents = customerOnly ? editing!.totalCents : subtotalCents - discountCents + shippingCents;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     const filled = lines.filter((l) => l.productId);
-    for (const l of filled) {
-      const p = byId.get(l.productId)!;
-      if (p.colors.length > 0 && !l.color) return setError(`Elige el color de ${p.name}.`);
-      if (!l.size) return setError(`Elige la talla de ${p.name}.`);
-      if (l.quantity > available(p, l.size, l.color)) return setError(`No hay suficiente stock de ${p.name} talla ${l.size}.`);
+    if (!customerOnly) {
+      for (const l of filled) {
+        const p = byId.get(l.productId);
+        if (!p) return setError('Espera a que cargue el inventario.');
+        if (p.colors.length > 0 && !l.color) return setError(`Elige el color de ${p.name}.`);
+        if (!l.size) return setError(`Elige la talla de ${p.name}.`);
+        if (l.quantity > unitsLeft(p, l.size, l.color)) return setError(`No hay suficiente stock de ${p.name} talla ${l.size}.`);
+      }
+      if (filled.length === 0) return setError('Agrega al menos un producto.');
     }
-    if (filled.length === 0) return setError('Agrega al menos un producto.');
     setSaving(true);
-    const res = await fetch('/api/admin/gestor', {
-      method: 'POST',
+    const res = await fetch(editing ? `/api/admin/gestor/${editing.id}` : '/api/admin/gestor', {
+      method: editing ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         ...customer,
         paymentMethod,
         shippingCents,
+        discountCents,
         items: filled.map((l) => ({
           productId: l.productId,
           size: l.size,
@@ -188,28 +225,39 @@ export default function NewOrderPanel({
     });
     const data = await res.json().catch(() => ({}));
     setSaving(false);
-    if (!res.ok) return setError(data.error ?? 'No se pudo registrar el pedido.');
-    onCreated(data);
+    if (!res.ok) return setError(data.error ?? (editing ? 'No se pudieron guardar los cambios.' : 'No se pudo registrar el pedido.'));
+    onCreated(editing ? data.order : data);
   };
 
   const set = (key: keyof typeof customer) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setCustomer((c) => ({ ...c, [key]: e.target.value }));
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label="Nuevo pedido">
+    <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label={editing ? 'Editar pedido' : 'Nuevo pedido'}>
       <button type="button" aria-label="Cerrar" onClick={onClose} className="absolute inset-0 bg-coffee-900/40" />
       <form
         onSubmit={submit}
         className="relative flex h-dvh w-full max-w-xl flex-col bg-cream-50 shadow-[0_0_48px_-12px_rgba(41,28,19,0.45)]"
       >
         <div className="flex items-center justify-between border-b border-cream-200 px-5 py-4">
-          <h2 className="text-lg font-semibold text-coffee-900">Nuevo pedido</h2>
+          <div>
+            <h2 className="text-lg font-semibold text-coffee-900">{editing ? 'Editar pedido' : 'Nuevo pedido'}</h2>
+            {editing && <p className="text-xs text-coffee-500">{editing.wompiReference}</p>}
+          </div>
           <button type="button" onClick={onClose} className="rounded-lg px-2 py-1 text-sm text-coffee-600 hover:bg-cream-100">
             Cerrar
           </button>
         </div>
 
         <div className="flex-1 space-y-7 overflow-y-auto overscroll-contain px-5 py-5">
+          {editing && (
+            <p className="rounded-xl bg-cream-100 px-3 py-2.5 text-xs text-coffee-700">
+              {customerOnly
+                ? 'Pagado en línea con Wompi: puedes corregir los datos del cliente y la entrega; los productos y el cobro no cambian.'
+                : 'Si cambias productos, tallas o cantidades, las prendas anteriores vuelven al inventario y se descuentan las nuevas.'}
+            </p>
+          )}
+          {!editing && (
           <section className="rounded-xl border border-dashed border-coffee-300 bg-white p-3">
             <label className="block">
               <span className="text-sm font-semibold text-coffee-900">Pegar mensaje del cliente</span>
@@ -240,6 +288,7 @@ export default function NewOrderPanel({
               )}
             </div>
           </section>
+          )}
 
           <fieldset className="space-y-3">
             <legend className="mb-2 text-sm font-semibold text-coffee-900">Cliente</legend>
@@ -296,12 +345,14 @@ export default function NewOrderPanel({
             </label>
           </fieldset>
 
+          {!customerOnly && (
+          <>
           <fieldset className="space-y-3">
             <legend className="mb-2 text-sm font-semibold text-coffee-900">Productos</legend>
             {lines.map((line) => {
               const product = byId.get(line.productId);
               const needsColor = Boolean(product && product.colors.length > 0);
-              const left = product && line.size ? available(product, line.size, line.color) : null;
+              const left = product && line.size ? unitsLeft(product, line.size, line.color) : null;
               return (
                 <div key={line.key} className="rounded-xl border border-cream-200 bg-white p-3">
                   <div className="flex items-start gap-2">
@@ -353,7 +404,7 @@ export default function NewOrderPanel({
                         >
                           <option value="">—</option>
                           {product.sizes.map((s) => {
-                            const units = available(product, s, line.color);
+                            const units = unitsLeft(product, s, line.color);
                             return (
                               <option key={s} value={s} disabled={units < 1}>
                                 {s} · {units < 1 ? 'agotada' : `${units} disp.`}
@@ -435,15 +486,23 @@ export default function NewOrderPanel({
               <span className={caption}>Envío cobrado en el pedido ($) — déjalo vacío si el cliente lo paga al recibir</span>
               <input value={shipping} onChange={(e) => setShipping(e.target.value.replace(/\D/g, ''))} inputMode="numeric" placeholder="0" className={field} />
             </label>
+            {editing && (
+              <label className="block">
+                <span className={caption}>Descuento ($)</span>
+                <input value={discount} onChange={(e) => setDiscount(e.target.value.replace(/\D/g, ''))} inputMode="numeric" placeholder="0" className={field} />
+              </label>
+            )}
           </fieldset>
+          </>
+          )}
         </div>
 
         <div className="border-t border-cream-200 bg-white px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
           <div className="mb-3 flex items-baseline justify-between text-sm">
             <span className="text-coffee-600">
-              Total{shippingCents === 0 ? <span className="text-coffee-500"> (+ envío al recibir)</span> : ''}
+              Total{!customerOnly && shippingCents === 0 ? <span className="text-coffee-500"> (+ envío al recibir)</span> : ''}
             </span>
-            <span className="text-lg font-semibold tabular-nums text-coffee-900">{formatCOP(subtotalCents + shippingCents)}</span>
+            <span className="text-lg font-semibold tabular-nums text-coffee-900">{formatCOP(totalCents)}</span>
           </div>
           {error && (
             <p role="alert" className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -455,7 +514,7 @@ export default function NewOrderPanel({
             disabled={saving}
             className="w-full rounded-lg bg-coffee-900 px-4 py-3 text-sm font-medium text-cream-50 transition-transform active:scale-[0.98] disabled:opacity-50"
           >
-            {saving ? 'Registrando…' : 'Registrar pedido y descontar inventario'}
+            {saving ? (editing ? 'Guardando…' : 'Registrando…') : editing ? 'Guardar cambios' : 'Registrar pedido y descontar inventario'}
           </button>
         </div>
       </form>

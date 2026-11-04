@@ -4,6 +4,8 @@ export type ManagedOrder = {
   id: string;
   customerName: string;
   customerEmail: string;
+  customerDocument: string | null;
+  deliveryNotes: string | null;
   shippingPhone: string;
   shippingAddress: string;
   shippingAddressComplement: string | null;
@@ -24,5 +26,5 @@ export type ManagedOrder = {
   shippedAt: string | null;
   deliveredAt: string | null;
   createdAt: string;
-  items: { id: string; quantity: number; size: string; color: string | null; priceCents: number; product: { name: string; images?: string[]; colorImages?: unknown } }[];
+  items: { id: string; productId: string; quantity: number; size: string; color: string | null; priceCents: number; product: { name: string; images?: string[]; colorImages?: unknown } }[];
 };

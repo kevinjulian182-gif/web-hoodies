@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse, after } from 'next/server';
 import crypto from 'crypto';
-import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { getSession, requireRole } from '@/lib/auth';
 import { buildStockDecrementOps, checkStock, type ProductWithVariants } from '@/lib/stock';
@@ -8,6 +7,7 @@ import { MANUAL_ORDER_PREFIX } from '@/lib/orderSource';
 import { revalidateProductListings, revalidateProduct } from '@/lib/revalidate';
 import { getTrackingApiKey, refreshShippedOrders } from '@/lib/tracking';
 import { getFreeShippingThresholdCents, getSiteContent } from '@/lib/content';
+import { manualOrderSchema as schema } from '@/lib/manualOrder';
 
 const ORDER_INCLUDE = {
   items: { include: { product: { select: { name: true, slug: true, images: true, colorImages: true } } } },
@@ -33,31 +33,6 @@ export async function GET() {
     freeShippingThresholdCents: getFreeShippingThresholdCents(content),
   });
 }
-
-const schema = z.object({
-  customerName: z.string().trim().min(2, 'Escribe el nombre del cliente.'),
-  shippingPhone: z.string().trim().min(7, 'Escribe un celular válido.'),
-  customerDocument: z.string().trim().optional(),
-  customerEmail: z.union([z.string().trim().email('El correo no es válido.'), z.literal('')]).default(''),
-  shippingAddress: z.string().trim().min(4, 'Escribe la dirección.'),
-  shippingAddressComplement: z.string().trim().optional(),
-  shippingCity: z.string().trim().min(2, 'Escribe la ciudad.'),
-  shippingDepartment: z.string().trim().optional(),
-  deliveryNotes: z.string().trim().optional(),
-  paymentMethod: z.enum(['COD', 'TRANSFER', 'CREDIT']),
-  shippingCents: z.number().int().min(0).default(0),
-  items: z
-    .array(
-      z.object({
-        productId: z.string().min(1),
-        size: z.string().min(1, 'Elige la talla.'),
-        color: z.string().optional(),
-        quantity: z.number().int().min(1),
-        priceCents: z.number().int().min(0),
-      })
-    )
-    .min(1, 'Agrega al menos un producto.'),
-});
 
 /** Registers an order taken outside the web (Instagram, WhatsApp, in
  * person) and takes its units from the store's inventory. */

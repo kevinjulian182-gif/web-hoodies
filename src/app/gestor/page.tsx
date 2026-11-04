@@ -62,6 +62,7 @@ export default function OrderManagerPage() {
   const [filter, setFilter] = useState<Stage | 'ALL'>('PENDING');
   const [query, setQuery] = useState('');
   const [panelOpen, setPanelOpen] = useState(false);
+  const [editingOrder, setEditingOrder] = useState<ManagedOrder | null>(null);
   const [newPayment, setNewPayment] = useState<'COD' | 'CREDIT'>('COD');
   const [refreshing, setRefreshing] = useState(false);
   const [banner, setBanner] = useState<{ ok: boolean; text: string } | null>(null);
@@ -223,6 +224,7 @@ export default function OrderManagerPage() {
               trackingEnabled={trackingEnabled}
               freeShippingThresholdCents={freeShippingThresholdCents}
               onChange={replace}
+              onEdit={() => setEditingOrder(order)}
             />
           ))}
         </div>
@@ -243,6 +245,17 @@ export default function OrderManagerPage() {
           }}
         />
       )}
+      {editingOrder && (
+        <NewOrderPanel
+          editing={editingOrder}
+          onClose={() => setEditingOrder(null)}
+          onCreated={(order) => {
+            replace(order);
+            setEditingOrder(null);
+            setBanner({ ok: true, text: `Pedido de ${order.customerName} actualizado.` });
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -252,10 +265,12 @@ function OrderCard({
   trackingEnabled,
   freeShippingThresholdCents,
   onChange,
+  onEdit,
 }: {
   order: ManagedOrder;
   trackingEnabled: boolean;
   freeShippingThresholdCents: number;
+  onEdit: () => void;
   onChange: (order: ManagedOrder) => void;
 }) {
   const [guide, setGuide] = useState(order.trackingNumber ?? '');
@@ -498,6 +513,9 @@ function OrderCard({
 
       {!cancelled && (
         <div className="mt-3 flex flex-wrap gap-4 border-t border-cream-200 pt-3 text-sm">
+          <button type="button" onClick={onEdit} disabled={busy !== null} className="font-medium text-coffee-800 hover:text-coffee-900 disabled:opacity-50">
+            Editar pedido
+          </button>
           <Link href={`/admin/bouchers?pedido=${order.id}`} target="_blank" className="text-coffee-700 hover:text-coffee-900">
             Boucher de envío
           </Link>
