@@ -64,7 +64,7 @@ export async function computeAccounts({ from, to }: Period) {
   const end = new Date(dayStart(to).getTime() + 86400_000);
   const inPeriod = (d: Date) => d >= start && d < end;
 
-  const [orders, purchases, entries, products, linkedPurchases, paidByOthers] = await Promise.all([
+  const [orders, purchases, entries, products, linkedPurchases, paidByOthers, partners] = await Promise.all([
     loadOrders(),
     prismaInternal.purchase.findMany({ where: { date: { gte: start, lt: end } }, include: { items: true }, orderBy: { date: 'desc' } }),
     prismaInternal.ledgerEntry.findMany({ where: { date: { gte: start, lt: end } }, orderBy: { date: 'desc' } }),
@@ -77,6 +77,7 @@ export async function computeAccounts({ from, to }: Period) {
       prismaInternal.purchase.findMany({ where: { paidBy: { not: null } }, select: { paidBy: true, totalCents: true } }),
       prismaInternal.ledgerEntry.findMany({ where: { paidBy: { not: null }, type: 'EXPENSE' }, select: { paidBy: true, amountCents: true, category: true } }),
     ]),
+    prismaInternal.partner.findMany({ orderBy: { name: 'asc' } }),
   ]);
   const linkedCost = new Map<string, number>();
   const linkedSuppliers = new Map<string, string[]>();
@@ -346,6 +347,7 @@ export async function computeAccounts({ from, to }: Period) {
     credits,
     spendingByPerson,
     storeOwes,
+    partners: partners.map((p) => ({ id: p.id, name: p.name, phone: p.phone, role: p.role })),
     purchases: purchases.map((p) => {
       const order = p.orderId ? orders.find((o) => o.id === p.orderId) : undefined;
       return {

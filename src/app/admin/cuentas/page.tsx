@@ -5,7 +5,7 @@ import { REIMBURSEMENT_CATEGORY, STORE_PAYER, todayInColombia } from '@/lib/acco
 import type { Accounts } from '@/lib/accounting';
 import PurchasePanel, { type PurchaseInitial } from './PurchasePanel';
 import EntryForm, { type EntryInitial } from './EntryForm';
-import { CreditsTab, EntriesTab, MovementsTab, OwesTab, PurchasesTab, SalesTab, SummaryTab, type TabActions, type TabId } from './tabs';
+import { CreditsTab, EntriesTab, MovementsTab, PartnersTab, PurchasesTab, SalesTab, SummaryTab, type TabActions, type TabId } from './tabs';
 import { Sheet, secondaryButton } from './ui';
 
 type Preset = 'month' | 'lastMonth' | '30d' | 'year' | 'custom';
@@ -17,7 +17,7 @@ const TABS: { value: TabId; label: string }[] = [
   { value: 'compras', label: 'Compras' },
   { value: 'gastos', label: 'Gastos' },
   { value: 'fiados', label: 'Fiados' },
-  { value: 'debe', label: 'La tienda debe' },
+  { value: 'debe', label: 'Socios' },
   { value: 'movimientos', label: 'Movimientos' },
 ];
 
@@ -86,7 +86,9 @@ export default function AccountsPage() {
 
   const people = useMemo(() => {
     if (!data) return [];
+    // Saved people first, then any other name already used in the records.
     const names = [
+      ...data.partners.map((p) => p.name),
       ...data.spendingByPerson.map((p) => p.label),
       ...data.storeOwes.map((o) => o.person),
       ...data.entries.map((e) => e.paidBy ?? ''),
@@ -242,8 +244,8 @@ export default function AccountsPage() {
           {tab === 'ventas' && <SalesTab data={data} />}
           {tab === 'compras' && <PurchasesTab data={data} actions={actions} />}
           {tab === 'gastos' && <EntriesTab data={data} actions={actions} />}
-          {tab === 'fiados' && <CreditsTab data={data} actions={actions} />}
-          {tab === 'debe' && <OwesTab data={data} actions={actions} />}
+          {tab === 'fiados' && <CreditsTab data={data} actions={actions} people={people} />}
+          {tab === 'debe' && <PartnersTab data={data} actions={actions} />}
           {tab === 'movimientos' && <MovementsTab data={data} />}
         </>
       )}

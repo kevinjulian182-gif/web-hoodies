@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { formatCOP } from '@/lib/format';
 import { PAYMENT_METHODS, STORE_PAYER, todayInColombia } from '@/lib/accountingConfig';
-import { PeopleList } from './EntryForm';
+import { PersonPicker } from './ui';
 
 type Product = {
   id: string;
@@ -216,8 +216,7 @@ export default function PurchasePanel({
             </label>
             <label className="block">
               <span className={caption}>¿Quién pagó?</span>
-              <input value={form.paidBy} onChange={set('paidBy')} list="purchase-people" autoComplete="off" className={field} />
-              <PeopleList id="purchase-people" people={people} />
+              <PersonPicker value={form.paidBy} onChange={(name) => setForm((f) => ({ ...f, paidBy: name }))} people={people} className={field} />
             </label>
             {form.paidBy.trim() && form.paidBy.trim().toLowerCase() !== STORE_PAYER.toLowerCase() && (
               <p className="col-span-2 text-xs text-coffee-600">

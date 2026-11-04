@@ -63,6 +63,15 @@ const STATEMENTS = [
   `ALTER TABLE "LedgerEntry" ADD COLUMN IF NOT EXISTS "paidBy" TEXT`,
   `ALTER TABLE "Purchase" ADD COLUMN IF NOT EXISTS "orderId" TEXT`,
   `CREATE INDEX IF NOT EXISTS "Purchase_orderId_idx" ON "Purchase"("orderId")`,
+  `CREATE TABLE IF NOT EXISTS "Partner" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "phone" TEXT,
+    "role" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "Partner_pkey" PRIMARY KEY ("id")
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "Partner_name_key" ON "Partner"("name")`,
   `ALTER TYPE "PaymentMethod" ADD VALUE IF NOT EXISTS 'CREDIT'`,
   `CREATE TABLE IF NOT EXISTS "CreditPayment" (
     "id" TEXT NOT NULL,

@@ -9,6 +9,7 @@ import {
   STORE_PAYER,
   todayInColombia,
 } from '@/lib/accountingConfig';
+import { PersonPicker } from './ui';
 
 const field =
   'mt-1 w-full rounded-lg border border-cream-200 bg-white px-3 py-2.5 text-base text-coffee-900 outline-none transition-colors focus:border-coffee-600 sm:text-sm';
@@ -27,17 +28,6 @@ export type EntryInitial = {
 };
 
 const localDay = (iso: string) => new Date(new Date(iso).getTime() - 5 * 3600_000).toISOString().slice(0, 10);
-
-/** Names already used for "who paid", offered as suggestions. */
-export function PeopleList({ id, people }: { id: string; people: string[] }) {
-  return (
-    <datalist id={id}>
-      {[STORE_PAYER, ...people.filter((p) => p !== STORE_PAYER)].map((p) => (
-        <option key={p} value={p} />
-      ))}
-    </datalist>
-  );
-}
 
 /** Records (or edits) an expense or an income that isn't an order or a purchase. */
 export default function EntryForm({
@@ -167,8 +157,13 @@ export default function EntryForm({
           <span className={caption}>
             {isReimbursement ? '¿A quién se le devolvió?' : type === 'EXPENSE' ? '¿Quién pagó?' : '¿Quién lo recibió?'}
           </span>
-          <input value={form.paidBy} onChange={set('paidBy')} list="entry-people" autoComplete="off" className={field} />
-          <PeopleList id="entry-people" people={people} />
+          <PersonPicker
+            value={form.paidBy}
+            onChange={(name) => setForm((f) => ({ ...f, paidBy: name }))}
+            people={people}
+            allowStore={!isReimbursement}
+            className={field}
+          />
         </label>
         <label className="block sm:col-span-1 lg:col-span-2">
           <span className={caption}>Referencia o comprobante</span>

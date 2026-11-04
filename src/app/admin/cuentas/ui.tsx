@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { formatCOP } from '@/lib/format';
+import { STORE_PAYER } from '@/lib/accountingConfig';
 
 export const shortDate = (iso: string) =>
   new Date(iso).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', timeZone: 'America/Bogota' });
@@ -97,5 +98,66 @@ export function Progress({ value, color = '#2a78d6' }: { value: number; color?: 
     <div className="h-2 rounded-full bg-cream-100" role="progressbar" aria-valuenow={Math.round(value * 100)} aria-valuemin={0} aria-valuemax={100}>
       <div className="h-full rounded-full" style={{ width: `${Math.min(100, Math.max(0, value * 100))}%`, background: color, minWidth: value > 0 ? 4 : 0 }} />
     </div>
+  );
+}
+
+const OTHER = '__other__';
+
+/** Pick "La tienda", a saved person, or type another name. */
+export function PersonPicker({
+  value,
+  onChange,
+  people,
+  allowStore = true,
+  className,
+  storeLabel = STORE_PAYER,
+}: {
+  value: string;
+  onChange: (name: string) => void;
+  people: string[];
+  allowStore?: boolean;
+  className: string;
+  storeLabel?: string;
+}) {
+  const trimmed = value.trim();
+  const isStore = trimmed.toLowerCase() === storeLabel.toLowerCase();
+  const known = isStore ? allowStore : people.includes(trimmed);
+  const [typing, setTyping] = useState(!known && trimmed !== '');
+  const selectValue = typing ? OTHER : isStore && allowStore ? storeLabel : known ? trimmed : '';
+
+  return (
+    <>
+      <select
+        value={selectValue}
+        onChange={(e) => {
+          if (e.target.value === OTHER) {
+            setTyping(true);
+            onChange('');
+          } else {
+            setTyping(false);
+            onChange(e.target.value);
+          }
+        }}
+        className={className}
+      >
+        {!allowStore && <option value="">Elige una persona…</option>}
+        {allowStore && <option value={storeLabel}>{storeLabel} (su propia plata)</option>}
+        {people.map((p) => (
+          <option key={p} value={p}>
+            {p}
+          </option>
+        ))}
+        <option value={OTHER}>Otra persona…</option>
+      </select>
+      {typing && (
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Nombre"
+          autoFocus
+          className={className}
+        />
+      )}
+    </>
   );
 }

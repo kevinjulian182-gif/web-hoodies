@@ -7,7 +7,7 @@ import { buildWhatsAppLink } from '@/lib/whatsapp';
 import { PAYMENT_METHODS, REIMBURSEMENT_CATEGORY, STORE_PAYER, todayInColombia } from '@/lib/accountingConfig';
 import type { Accounts } from '@/lib/accounting';
 import { BarList, SalesVsSpendingChart, SERIES } from './charts';
-import { Empty, Progress, Section, Tile, pct, plural, primaryButton, secondaryButton, shortDate, signed } from './ui';
+import { Empty, PersonPicker, Progress, Section, Tile, pct, plural, primaryButton, secondaryButton, shortDate, signed } from './ui';
 import type { EntryInitial } from './EntryForm';
 import type { PurchaseInitial } from './PurchasePanel';
 
@@ -410,28 +410,50 @@ export function EntriesTab({ data, actions }: { data: Accounts; actions: TabActi
 
 const field =
   'mt-1 w-full rounded-lg border border-cream-200 bg-white px-3 py-2 text-base text-coffee-900 outline-none focus:border-coffee-600 sm:text-sm';
+const localDay = (iso: string) => new Date(new Date(iso).getTime() - 5 * 3600_000).toISOString().slice(0, 10);
 
-function AbonoForm({ credit, onSaved }: { credit: Accounts['credits'][number]; onSaved: () => void }) {
-  const [form, setForm] = useState({ amount: String(Math.round(credit.balanceCents / 100)), method: 'Efectivo', date: todayInColombia(), receivedBy: '' });
+type Credit = Accounts['credits'][number];
+type CreditPayment = Credit['payments'][number];
+
+/** New abono, or edit one already registered. */
+function AbonoForm({
+  credit,
+  payment,
+  people,
+  onSaved,
+  onCancel,
+}: {
+  credit: Credit;
+  payment?: CreditPayment;
+  people: string[];
+  onSaved: () => void;
+  onCancel: () => void;
+}) {
+  const [form, setForm] = useState({
+    amount: String(Math.round((payment ? payment.amountCents : credit.balanceCents) / 100)),
+    method: payment?.method ?? 'Efectivo',
+    date: payment ? localDay(payment.date) : todayInColombia(),
+    receivedBy: payment?.receivedBy ?? STORE_PAYER,
+  });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setError('');
-    const res = await fetch(`/api/admin/cuentas/fiados/${credit.id}`, {
-      method: 'POST',
+    const res = await fetch(payment ? `/api/admin/cuentas/abonos/${payment.id}` : `/api/admin/cuentas/fiados/${credit.id}`, {
+      method: payment ? 'PATCH' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ date: form.date, amountCents: (Number(form.amount) || 0) * 100, method: form.method, receivedBy: form.receivedBy }),
     });
     const data = await res.json().catch(() => ({}));
     setSaving(false);
-    if (!res.ok) return setError(data.error ?? 'No se pudo registrar el abono.');
+    if (!res.ok) return setError(data.error ?? 'No se pudo guardar el abono.');
     onSaved();
   };
   return (
     <form onSubmit={submit} className="mt-3 rounded-xl bg-cream-100/70 p-3">
-      <p className="text-xs font-semibold text-coffee-900">Registrar abono</p>
+      <p className="text-xs font-semibold text-coffee-900">{payment ? 'Editar abono' : 'Registrar abono'}</p>
       <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-4">
         <label className="block text-xs text-coffee-700">
           Valor ($)
@@ -451,12 +473,15 @@ function AbonoForm({ credit, onSaved }: { credit: Accounts['credits'][number]; o
         </label>
         <label className="block text-xs text-coffee-700">
           ¿Quién lo recibió?
-          <input value={form.receivedBy} onChange={(e) => setForm({ ...form, receivedBy: e.target.value })} className={field} />
+          <PersonPicker value={form.receivedBy} onChange={(name) => setForm({ ...form, receivedBy: name })} people={people} className={field} />
         </label>
       </div>
       <div className="mt-2 flex items-center gap-3">
         <button type="submit" disabled={saving} className={primaryButton}>
-          {saving ? 'Guardando…' : 'Guardar abono'}
+          {saving ? 'Guardando…' : payment ? 'Guardar cambios' : 'Guardar abono'}
+        </button>
+        <button type="button" onClick={onCancel} className="text-sm text-coffee-700 hover:text-coffee-900">
+          Cancelar
         </button>
         {error && <p className="text-xs text-red-700">{error}</p>}
       </div>
@@ -464,11 +489,82 @@ function AbonoForm({ credit, onSaved }: { credit: Accounts['credits'][number]; o
   );
 }
 
-export function CreditsTab({ data, actions }: { data: Accounts; actions: TabActions }) {
+/** Edit who owes, their phone, the agreed value and the day it was given. */
+function CreditEditForm({ credit, onSaved, onCancel }: { credit: Credit; onSaved: () => void; onCancel: () => void }) {
+  const [form, setForm] = useState({
+    customerName: credit.customer,
+    shippingPhone: credit.phone,
+    total: String(Math.round(credit.totalCents / 100)),
+    date: localDay(credit.date),
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+    const res = await fetch(`/api/admin/cuentas/fiados/${credit.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        customerName: form.customerName,
+        shippingPhone: form.shippingPhone,
+        totalCents: (Number(form.total) || 0) * 100,
+        date: form.date,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setSaving(false);
+    if (!res.ok) return setError(data.error ?? 'No se pudo guardar.');
+    onSaved();
+  };
+  return (
+    <form onSubmit={submit} className="mt-3 rounded-xl bg-cream-100/70 p-3">
+      <p className="text-xs font-semibold text-coffee-900">Editar fiado</p>
+      <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <label className="col-span-2 block text-xs text-coffee-700 sm:col-span-1">
+          Nombre
+          <input value={form.customerName} onChange={(e) => setForm({ ...form, customerName: e.target.value })} required className={field} />
+        </label>
+        <label className="block text-xs text-coffee-700">
+          Celular
+          <input value={form.shippingPhone} onChange={(e) => setForm({ ...form, shippingPhone: e.target.value })} type="tel" inputMode="tel" required className={field} />
+        </label>
+        <label className="block text-xs text-coffee-700">
+          Valor del fiado ($)
+          <input value={form.total} onChange={(e) => setForm({ ...form, total: e.target.value.replace(/\D/g, '') })} inputMode="numeric" required className={field} />
+        </label>
+        <label className="block text-xs text-coffee-700">
+          Fecha
+          <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required className={field} />
+        </label>
+      </div>
+      <p className="mt-2 text-xs text-coffee-500">
+        Para cambiar las prendas, cancela el pedido en el Gestor (vuelven al inventario) y crea el fiado de nuevo.
+      </p>
+      <div className="mt-2 flex items-center gap-3">
+        <button type="submit" disabled={saving} className={primaryButton}>
+          {saving ? 'Guardando…' : 'Guardar cambios'}
+        </button>
+        <button type="button" onClick={onCancel} className="text-sm text-coffee-700 hover:text-coffee-900">
+          Cancelar
+        </button>
+        {error && <p className="text-xs text-red-700">{error}</p>}
+      </div>
+    </form>
+  );
+}
+
+export function CreditsTab({ data, actions, people }: { data: Accounts; actions: TabActions; people: string[] }) {
   const [show, setShow] = useState<'owed' | 'paid'>('owed');
-  const [openId, setOpenId] = useState<string | null>(null);
+  // What's open: "abono:<creditId>", "edit:<creditId>" or "payment:<paymentId>".
+  const [open, setOpen] = useState<string | null>(null);
   const owed = data.credits.filter((c) => c.balanceCents > 0);
   const list = show === 'owed' ? owed : data.credits.filter((c) => c.balanceCents === 0);
+  const done = () => {
+    setOpen(null);
+    actions.reload();
+  };
 
   const removePayment = async (id: string) => {
     if (!confirm('¿Eliminar este abono?')) return;
@@ -542,45 +638,52 @@ export function CreditsTab({ data, actions }: { data: Accounts; actions: TabActi
                 <div className="mt-3">
                   <Progress value={c.totalCents ? c.paidCents / c.totalCents : 0} color="#1baf7a" />
                 </div>
+
                 {c.payments.length > 0 && (
                   <ul className="mt-3 space-y-1 text-xs text-coffee-700">
-                    {c.payments.map((p) => (
-                      <li key={p.id} className="flex items-center justify-between gap-3 tabular-nums">
-                        <span>
-                          {shortDate(p.date)} · {p.method}
-                          {p.receivedBy && ` · recibió ${p.receivedBy}`}
-                        </span>
-                        <span className="flex items-center gap-3">
-                          {formatCOP(p.amountCents)}
-                          <button type="button" onClick={() => removePayment(p.id)} className="text-red-600 hover:text-red-800">
-                            Quitar
-                          </button>
-                        </span>
-                      </li>
-                    ))}
+                    {c.payments.map((p) =>
+                      open === `payment:${p.id}` ? (
+                        <li key={p.id}>
+                          <AbonoForm credit={c} payment={p} people={people} onSaved={done} onCancel={() => setOpen(null)} />
+                        </li>
+                      ) : (
+                        <li key={p.id} className="flex items-center justify-between gap-3 tabular-nums">
+                          <span>
+                            {shortDate(p.date)} · {p.method}
+                            {p.receivedBy && ` · recibió ${p.receivedBy}`}
+                          </span>
+                          <span className="flex items-center gap-3">
+                            {formatCOP(p.amountCents)}
+                            <button type="button" onClick={() => setOpen(`payment:${p.id}`)} className="font-medium text-coffee-800 hover:text-coffee-900">
+                              Editar
+                            </button>
+                            <button type="button" onClick={() => removePayment(p.id)} className="text-red-600 hover:text-red-800">
+                              Quitar
+                            </button>
+                          </span>
+                        </li>
+                      )
+                    )}
                   </ul>
                 )}
-                {c.balanceCents > 0 && (
-                  <>
-                    <div className="mt-3 flex flex-wrap gap-4 border-t border-cream-200 pt-3 text-sm">
-                      <button type="button" onClick={() => setOpenId(openId === c.id ? null : c.id)} className="font-medium text-coffee-900">
-                        {openId === c.id ? 'Cerrar' : '+ Registrar abono'}
-                      </button>
-                      <a href={buildWhatsAppLink(c.phone, reminder)} target="_blank" rel="noopener noreferrer" className="text-[#128C7E] hover:text-[#0e6b60]">
-                        Recordarle por WhatsApp
-                      </a>
-                    </div>
-                    {openId === c.id && (
-                      <AbonoForm
-                        credit={c}
-                        onSaved={() => {
-                          setOpenId(null);
-                          actions.reload();
-                        }}
-                      />
-                    )}
-                  </>
-                )}
+
+                <div className="mt-3 flex flex-wrap gap-4 border-t border-cream-200 pt-3 text-sm">
+                  {c.balanceCents > 0 && (
+                    <button type="button" onClick={() => setOpen(open === `abono:${c.id}` ? null : `abono:${c.id}`)} className="font-medium text-coffee-900">
+                      + Registrar abono
+                    </button>
+                  )}
+                  <button type="button" onClick={() => setOpen(open === `edit:${c.id}` ? null : `edit:${c.id}`)} className="text-coffee-700 hover:text-coffee-900">
+                    Editar fiado
+                  </button>
+                  {c.balanceCents > 0 && (
+                    <a href={buildWhatsAppLink(c.phone, reminder)} target="_blank" rel="noopener noreferrer" className="text-[#128C7E] hover:text-[#0e6b60]">
+                      Recordarle por WhatsApp
+                    </a>
+                  )}
+                </div>
+                {open === `abono:${c.id}` && <AbonoForm credit={c} people={people} onSaved={done} onCancel={() => setOpen(null)} />}
+                {open === `edit:${c.id}` && <CreditEditForm credit={c} onSaved={done} onCancel={() => setOpen(null)} />}
               </article>
             );
           })}
@@ -590,55 +693,166 @@ export function CreditsTab({ data, actions }: { data: Accounts; actions: TabActi
   );
 }
 
-// ── La tienda debe ───────────────────────────────────────────────────────
+// ── Socios ───────────────────────────────────────────────────────────────
 
-export function OwesTab({ data, actions }: { data: Accounts; actions: TabActions }) {
+const ROLES = ['Socio', 'Socia', 'Empleado', 'Empleada', 'Otro'];
+
+function PartnerForm({
+  initial,
+  onSaved,
+  onCancel,
+}: {
+  initial?: { id?: string; name: string; phone: string | null; role: string | null };
+  onSaved: () => void;
+  onCancel?: () => void;
+}) {
+  const [form, setForm] = useState({ name: initial?.name ?? '', phone: initial?.phone ?? '', role: initial?.role ?? 'Socio' });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+    const res = await fetch(initial?.id ? `/api/admin/cuentas/socios/${initial.id}` : '/api/admin/cuentas/socios', {
+      method: initial?.id ? 'PATCH' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
+    });
+    const data = await res.json().catch(() => ({}));
+    setSaving(false);
+    if (!res.ok) return setError(data.error ?? 'No se pudo guardar.');
+    if (!initial) setForm({ name: '', phone: '', role: 'Socio' });
+    onSaved();
+  };
+  return (
+    <form onSubmit={submit} className="grid gap-2 sm:grid-cols-[1.4fr_1fr_1fr_auto] sm:items-end">
+      <label className="block text-xs text-coffee-700">
+        Nombre
+        <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required placeholder="Ej: Kevin" className={field} />
+      </label>
+      <label className="block text-xs text-coffee-700">
+        Celular (opcional)
+        <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} type="tel" inputMode="tel" className={field} />
+      </label>
+      <label className="block text-xs text-coffee-700">
+        Rol
+        <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className={field}>
+          {ROLES.map((r) => (
+            <option key={r}>{r}</option>
+          ))}
+        </select>
+      </label>
+      <div className="flex items-center gap-2">
+        <button type="submit" disabled={saving} className={primaryButton}>
+          {saving ? 'Guardando…' : initial?.id ? 'Guardar' : initial ? 'Guardar en la lista' : '+ Agregar'}
+        </button>
+        {onCancel && (
+          <button type="button" onClick={onCancel} className="text-sm text-coffee-700 hover:text-coffee-900">
+            Cancelar
+          </button>
+        )}
+      </div>
+      {error && <p className="text-xs text-red-700 sm:col-span-4">{error}</p>}
+    </form>
+  );
+}
+
+export function PartnersTab({ data, actions }: { data: Accounts; actions: TabActions }) {
+  const [editing, setEditing] = useState<string | null>(null);
   const partnerPaid = data.movements.filter((m) => !m.storeCash);
+
+  // Saved people plus anyone who appears in the accounts without being saved.
+  const rows = useMemo(() => {
+    const owes = new Map(data.storeOwes.map((o) => [o.person.toLowerCase(), o]));
+    const saved = data.partners.map((p) => ({ ...p, saved: true, owes: owes.get(p.name.toLowerCase()) }));
+    const savedNames = new Set(data.partners.map((p) => p.name.toLowerCase()));
+    const unsaved = data.storeOwes
+      .filter((o) => !savedNames.has(o.person.toLowerCase()))
+      .map((o) => ({ id: `unsaved-${o.person}`, name: o.person, phone: null, role: null, saved: false, owes: o }));
+    return [...saved, ...unsaved];
+  }, [data.partners, data.storeOwes]);
+
+  const remove = async (id: string, name: string) => {
+    if (!confirm(`¿Quitar a ${name} de la lista? Sus movimientos y lo que se le debe no cambian.`)) return;
+    await fetch(`/api/admin/cuentas/socios/${id}`, { method: 'DELETE' });
+    actions.reload();
+  };
+
   return (
     <div>
-      <div className="mb-4">
-        <p className="text-2xl font-semibold tabular-nums text-coffee-900">{formatCOP(data.summary.storeOwesCents)}</p>
-        <p className="text-sm text-coffee-600">debe la tienda por cosas que ustedes pagaron de su bolsillo</p>
+      <div className="mb-5 grid gap-3 sm:grid-cols-2">
+        <Tile label="La tienda les debe" value={formatCOP(data.summary.storeOwesCents)} hint="Por lo que pagaron de su bolsillo" />
+        <Tile label="Pagado por socios este periodo" value={formatCOP(data.summary.paidByPartnersCents)} hint="No salió de la caja de la tienda" />
       </div>
-      <p className="mb-5 text-xs leading-relaxed text-coffee-500">
-        Cuando registras una compra o un gasto y en «¿Quién pagó?» pones a una persona (no «{STORE_PAYER}»), la tienda le queda
-        debiendo ese valor. Cuando se lo devuelvan, regístralo con «Devolverle».
-      </p>
 
-      {data.storeOwes.length === 0 ? (
-        <Empty text="La tienda no le debe a nadie." />
+      <section className="mb-6 rounded-2xl border border-cream-200 bg-white p-4">
+        <h2 className="text-sm font-semibold text-coffee-900">Guardar un socio o persona</h2>
+        <p className="mb-3 mt-0.5 text-xs text-coffee-500">Aparecen para elegir en «¿Quién pagó?» y «¿Quién lo recibió?».</p>
+        <PartnerForm onSaved={actions.reload} />
+      </section>
+
+      {rows.length === 0 ? (
+        <Empty text="Aún no hay socios guardados." />
       ) : (
         <ul className="divide-y divide-cream-200 rounded-2xl border border-cream-200 bg-white">
-          {data.storeOwes.map((o) => (
-            <li key={o.person} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5">
-              <div>
-                <p className="font-medium text-coffee-900">{o.person}</p>
-                <p className="text-xs tabular-nums text-coffee-500">
-                  Pagó {formatCOP(o.paidCents)} · le han devuelto {formatCOP(o.repaidCents)}
-                </p>
-              </div>
-              <div className="flex items-center gap-4">
-                <p className={`text-base font-semibold tabular-nums ${o.owedCents > 0 ? 'text-coffee-900' : 'text-green-700'}`}>
-                  {o.owedCents > 0 ? `Se le debe ${formatCOP(o.owedCents)}` : 'Al día'}
-                </p>
-                {o.owedCents > 0 && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      actions.newEntry({
-                        type: 'EXPENSE',
-                        category: REIMBURSEMENT_CATEGORY,
-                        paidBy: o.person,
-                        amount: Math.round(o.owedCents / 100),
-                        description: `Devolución a ${o.person}`,
-                      })
-                    }
-                    className={secondaryButton}
-                  >
-                    Devolverle
-                  </button>
-                )}
-              </div>
+          {rows.map((r) => (
+            <li key={r.id} className="px-4 py-3.5">
+              {editing === r.id ? (
+                <PartnerForm
+                  initial={r.saved ? r : { name: r.name, phone: null, role: 'Socio' }}
+                  onSaved={() => {
+                    setEditing(null);
+                    actions.reload();
+                  }}
+                  onCancel={() => setEditing(null)}
+                />
+              ) : (
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-medium text-coffee-900">
+                      {r.name}
+                      {r.role && <span className="ml-2 rounded-full bg-cream-100 px-2 py-0.5 text-[11px] font-medium text-coffee-700">{r.role}</span>}
+                      {!r.saved && <span className="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800">sin guardar</span>}
+                    </p>
+                    <p className="text-xs tabular-nums text-coffee-500">
+                      {r.phone && `${r.phone} · `}
+                      {r.owes ? `Pagó ${formatCOP(r.owes.paidCents)} · le han devuelto ${formatCOP(r.owes.repaidCents)}` : 'Sin pagos de su bolsillo'}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    {r.owes && (
+                      <p className={`text-sm font-semibold tabular-nums ${r.owes.owedCents > 0 ? 'text-coffee-900' : 'text-green-700'}`}>
+                        {r.owes.owedCents > 0 ? `Se le debe ${formatCOP(r.owes.owedCents)}` : 'Al día'}
+                      </p>
+                    )}
+                    {r.owes && r.owes.owedCents > 0 && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          actions.newEntry({
+                            type: 'EXPENSE',
+                            category: REIMBURSEMENT_CATEGORY,
+                            paidBy: r.name,
+                            amount: Math.round(r.owes!.owedCents / 100),
+                            description: `Devolución a ${r.name}`,
+                          })
+                        }
+                        className={secondaryButton}
+                      >
+                        Devolverle
+                      </button>
+                    )}
+                    <button type="button" onClick={() => setEditing(r.id)} className="text-sm font-medium text-coffee-800 hover:text-coffee-900">
+                      {r.saved ? 'Editar' : 'Guardar'}
+                    </button>
+                    {r.saved && (
+                      <button type="button" onClick={() => remove(r.id, r.name)} className="text-sm text-red-600 hover:text-red-800">
+                        Quitar
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </li>
           ))}
         </ul>

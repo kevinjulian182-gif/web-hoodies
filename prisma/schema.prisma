@@ -333,3 +333,14 @@ model CreditPayment {
 
   @@index([orderId])
 }
+
+/// People who pay or receive the store's money (partners, employees…),
+/// offered in "¿Quién pagó?" / "¿Quién lo recibió?". Records keep the name
+/// as text, so removing someone from the list never changes past entries.
+model Partner {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  phone     String?
+  role      String?
+  createdAt DateTime @default(now())
+}
