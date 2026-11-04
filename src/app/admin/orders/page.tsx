@@ -7,6 +7,7 @@ import { buildOrderConfirmationMessage, buildWhatsAppLink } from '@/lib/whatsapp
 import { useCatalogSettings } from '@/lib/catalogSettings';
 import { orderFreightOnDelivery } from '@/lib/pricing';
 import { isWhatsAppOrder, PLACEHOLDER_ADDRESS } from '@/lib/orderSource';
+import OrderItems, { type OrderItemView } from '@/components/admin/OrderItems';
 
 type Order = {
   id: string;
@@ -29,7 +30,7 @@ type Order = {
   carrier: string;
   wompiReference: string;
   createdAt: string;
-  items: { id: string; quantity: number; product: { name: string } }[];
+  items: OrderItemView[];
 };
 
 const STATUS_LABEL: Record<Order['status'], string> = {
@@ -197,6 +198,8 @@ export default function OrdersPage() {
                 </p>
               )}
             </div>
+
+            <OrderItems items={order.items} />
 
             <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-cream-200 pt-3">
               <a

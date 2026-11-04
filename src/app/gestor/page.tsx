@@ -6,6 +6,7 @@ import { formatCOP } from '@/lib/format';
 import { isManualOrder, isWhatsAppOrder } from '@/lib/orderSource';
 import { INTER_TRACKING_PAGE } from '@/lib/trackingLinks';
 import NewOrderPanel from './NewOrderPanel';
+import OrderItems from '@/components/admin/OrderItems';
 import type { ManagedOrder, Status } from './types';
 
 type Stage = 'PENDING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
@@ -146,17 +147,10 @@ export default function OrderManagerPage() {
       </div>
 
       {!loading && !trackingEnabled && (
-        <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          <p className="font-medium">El seguimiento automático de guías está apagado.</p>
-          <p className="mt-1 text-amber-800">
-            Crea una cuenta gratis en{' '}
-            <a href="https://www.trackingmore.com/signup.html" target="_blank" rel="noreferrer" className="underline underline-offset-2">
-              trackingmore.com
-            </a>
-            , copia tu API key (Developer › API Key) y pégala en Configuración › «TrackingMore — API Key». Desde ahí los
-            pedidos enviados pasan solos a «Entregado» cuando Interrapidísimo los entrega.
-          </p>
-        </div>
+        <p className="mb-5 text-xs leading-relaxed text-coffee-500">
+          Marca cada pedido como Enviado y Entregado a mano; «Ver en Interrapidísimo» copia la guía y abre el rastreo.
+          El cambio automático a Entregado es opcional y usa un servicio de pago (TrackingMore, API key en Configuración).
+        </p>
       )}
 
       {banner && (
@@ -326,12 +320,8 @@ function OrderCard({
         <p className="text-base font-semibold tabular-nums text-coffee-900">{formatCOP(order.totalCents)}</p>
       </div>
 
-      <p className="mt-3 text-sm text-coffee-800">
-        {order.items
-          .map((i) => `${i.quantity}× ${i.product.name} (${[i.size, i.color].filter(Boolean).join(', ')})`)
-          .join(' · ')}
-      </p>
-      <p className="mt-1 text-xs text-coffee-600">
+      <OrderItems items={order.items} />
+      <p className="mt-2 text-xs text-coffee-600">
         {order.shippingAddress}
         {order.shippingAddressComplement && `, ${order.shippingAddressComplement}`} — {order.shippingCity}
         {order.shippingDepartment && `, ${order.shippingDepartment}`} · {order.shippingPhone}

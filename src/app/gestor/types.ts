@@ -20,5 +20,5 @@ export type ManagedOrder = {
   shippedAt: string | null;
   deliveredAt: string | null;
   createdAt: string;
-  items: { id: string; quantity: number; size: string; color: string | null; product: { name: string } }[];
+  items: { id: string; quantity: number; size: string; color: string | null; priceCents: number; product: { name: string; images?: string[] } }[];
 };
