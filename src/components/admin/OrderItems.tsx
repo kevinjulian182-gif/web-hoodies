@@ -1,4 +1,6 @@
-import Image from 'next/image';
+'use client';
+
+import { useState } from 'react';
 import { formatCOP } from '@/lib/format';
 import { parseColorImages } from '@/lib/colors';
 
@@ -23,7 +25,7 @@ export default function OrderItems({ items }: { items: OrderItemView[] }) {
         return (
           <li key={item.id} className="flex items-center gap-3 rounded-xl bg-cream-100/70 p-2">
             <div className="relative h-14 w-12 shrink-0 overflow-hidden rounded-lg bg-cream-200">
-              {image && <Image src={image} alt={item.product.name} fill sizes="48px" className="object-cover" />}
+              {image && <Thumb src={image} />}
               {item.quantity > 1 && (
                 <span className="absolute right-0.5 top-0.5 rounded-full bg-coffee-900 px-1.5 text-[10px] font-semibold leading-4 text-cream-50">
                   ×{item.quantity}
@@ -43,4 +45,14 @@ export default function OrderItems({ items }: { items: OrderItemView[] }) {
       })}
     </ul>
   );
+}
+
+// Plain <img>, like the product list's thumbnails: the admin loads the stored
+// file directly instead of going through Next's image optimizer. A photo that
+// fails leaves the neutral box instead of broken-image alt text.
+function Thumb({ src }: { src: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={src} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" onError={() => setFailed(true)} />;
 }
