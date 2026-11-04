@@ -15,6 +15,49 @@ const STATEMENTS = [
   `ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "deliveredAt" TIMESTAMP(3)`,
   `ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "trackingStatus" TEXT`,
   `ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "trackingCheckedAt" TIMESTAMP(3)`,
+  // Cuentas: merchandise purchases and other money in/out.
+  `CREATE TABLE IF NOT EXISTS "Purchase" (
+    "id" TEXT NOT NULL,
+    "date" TIMESTAMP(3) NOT NULL,
+    "supplier" TEXT NOT NULL,
+    "invoiceNumber" TEXT,
+    "paymentMethod" TEXT NOT NULL,
+    "notes" TEXT,
+    "totalCents" INTEGER NOT NULL,
+    "addedToStock" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "Purchase_pkey" PRIMARY KEY ("id")
+  )`,
+  `CREATE TABLE IF NOT EXISTS "PurchaseItem" (
+    "id" TEXT NOT NULL,
+    "purchaseId" TEXT NOT NULL,
+    "productId" TEXT,
+    "description" TEXT NOT NULL,
+    "size" TEXT,
+    "color" TEXT,
+    "quantity" INTEGER NOT NULL,
+    "unitCostCents" INTEGER NOT NULL,
+    CONSTRAINT "PurchaseItem_pkey" PRIMARY KEY ("id")
+  )`,
+  `CREATE TABLE IF NOT EXISTS "LedgerEntry" (
+    "id" TEXT NOT NULL,
+    "date" TIMESTAMP(3) NOT NULL,
+    "type" TEXT NOT NULL,
+    "category" TEXT NOT NULL,
+    "description" TEXT NOT NULL,
+    "amountCents" INTEGER NOT NULL,
+    "method" TEXT NOT NULL,
+    "reference" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "LedgerEntry_pkey" PRIMARY KEY ("id")
+  )`,
+  `CREATE INDEX IF NOT EXISTS "Purchase_date_idx" ON "Purchase"("date")`,
+  `CREATE INDEX IF NOT EXISTS "LedgerEntry_date_idx" ON "LedgerEntry"("date")`,
+  `DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'PurchaseItem_purchaseId_fkey') THEN
+      ALTER TABLE "PurchaseItem" ADD CONSTRAINT "PurchaseItem_purchaseId_fkey" FOREIGN KEY ("purchaseId") REFERENCES "Purchase"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    END IF;
+  END $$`,
 ];
 
 const prisma = new PrismaClient({ datasources: { db: { url } } });

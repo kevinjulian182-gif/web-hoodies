@@ -14,6 +14,7 @@ const NAV: NavItem[] = [
   { href: '/admin/coupons', label: 'Cupones', icon: <TicketIcon /> },
   { href: '/admin/marketplaces', label: 'Mercado Libre y FB', icon: <StoreIcon /> },
   { href: '/admin/contenido', label: 'Contenido web', icon: <LayoutIcon /> },
+  { href: '/admin/cuentas', label: 'Cuentas', icon: <WalletIcon /> },
   { href: '/admin/analitica', label: 'Analítica', icon: <ChartIcon /> },
   { href: '/admin/consentimientos', label: 'Consentimientos', icon: <ShieldIcon /> },
   { href: '/admin/cuenta', label: 'Mi cuenta', icon: <UserIcon /> },
@@ -158,6 +159,9 @@ function StoreIcon() {
 }
 function ClipboardIcon() {
   return <Svg><rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3" /></Svg>;
+}
+function WalletIcon() {
+  return <Svg><path d="M4 7a2 2 0 0 1 2-2h11v4" /><rect x="3" y="7" width="18" height="13" rx="2" /><path d="M16 13.5h2" /></Svg>;
 }
 function BoxIcon() {
   return <Svg><path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5v-9Z" /><path d="m3 7.5 9 4.5 9-4.5M12 12v9" /></Svg>;

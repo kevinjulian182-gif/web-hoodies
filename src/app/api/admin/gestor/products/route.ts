@@ -1,20 +1,22 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prismaInternal } from '@/lib/prisma';
 import { getSession, requireRole } from '@/lib/auth';
 
-// The store's live inventory, for picking products when registering an order.
+// The store's live inventory, for picking products when registering an
+// order or a merchandise purchase (admin only, so the cost is included).
 export async function GET() {
   const session = await getSession();
   if (!requireRole(session, ['ADMIN', 'SUPER_ADMIN'])) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
-  const products = await prisma.product.findMany({
+  const products = await prismaInternal.product.findMany({
     orderBy: [{ active: 'desc' }, { name: 'asc' }],
     select: {
       id: true,
       name: true,
       brand: true,
       priceCents: true,
+      costCents: true,
       images: true,
       sizes: true,
       colors: true,

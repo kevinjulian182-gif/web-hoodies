@@ -45,44 +45,44 @@ model User {
 }
 
 model Product {
-  id          String      @id @default(cuid())
-  name        String
-  slug        String      @unique
-  brand       String
+  id                  String           @id @default(cuid())
+  name                String
+  slug                String           @unique
+  brand               String
   // Garment type (hoodie, chaqueta, ...) — optional since products created
   // before this field existed have none yet; managed the same way as
   // brand, via the separate Category list.
-  category    String?
-  description String
-  materials   String?
-  details     String?
-  careInstructions String?
-  priceCents  Int
+  category            String?
+  description         String
+  materials           String?
+  details             String?
+  careInstructions    String?
+  priceCents          Int
   compareAtPriceCents Int?
-  costCents   Int?
-  images      String[]
-  colorImages Json?
+  costCents           Int?
+  images              String[]
+  colorImages         Json?
   // Per-product override of the color name -> swatch hex shown on cards
   // and the PDP. Falls back to the shared name-based guess (lib/colors.ts)
   // for any color not present here, so existing products need no backfill.
-  colorHex    Json?
+  colorHex            Json?
   // Optional size chart shown on the PDP: { columns, rows: { [size]: values[] }, note? }
   // (see src/lib/sizeChart.ts). Null for products that don't have one.
-  sizeChart   Json?
-  videos      String[]    @default([])
-  sizes       String[]
-  colors      String[]    @default([])
+  sizeChart           Json?
+  videos              String[]         @default([])
+  sizes               String[]
+  colors              String[]         @default([])
   // Cached sum of variants[].stock — kept in sync on every write that
   // touches variants (admin save, checkout decrement) so every existing
   // read of "total stock for this product" keeps working unchanged.
-  stock       Int         @default(0)
-  active      Boolean     @default(true)
-  isPromo     Boolean     @default(false)
-  orderItems  OrderItem[]
-  reviews     Review[]
-  variants    ProductVariant[]
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  stock               Int              @default(0)
+  active              Boolean          @default(true)
+  isPromo             Boolean          @default(false)
+  orderItems          OrderItem[]
+  reviews             Review[]
+  variants            ProductVariant[]
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
 }
 
 // A managed list of brand names, separate from Product.brand (a plain
@@ -128,37 +128,37 @@ model Review {
 }
 
 model Order {
-  id                String      @id @default(cuid())
-  user              User?       @relation(fields: [userId], references: [id])
-  userId            String?
-  customerEmail     String
-  customerName      String
-  customerDocument  String?
-  shippingAddress   String
+  id                        String        @id @default(cuid())
+  user                      User?         @relation(fields: [userId], references: [id])
+  userId                    String?
+  customerEmail             String
+  customerName              String
+  customerDocument          String?
+  shippingAddress           String
   shippingAddressComplement String?
-  shippingDepartment String?
-  shippingCity      String
-  shippingPhone     String
-  deliveryNotes     String?
-  items             OrderItem[]
-  subtotalCents     Int
-  discountCents     Int         @default(0)
-  totalCents        Int
-  couponCode        String?
-  status            OrderStatus @default(PENDING)
-  paymentMethod     PaymentMethod @default(WOMPI)
-  whatsappConfirmedAt DateTime?
-  wompiReference    String      @unique
-  wompiTransactionId String?
-  carrier           String      @default("Inter Rapidísimo")
-  trackingNumber    String?
-  shippedAt         DateTime?
-  deliveredAt       DateTime?
+  shippingDepartment        String?
+  shippingCity              String
+  shippingPhone             String
+  deliveryNotes             String?
+  items                     OrderItem[]
+  subtotalCents             Int
+  discountCents             Int           @default(0)
+  totalCents                Int
+  couponCode                String?
+  status                    OrderStatus   @default(PENDING)
+  paymentMethod             PaymentMethod @default(WOMPI)
+  whatsappConfirmedAt       DateTime?
+  wompiReference            String        @unique
+  wompiTransactionId        String?
+  carrier                   String        @default("Inter Rapidísimo")
+  trackingNumber            String?
+  shippedAt                 DateTime?
+  deliveredAt               DateTime?
   /// Last state reported by the carrier's tracking (e.g. "En reparto").
-  trackingStatus    String?
-  trackingCheckedAt DateTime?
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  trackingStatus            String?
+  trackingCheckedAt         DateTime?
+  createdAt                 DateTime      @default(now())
+  updatedAt                 DateTime      @updatedAt
 }
 
 model OrderItem {
@@ -218,23 +218,23 @@ model BlogPost {
 // Created on first use by lib/consent.ts if it doesn't exist yet, so no
 // manual migration is needed.
 model ConsentRecord {
-  id           String   @id @default(cuid())
-  createdAt    DateTime @default(now())
+  id              String   @id @default(cuid())
+  createdAt       DateTime @default(now())
   // checkout | whatsapp_order | newsletter | cookies
-  source       String
-  email        String?
-  name         String?
-  phone        String?
+  source          String
+  email           String?
+  name            String?
+  phone           String?
   // Order reference when the acceptance came with an order.
-  reference    String?
-  acceptedTerms    Boolean @default(false)
-  acceptedPrivacy  Boolean @default(false)
+  reference       String?
+  acceptedTerms   Boolean  @default(false)
+  acceptedPrivacy Boolean  @default(false)
   // Cookie banner choice: "all" or "necessary".
-  cookies      String?
+  cookies         String?
   // Version (date) of the legal texts that were shown.
-  legalVersion String
-  ip           String?
-  userAgent    String?
+  legalVersion    String
+  ip              String?
+  userAgent       String?
 
   @@index([email])
   @@index([createdAt])
@@ -258,4 +258,53 @@ model AnalyticsEvent {
 
   @@index([createdAt])
   @@index([sessionId])
+}
+
+/// Merchandise bought from a supplier. Its items can add units to the
+/// store's inventory (and update the product's cost) when it's registered.
+model Purchase {
+  id            String         @id @default(cuid())
+  date          DateTime
+  supplier      String
+  invoiceNumber String?
+  /// Efectivo, Transferencia, Nequi, Daviplata, Tarjeta, Crédito, Otro.
+  paymentMethod String
+  notes         String?
+  totalCents    Int
+  addedToStock  Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+  items         PurchaseItem[]
+
+  @@index([date])
+}
+
+model PurchaseItem {
+  id            String   @id @default(cuid())
+  purchase      Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  purchaseId    String
+  /// Store product it restocks; null for things that aren't inventory (bags, labels…).
+  productId     String?
+  description   String
+  size          String?
+  color         String?
+  quantity      Int
+  unitCostCents Int
+}
+
+/// Money in or out that isn't a store order or a merchandise purchase:
+/// expenses (shipping, ads, packaging, fees, rent…), other income, owner
+/// contributions and withdrawals.
+model LedgerEntry {
+  id          String   @id @default(cuid())
+  date        DateTime
+  /// INCOME or EXPENSE.
+  type        String
+  category    String
+  description String
+  amountCents Int
+  method      String
+  reference   String?
+  createdAt   DateTime @default(now())
+
+  @@index([date])
 }
